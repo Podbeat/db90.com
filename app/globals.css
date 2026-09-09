@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #16130f;
+  --surface: #201a13;
+  --surface-raised: #2a2216;
+  --accent: #e4572e;
+  --accent-dark: #a83c1c;
+  --gold: #d9a441;
+  --namek: #4f8f5b;
+  --text: #f3eee2;
+  --text-muted: #a89c86;
+  --line: #3a3226;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.display-font { font-family: 'Archivo Black', sans-serif; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 1.25rem; }
+
+/* Top bar / nav */
+.top-bar { border-bottom: 1px solid var(--line); background: var(--surface); }
+.top-bar-inner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 0.75rem; padding: 0.9rem 0;
+}
+.brand-title { font-size: 1.3rem; }
+.brand-sub { color: var(--text-muted); font-size: 0.72rem; margin-top: 0.15rem; }
+.nav-links { display: flex; gap: 1.4rem; align-items: center; flex-wrap: wrap; }
+.nav-btn {
+  font-size: 0.88rem; color: var(--text-muted); padding: 0.35rem 0.1rem;
+  border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none;
+  cursor: pointer; font-family: inherit;
+}
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
+/* Layout helpers */
+.page { padding: 2rem 0 4rem; }
+.two-col { display: flex; gap: 1.75rem; align-items: flex-start; flex-wrap: wrap; }
+.sidebar { width: 260px; flex-shrink: 0; }
+.main-col { flex: 1; min-width: 280px; }
+
+/* Filters / forms */
+.filter-panel, .form-panel { background: var(--surface); border: 1px solid var(--line); padding: 1.1rem; }
+.field { display: block; margin-bottom: 0.9rem; }
+.field-label { display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--line); color: var(--text);
+  padding: 0.5rem 0.6rem; font-size: 0.88rem; font-family: inherit;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+.search-wrap { position: relative; }
+.search-wrap input { padding-left: 1.8rem; }
+.search-icon { position: absolute; left: 8px; top: 10px; color: var(--text-muted); }
+
+/* Cards grid */
+.card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.card-tile {
+  background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.card-tile:hover { border-color: var(--accent); transform: translateY(-2px); }
+.card-tile img { width: 100%; aspect-ratio: 5 / 7; object-fit: cover; display: block; background: var(--surface-raised); }
+.card-tile .meta { padding: 0.55rem 0.6rem; }
+.card-num { font-family: 'Archivo Black', sans-serif; font-size: 0.68rem; color: var(--gold); }
+.card-nom { font-size: 0.82rem; margin-top: 0.15rem; }
+.rarity-tag { display: inline-block; font-size: 0.63rem; color: var(--text-muted); margin-top: 0.3rem; border: 1px solid var(--line); padding: 0.08rem 0.4rem; }
+
+/* Collections */
+.collection-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.collection-tile { background: var(--surface); border: 1px solid var(--line); padding: 1rem; }
+.collection-tile:hover { border-color: var(--accent); }
+.progress-track { height: 4px; background: var(--line); margin-top: 0.6rem; }
+.progress-fill { height: 4px; background: var(--gold); }
+
+/* Data sheet (card detail) */
+.data-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+.data-row:last-child { border-bottom: none; }
+.data-label { color: var(--text-muted); }
+
+/* Buttons */
+.btn-primary { background: var(--accent); color: #1a1208; border: none; padding: 0.55rem 0.95rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: #ef6a3f; }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); padding: 0.55rem 0.95rem; font-size: 0.85rem; cursor: pointer; }
+.btn-ghost:hover { border-color: var(--text-muted); }
+.btn-danger { background: transparent; color: var(--accent); border: 1px solid var(--accent-dark); padding: 0.45rem 0.75rem; font-size: 0.8rem; cursor: pointer; }
+.btn-icon { background: transparent; border: 1px solid var(--line); color: var(--text-muted); padding: 0.35rem 0.5rem; cursor: pointer; }
+.btn-icon:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* Tables */
+table.admin-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+table.admin-table th { text-align: left; color: var(--text-muted); font-weight: 500; font-size: 0.72rem; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--line); }
+table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+
+.upload-zone { border: 1px dashed var(--line); padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.82rem; cursor: pointer; }
+.upload-zone:hover { border-color: var(--accent); color: var(--text); }
+
+.empty-state { text-align: center; color: var(--text-muted); padding: 3rem 1rem; border: 1px dashed var(--line); }
+.toast { padding: 0.6rem 0.9rem; font-size: 0.85rem; border: 1px solid var(--line); margin-bottom: 1rem; }
+.toast.error { background: #4a1f14; border-color: var(--accent-dark); }
+.toast.success { background: #1c3320; border-color: var(--namek); }
+
+.pagination { display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.5rem; }
+
+@media (max-width: 720px) {
+  .two-col { flex-direction: column; }
+  .sidebar { width: 100%; }
+}

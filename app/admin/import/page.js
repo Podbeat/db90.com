@@ -50,6 +50,9 @@ export default function AdminImportPage() {
         <p style={{ fontFamily: "monospace", color: "var(--text)" }}>
           collection, numero, personnage, rarete, description, image
         </p>
+        <a href="/templates/modele-import-cartes.csv" download className="btn-ghost" style={{ display: "inline-block", marginBottom: "0.9rem" }}>
+          Télécharger le modèle CSV
+        </a>
         <p>
           La colonne <strong>image</strong> doit contenir le nom exact du fichier scan correspondant (ex. <code>0014.jpg</code>).
           Sélectionnez ensuite tous vos fichiers scans dans le second champ : ils seront associés automatiquement par nom de fichier.

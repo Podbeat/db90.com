@@ -6,6 +6,9 @@ import { saveImage } from "@/lib/storage";
 import { translateFreeText } from "@/lib/translate";
 
 export const runtime = "nodejs";
+// Un import avec plusieurs images peut prendre plus de temps que la limite par défaut
+// (10s sur Vercel Hobby). On autorise explicitement jusqu'à 60s, le maximum du plan gratuit.
+export const maxDuration = 60;
 
 // Colonnes attendues dans le fichier CSV (en-têtes insensibles à la casse) :
 // collection, numero, personnage, rarete, description, image

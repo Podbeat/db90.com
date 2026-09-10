@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Copy } from "lucide-react";
 
 function emptyForm(defaultCollectionId) {
   return {
@@ -13,6 +13,8 @@ function emptyForm(defaultCollectionId) {
     description: "",
     image: null,
     imageHD: null,
+    dos: null,
+    dosHD: null,
   };
 }
 
@@ -26,8 +28,12 @@ export default function AdminCardsPage() {
   const [form, setForm] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [message, setMessage] = useState(null);
+  const [applyWatermark, setApplyWatermark] = useState(false);
+  const [applyWatermarkDos, setApplyWatermarkDos] = useState(false);
   const fileRef = useRef(null);
+  const dosFileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingDos, setUploadingDos] = useState(false);
 
   async function loadCollections() {
     const res = await fetch("/api/collections");
@@ -60,6 +66,7 @@ export default function AdminCardsPage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
+      fd.append("watermark", applyWatermark ? "true" : "false");
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
       if (res.ok) {
@@ -71,6 +78,28 @@ export default function AdminCardsPage() {
       setMessage({ type: "error", text: "Échec de l'import de l'image." });
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleDosFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDos(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("watermark", applyWatermarkDos ? "true" : "false");
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        setForm((f) => ({ ...f, dos: data.url, dosHD: data.hdUrl }));
+      } else {
+        setMessage({ type: "error", text: data.error || "Échec de l'import de l'image." });
+      }
+    } catch (e) {
+      setMessage({ type: "error", text: "Échec de l'import de l'image." });
+    } finally {
+      setUploadingDos(false);
     }
   }
 
@@ -106,6 +135,24 @@ export default function AdminCardsPage() {
     loadCards(p);
   }
 
+  // Pré-remplit collection / référence / personnage à partir d'une carte existante,
+  // pour ajouter rapidement un autre effet (variante) de la même carte physique.
+  function handleDuplicate(c) {
+    setForm({
+      id: null,
+      collectionId: c.collectionId,
+      numero: c.numero,
+      personnage: c.personnage,
+      rarete: "",
+      description: "",
+      image: null,
+      imageHD: null,
+      dos: null,
+      dosHD: null,
+    });
+    setMessage({ type: "success", text: "Référence et personnage repris — précisez la nouvelle variante/effet et son scan." });
+  }
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -119,7 +166,7 @@ export default function AdminCardsPage() {
 
       {form && (
         <form onSubmit={handleSave} className="form-panel" style={{ marginBottom: "1.5rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0 1rem" }}>
+          <div className="admin-grid-3">
             <div className="field">
               <span className="field-label">Collection</span>
               <select value={form.collectionId} onChange={(e) => setForm({ ...form, collectionId: e.target.value })} required>
@@ -134,7 +181,7 @@ export default function AdminCardsPage() {
               <input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} placeholder="ex. ZCB-01" required />
             </div>
             <div className="field">
-              <span className="field-label">Variante / rareté</span>
+              <span className="field-label">Variante / rareté / effet</span>
               <input value={form.rarete} onChange={(e) => setForm({ ...form, rarete: e.target.value })} placeholder="ex. Prisme rose" />
             </div>
           </div>
@@ -142,22 +189,50 @@ export default function AdminCardsPage() {
             <span className="field-label">Personnage principal</span>
             <input value={form.personnage} onChange={(e) => setForm({ ...form, personnage: e.target.value })} placeholder="ex. Son Goku" required />
           </div>
+          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "-0.4rem 0 0.9rem" }}>
+            Une même référence peut exister plusieurs fois (une ligne par effet/variante) : utilisez "Dupliquer" depuis le tableau pour repartir d'une carte existante.
+          </div>
           <div className="field">
             <span className="field-label">Description (contexte, autres personnages présents…)</span>
             <textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </div>
-          <div className="field">
-            <span className="field-label">Scan de la carte</span>
-            <div className="upload-zone" onClick={() => fileRef.current?.click()}>
-              <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
-              {uploading ? "Envoi en cours…" : form.image ? "Remplacer l'image" : "Cliquer pour importer le scan"}
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
+            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+              Écrite en français : traduite automatiquement dans les 3 autres langues à l'enregistrement.
             </div>
-            {form.image && <img src={form.image} alt="" style={{ width: 90, marginTop: "0.6rem" }} />}
+          </div>
+          <div className="admin-grid-2">
+            <div className="field">
+              <span className="field-label">Scan recto de la carte</span>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+                <input type="checkbox" checked={applyWatermark} onChange={(e) => setApplyWatermark(e.target.checked)} style={{ width: "auto" }} />
+                Ajouter le filigrane
+              </label>
+              <div className="upload-zone" onClick={() => fileRef.current?.click()}>
+                <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
+                {uploading ? "Envoi en cours…" : form.image ? "Remplacer l'image" : "Cliquer pour importer le scan"}
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
+              </div>
+              {form.image && <img src={form.image} alt="" style={{ width: 90, marginTop: "0.6rem" }} />}
+            </div>
+            <div className="field">
+              <span className="field-label">Visuel de dos propre à cette carte (optionnel)</span>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+                <input type="checkbox" checked={applyWatermarkDos} onChange={(e) => setApplyWatermarkDos(e.target.checked)} style={{ width: "auto" }} />
+                Ajouter le filigrane
+              </label>
+              <div className="upload-zone" onClick={() => dosFileRef.current?.click()}>
+                <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
+                {uploadingDos ? "Envoi en cours…" : form.dos ? "Remplacer le dos" : "Cliquer si le dos diffère de la série"}
+                <input ref={dosFileRef} type="file" accept="image/*" onChange={handleDosFile} style={{ display: "none" }} />
+              </div>
+              {form.dos && <img src={form.dos} alt="" style={{ width: 90, marginTop: "0.6rem" }} />}
+              <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
+                Laissez vide pour utiliser le dos partagé de la collection.
+              </div>
+            </div>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="btn-ghost" onClick={() => setForm(null)}>Annuler</button>
-            <button type="submit" className="btn-primary" disabled={uploading}>Enregistrer la carte</button>
+            <button type="submit" className="btn-primary" disabled={uploading || uploadingDos}>Enregistrer la carte</button>
           </div>
         </form>
       )}
@@ -182,6 +257,7 @@ export default function AdminCardsPage() {
                   <td>{c.rarete}</td>
                   <td>
                     <div style={{ display: "flex", gap: "0.4rem" }}>
+                      <button className="btn-icon" title="Dupliquer (nouvel effet/variante)" onClick={() => handleDuplicate(c)}><Copy size={13} /></button>
                       <button className="btn-icon" onClick={() => setForm({ ...c, collectionId: c.collectionId })}><Pencil size={13} /></button>
                       <button className="btn-icon" onClick={() => setConfirmDelete(c)}><Trash2 size={13} /></button>
                     </div>

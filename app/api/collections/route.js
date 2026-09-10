@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { translateCollectionDescription } from "@/lib/translate";
 
 export async function GET() {
   const collections = await prisma.collection.findMany({
@@ -19,6 +20,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "Le nom de la collection est obligatoire." }, { status: 400 });
   }
 
+  const translations = await translateCollectionDescription(body.description);
+
   const collection = await prisma.collection.create({
     data: {
       nom: body.nom,
@@ -29,6 +32,10 @@ export async function POST(request) {
       cover: body.cover || null,
       dos: body.dos || null,
       dosHD: body.dosHD || body.dos || null,
+      description: body.description || null,
+      descriptionEn: translations.en,
+      descriptionZhTW: translations.zhTW,
+      descriptionZhCN: translations.zhCN,
     },
   });
   return NextResponse.json(collection, { status: 201 });

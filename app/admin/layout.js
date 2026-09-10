@@ -20,6 +20,7 @@ export default function AdminLayout({ children }) {
 
   const links = [
     { href: "/admin", label: "Tableau de bord" },
+    { href: "/admin/stats", label: "Statistiques" },
     { href: "/admin/cartes", label: "Cartes" },
     { href: "/admin/collections", label: "Collections" },
     { href: "/admin/reports", label: "Signalements" },

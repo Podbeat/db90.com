@@ -1,6 +1,6 @@
-# Archives Carddass
+# DB Non-Off 90's
 
-Base de référence pour collectionneurs de cartes Dragon Ball : catalogue public (recherche, filtres, fiches détaillées par carte et par collection) et espace d'administration pour votre équipe (ajout/édition/suppression, import en masse de vos scans).
+Base de référence pour collectionneurs de cartes Dragon Ball non-officielles des années 90 (Taïwan, Hong Kong, Malaisie...) : catalogue public (recherche, filtres, fiches détaillées par carte et par collection) et espace d'administration pour votre équipe (ajout/édition/suppression, import en masse de vos scans).
 
 Ce projet a été construit et **compile avec succès** (`npm run build`) avec Next.js 15 (App Router). Il vous reste à le connecter à une vraie base de données et à un stockage d'images pour le mettre en ligne — voir plus bas.
 
@@ -70,12 +70,39 @@ L'import associe chaque ligne à son image par nom de fichier et vous indique en
 
 Pour une base de plusieurs milliers de cartes, importez par lots (par exemple collection par collection) plutôt qu'en un seul fichier géant, pour limiter la taille de l'envoi.
 
-## Filigrane automatique sur les nouveaux scans
+## Filigrane — activable ou non, au cas par cas
 
-Depuis `lib/storage.js`, chaque image importée est automatiquement marquée du logo "DB Non-Off 90's" (bas à droite, orientation verticale), **uniquement sur la version d'affichage** — le fichier HD reste toujours intact, sans filigrane, pour rester une archive fidèle.
+Le filigrane "DB Non-Off 90's" (bas à droite, orientation verticale) n'est **plus systématique**. Sur chaque formulaire d'envoi d'image (ajout de carte, visuel de dos, import en masse), une case à cocher **"Ajouter le filigrane"** permet de décider :
+- **Décochée** (réglage par défaut) : l'image est enregistrée telle quelle — pratique pour vos séries dont les scans portent déjà le logo, pour éviter un doublon.
+- **Cochée** : le filigrane est ajouté automatiquement, comme avant.
+
+Il n'est appliqué, dans tous les cas, qu'à la **version d'affichage** — le fichier HD reste toujours intact, pour rester une archive fidèle.
 
 - Le logo utilisé est `assets/watermark-db-nonoff-90s.png` (déjà détouré, fond transparent). Pour le changer, remplacez ce fichier par une nouvelle version détourée.
-- Pour désactiver temporairement le filigrane (par exemple pour une collection différente), ajoutez `DISABLE_WATERMARK=true` dans `.env`.
+- Pour le désactiver complètement au niveau du serveur (aucune case ne pourra plus l'activer), ajoutez `DISABLE_WATERMARK=true` dans `.env`.
+
+## Langues du site
+
+Le site est disponible en quatre langues : français, anglais, chinois traditionnel ("TW", pour Taïwan/Hong Kong) et chinois simplifié ("CN", pour la Chine continentale). Le visiteur choisit via les drapeaux dans le bandeau ; son choix est mémorisé dans son navigateur.
+
+## Présentation de collection, traduite automatiquement
+
+Le champ "Présentation" d'une collection (admin → Collections) se remplit **en français**. À l'enregistrement, le site appelle l'API Anthropic pour le traduire automatiquement en anglais, chinois traditionnel et chinois simplifié, et affiche la bonne version selon la langue choisie par le visiteur.
+
+Le champ **"Description"** d'une carte (admin → Cartes, et colonne `description` de l'import en masse) fonctionne exactement de la même façon.
+
+- Nécessite `ANTHROPIC_API_KEY` dans `.env` (créez une clé sur [console.anthropic.com](https://console.anthropic.com)).
+- Sans cette clé : aucune erreur, le texte français s'affiche simplement dans toutes les langues.
+- La traduction n'est relancée que si le texte a changé, pas à chaque modification d'une carte ou d'une collection.
+- Chaque traduction déclenche un petit appel API (coût minime, modèle rapide/économique). Sur un **import en masse** avec beaucoup de descriptions, cela ajoute un appel par ligne : l'import peut prendre plusieurs minutes pour un gros lot.
+- **Volontairement non traduits** : le nom d'une collection, le nom d'un personnage, et la variante/rareté (ex. "Prisme rose"). Ce sont des étiquettes courtes réutilisées par de nombreuses cartes, qui servent aussi aux filtres du catalogue — les traduire créerait des incohérences (chaque carte pourrait recevoir une traduction légèrement différente du même terme) et casserait le filtrage.
+
+## Cartes avec plusieurs effets, ou un dos différent de la série
+
+Certaines cartes existent en plusieurs versions (prisme rose, prisme étoile, holo...) pour la même référence et le même personnage, ou ont un visuel de dos différent de celui partagé par le reste de la série.
+
+- **Plusieurs effets sur la même référence** : créez une ligne par effet (même référence, même personnage, "Variante / rareté" et scan différents). Le tableau `/admin/cartes` propose un bouton **"Dupliquer"** sur chaque carte, qui reprend collection/référence/personnage pour vous faire gagner du temps.
+- **Dos différent** : le formulaire d'ajout de carte propose un champ optionnel **"Visuel de dos propre à cette carte"**. Laissé vide, la carte utilise le dos partagé de la collection ; rempli, il prend le dessus uniquement pour cette carte.
 
 ## Visuel de dos partagé par série
 
@@ -97,9 +124,26 @@ Chaque image importée (via l'admin ou l'import en masse) est automatiquement d�
 
 Le redimensionnement utilise la librairie `sharp` (déjà incluse dans `package.json`).
 
+## Statistiques du site (admin)
+
+La page `/admin/stats` affiche l'activité du site : pages vues (total, 7 et 30 derniers jours), visiteurs uniques, téléchargements de scans HD, répartition par pays d'origine, pages les plus consultées, et un graphique d'évolution jour par jour sur 30 jours.
+
+**Approche respectueuse de la vie privée** : aucune adresse IP n'est stockée. Le pays est déduit automatiquement par Vercel (en-tête `x-vercel-ip-country`, fourni par le réseau Vercel) sans jamais exposer ni conserver l'IP elle-même. Les "visiteurs uniques" sont comptés via un identifiant aléatoire généré dans le navigateur (`localStorage`), non rattaché à une identité et non partageable entre sites. Les pages d'administration elles-mêmes ne sont jamais suivies.
+
+Le suivi fonctionne automatiquement dès la mise en ligne, sans configuration supplémentaire — les statistiques resteront vides tant qu'il n'y a pas eu de visites réelles après déploiement.
+
 ## Signalements publics
 
 Chaque fiche carte publique affiche un bouton "Signaler une erreur". N'importe quel visiteur peut décrire ce qui est incorrect (sans créer de compte), avec un contact optionnel pour être recontacté. Ces signalements arrivent dans `/admin/reports`, filtrables par statut (nouveaux / traités / ignorés), avec un lien direct vers la fiche concernée et un compteur sur le tableau de bord admin.
+
+## Formulaire de contact (proposer une collection)
+
+La page **Informations** (`/informations`) inclut un formulaire pré-rempli permettant à n'importe quel visiteur de proposer l'ajout d'une collection (nom, année, origine, format, lien de téléchargement des scans). Les messages sont envoyés par e-mail via un compte Gmail configuré côté serveur (`CONTACT_EMAIL_USER` / `CONTACT_EMAIL_APP_PASSWORD` dans `.env`) — l'adresse n'apparaît jamais dans le code envoyé au navigateur.
+
+Pour configurer l'envoi :
+1. Activez la validation en deux étapes sur le compte Google utilisé.
+2. Générez un "mot de passe d'application" sur [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+3. Renseignez `CONTACT_EMAIL_USER` (l'adresse Gmail) et `CONTACT_EMAIL_APP_PASSWORD` (le mot de passe généré, pas celui du compte) dans les variables d'environnement.
 
 ## Structure du projet
 

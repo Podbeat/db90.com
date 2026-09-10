@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { Flag } from "lucide-react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function ReportError({ cardId }) {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [contact, setContact] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
+  const [status, setStatus] = useState("idle");
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -36,88 +38,46 @@ export default function ReportError({ cardId }) {
       <button
         onClick={() => setOpen(true)}
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.4rem",
-          background: "none",
-          border: "1px solid var(--line)",
-          color: "var(--text-muted)",
-          padding: "0.4rem 0.7rem",
-          fontSize: "0.78rem",
-          cursor: "pointer",
-          marginTop: "1rem",
+          display: "flex", alignItems: "center", gap: "0.4rem",
+          background: "none", border: "1px solid var(--line)", color: "var(--text-muted)",
+          padding: "0.4rem 0.7rem", fontSize: "0.78rem", cursor: "pointer", marginTop: "1rem",
         }}
       >
-        <Flag size={13} /> Signaler une erreur sur cette carte
+        <Flag size={13} /> {t.reportButton}
       </button>
     );
   }
 
   if (status === "sent") {
-    return (
-      <div style={{ marginTop: "1rem", fontSize: "0.82rem", color: "var(--gold)" }}>
-        Merci, votre signalement a été transmis à l'équipe.
-      </div>
-    );
+    return <div style={{ marginTop: "1rem", fontSize: "0.82rem", color: "var(--gold)" }}>{t.reportSent}</div>;
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ marginTop: "1rem", border: "1px solid var(--line)", padding: "0.9rem", maxWidth: 420 }}
-    >
-      <div style={{ fontSize: "0.8rem", marginBottom: "0.6rem" }}>Qu'est-ce qui est incorrect sur cette fiche ?</div>
+    <form onSubmit={handleSubmit} style={{ marginTop: "1rem", border: "1px solid var(--line)", padding: "0.9rem", maxWidth: 420 }}>
+      <div style={{ fontSize: "0.8rem", marginBottom: "0.6rem" }}>{t.reportPrompt}</div>
       <textarea
         rows={3}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Ex. : ce n'est pas Vegeta mais Nappa, la variante est plutôt Prisme Rayon…"
+        placeholder={t.reportPlaceholder}
         required
-        style={{
-          width: "100%",
-          background: "var(--bg)",
-          border: "1px solid var(--line)",
-          color: "var(--text)",
-          padding: "0.5rem 0.6rem",
-          fontSize: "0.85rem",
-          fontFamily: "inherit",
-          marginBottom: "0.6rem",
-        }}
+        style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--line)", color: "var(--text)", padding: "0.5rem 0.6rem", fontSize: "0.85rem", fontFamily: "inherit", marginBottom: "0.6rem" }}
       />
       <input
         value={contact}
         onChange={(e) => setContact(e.target.value)}
-        placeholder="Votre pseudo ou e-mail (optionnel, pour vous répondre)"
-        style={{
-          width: "100%",
-          background: "var(--bg)",
-          border: "1px solid var(--line)",
-          color: "var(--text)",
-          padding: "0.5rem 0.6rem",
-          fontSize: "0.85rem",
-          fontFamily: "inherit",
-          marginBottom: "0.6rem",
-        }}
+        placeholder={t.reportContact}
+        style={{ width: "100%", background: "var(--bg)", border: "1px solid var(--line)", color: "var(--text)", padding: "0.5rem 0.6rem", fontSize: "0.85rem", fontFamily: "inherit", marginBottom: "0.6rem" }}
       />
       {status === "error" && (
-        <div style={{ fontSize: "0.78rem", color: "var(--accent, #c9502a)", marginBottom: "0.5rem" }}>
-          Échec de l'envoi, réessayez.
-        </div>
+        <div style={{ fontSize: "0.78rem", color: "var(--accent)", marginBottom: "0.5rem" }}>{t.reportError}</div>
       )}
       <div style={{ display: "flex", gap: "0.5rem" }}>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          style={{ background: "none", border: "1px solid var(--line)", color: "var(--text)", padding: "0.4rem 0.8rem", fontSize: "0.8rem", cursor: "pointer" }}
-        >
-          Annuler
+        <button type="button" onClick={() => setOpen(false)} style={{ background: "none", border: "1px solid var(--line)", color: "var(--text)", padding: "0.4rem 0.8rem", fontSize: "0.8rem", cursor: "pointer" }}>
+          {t.reportCancel}
         </button>
-        <button
-          type="submit"
-          disabled={status === "sending"}
-          style={{ background: "var(--gold)", border: "none", color: "#1a1208", padding: "0.4rem 0.8rem", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer" }}
-        >
-          {status === "sending" ? "Envoi…" : "Envoyer le signalement"}
+        <button type="submit" disabled={status === "sending"} style={{ background: "var(--gold)", border: "none", color: "#1a1208", padding: "0.4rem 0.8rem", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer" }}>
+          {status === "sending" ? t.reportSending : t.reportSend}
         </button>
       </div>
     </form>

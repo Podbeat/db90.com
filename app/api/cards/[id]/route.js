@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { translateFreeText } from "@/lib/translate";
 
 export async function GET(request, { params }) {
   const card = await prisma.card.findUnique({
@@ -16,6 +17,12 @@ export async function PUT(request, { params }) {
   if (!session) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
 
   const body = await request.json();
+
+  // On ne retraduit que si la description a réellement changé.
+  const existing = await prisma.card.findUnique({ where: { id: params.id }, select: { description: true } });
+  const descriptionChanged = (body.description || null) !== (existing?.description || null);
+  const translations = descriptionChanged ? await translateFreeText(body.description) : null;
+
   const card = await prisma.card.update({
     where: { id: params.id },
     data: {
@@ -25,7 +32,16 @@ export async function PUT(request, { params }) {
       description: body.description || null,
       image: body.image || undefined,
       imageHD: body.imageHD || body.image || undefined,
+      dos: body.dos !== undefined ? body.dos || null : undefined,
+      dosHD: body.dosHD || body.dos || undefined,
       collectionId: body.collectionId,
+      ...(descriptionChanged
+        ? {
+            descriptionEn: translations.en,
+            descriptionZhTW: translations.zhTW,
+            descriptionZhCN: translations.zhCN,
+          }
+        : {}),
     },
   });
   return NextResponse.json(card);

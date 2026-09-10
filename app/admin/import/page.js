@@ -5,6 +5,7 @@ import { useState } from "react";
 export default function AdminImportPage() {
   const [sheet, setSheet] = useState(null);
   const [images, setImages] = useState([]);
+  const [applyWatermark, setApplyWatermark] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -21,6 +22,7 @@ export default function AdminImportPage() {
     try {
       const fd = new FormData();
       fd.append("sheet", sheet);
+      fd.append("watermark", applyWatermark ? "true" : "false");
       images.forEach((img) => fd.append("images", img));
       const res = await fetch("/api/import", { method: "POST", body: fd });
       const data = await res.json();
@@ -53,6 +55,10 @@ export default function AdminImportPage() {
           Sélectionnez ensuite tous vos fichiers scans dans le second champ : ils seront associés automatiquement par nom de fichier.
           Si une collection n'existe pas encore, elle est créée automatiquement.
         </p>
+        <p>
+          Si la colonne <strong>description</strong> est remplie, chaque ligne déclenche un petit appel de traduction automatique
+          (anglais, chinois traditionnel, chinois simplifié) : pour un gros lot, l'import peut prendre plusieurs minutes.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="form-panel">
@@ -69,6 +75,15 @@ export default function AdminImportPage() {
             </div>
           )}
         </div>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", marginBottom: "1rem", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={applyWatermark}
+            onChange={(e) => setApplyWatermark(e.target.checked)}
+            style={{ width: "auto" }}
+          />
+          Ajouter le filigrane "DB Non-Off 90's" sur tout le lot (à laisser décoché si vos scans l'ont déjà)
+        </label>
         {error && <div className="toast error">{error}</div>}
         <button className="btn-primary" type="submit" disabled={loading}>
           {loading ? "Import en cours…" : "Lancer l'import"}

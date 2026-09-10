@@ -30,6 +30,7 @@ export default async function AdminDashboard() {
         </Link>
       </div>
       <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+        <Link href="/admin/stats" className="btn-ghost">Voir les statistiques</Link>
         <Link href="/admin/cartes" className="btn-ghost">Gérer les cartes</Link>
         <Link href="/admin/collections" className="btn-ghost">Gérer les collections</Link>
         <Link href="/admin/import" className="btn-ghost">Importer en masse</Link>

@@ -3,6 +3,7 @@ import { parseCSV } from "@/lib/csv";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { saveImage } from "@/lib/storage";
+import { translateFreeText } from "@/lib/translate";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,7 @@ export async function POST(request) {
   const formData = await request.formData();
   const sheetFile = formData.get("sheet");
   const imageFiles = formData.getAll("images");
+  const watermark = formData.get("watermark") !== "false"; // true par défaut si absent
 
   if (!sheetFile) {
     return NextResponse.json({ error: "Aucun fichier de métadonnées (CSV) reçu." }, { status: 400 });
@@ -60,13 +62,15 @@ export async function POST(request) {
 
       const collection = await getOrCreateCollection(row.collection || "Collection sans nom");
 
+      const translations = await translateFreeText(row.description);
+
       let imageUrl = null;
       let imageHDUrl = null;
       if (row.image) {
         const file = imageByName.get(row.image);
         if (file) {
           const buffer = Buffer.from(await file.arrayBuffer());
-          const { display, hd } = await saveImage(buffer, file.name);
+          const { display, hd } = await saveImage(buffer, file.name, { watermark });
           imageUrl = display;
           imageHDUrl = hd;
         } else {
@@ -80,6 +84,9 @@ export async function POST(request) {
           personnage: row.personnage,
           rarete: row.rarete || "Commune",
           description: row.description || null,
+          descriptionEn: translations.en,
+          descriptionZhTW: translations.zhTW,
+          descriptionZhCN: translations.zhCN,
           image: imageUrl,
           imageHD: imageHDUrl,
           collectionId: collection.id,

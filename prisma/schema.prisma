@@ -11,33 +11,42 @@ datasource db {
 }
 
 model Collection {
-  id        String   @id @default(cuid())
-  nom       String
-  annee     String?
-  editeur   String?
-  pays      String?
-  total     Int?
-  cover     String?
-  dos       String?
-  dosHD     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  cards     Card[]
+  id              String   @id @default(cuid())
+  nom             String
+  annee           String?
+  editeur         String?
+  pays            String?
+  total           Int?
+  cover           String?
+  dos             String?
+  dosHD           String?
+  description     String? // texte saisi par l'admin, toujours en français
+  descriptionEn   String? // traduction automatique (anglais)
+  descriptionZhTW String? // traduction automatique (chinois traditionnel)
+  descriptionZhCN String? // traduction automatique (chinois simplifié)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  cards           Card[]
 }
 
 model Card {
-  id           String     @id @default(cuid())
-  numero       String
-  personnage   String
-  rarete       String     @default("Commune")
-  description  String?
-  image        String?
-  imageHD      String?
-  collectionId String
-  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  reports      Report[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id              String     @id @default(cuid())
+  numero          String
+  personnage      String
+  rarete          String     @default("Commune")
+  description     String? // texte saisi par l'admin, toujours en français
+  descriptionEn   String? // traduction automatique (anglais)
+  descriptionZhTW String? // traduction automatique (chinois traditionnel)
+  descriptionZhCN String? // traduction automatique (chinois simplifié)
+  image           String?
+  imageHD         String?
+  dos             String? // visuel de dos propre à cette carte, si différent de celui de la série
+  dosHD           String?
+  collectionId    String
+  collection      Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  reports         Report[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   @@index([collectionId])
   @@index([rarete])
@@ -64,4 +73,21 @@ model AdminUser {
   passwordHash String
   role         String   @default("admin")
   createdAt    DateTime @default(now())
+}
+
+// Statistiques de fréquentation, volontairement minimalistes et anonymes :
+// pas d'adresse IP stockée, pas d'identifiant lié à une personne. "visitorId"
+// est un jeton aléatoire généré côté navigateur (non rattaché à une identité),
+// utilisé uniquement pour distinguer visiteurs uniques et vues de page.
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  type      String // "page_view" | "hd_download"
+  path      String?
+  country   String? // code pays ISO (ex. "TW"), déduit par Vercel, jamais l'IP elle-même
+  visitorId String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([country])
 }

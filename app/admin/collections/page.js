@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 
 function emptyForm() {
-  return { id: null, nom: "", annee: "", editeur: "", pays: "", total: "", dos: null, dosHD: null };
+  return { id: null, nom: "", annee: "", editeur: "", pays: "", total: "", description: "", dos: null, dosHD: null };
 }
 
 export default function AdminCollectionsPage() {
@@ -14,6 +14,7 @@ export default function AdminCollectionsPage() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [message, setMessage] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [applyWatermark, setApplyWatermark] = useState(false);
   const fileRef = useRef(null);
 
   async function load() {
@@ -32,6 +33,7 @@ export default function AdminCollectionsPage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
+      fd.append("watermark", applyWatermark ? "true" : "false");
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
       if (res.ok) {
@@ -86,7 +88,7 @@ export default function AdminCollectionsPage() {
 
       {form && (
         <form onSubmit={handleSave} className="form-panel" style={{ marginBottom: "1.5rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 1rem" }}>
+          <div className="admin-grid-2">
             <div className="field">
               <span className="field-label">Nom de la collection</span>
               <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required />
@@ -110,7 +112,29 @@ export default function AdminCollectionsPage() {
           </div>
 
           <div className="field">
+            <span className="field-label">Présentation de la collection (provenance, histoire, contexte…)</span>
+            <textarea
+              rows={5}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Ex. : série sortie à Taïwan vers 1995, produite en dehors des circuits Bandai officiels, connue pour ses cartes à fond prismé..."
+            />
+            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+              Écrivez ce texte en français : il est traduit automatiquement en anglais, chinois traditionnel et chinois simplifié à l'enregistrement.
+            </div>
+          </div>
+
+          <div className="field">
             <span className="field-label">Visuel du dos (partagé par toute la série, si identique)</span>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={applyWatermark}
+                onChange={(e) => setApplyWatermark(e.target.checked)}
+                style={{ width: "auto" }}
+              />
+              Ajouter le filigrane "DB Non-Off 90's" (à décocher si le logo est déjà sur le scan)
+            </label>
             <div className="upload-zone" onClick={() => fileRef.current?.click()}>
               <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
               {uploading ? "Envoi en cours…" : form.dos ? "Remplacer le visuel du dos" : "Cliquer pour importer le scan du dos"}

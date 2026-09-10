@@ -15,6 +15,7 @@ export async function POST(request) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const { display, hd } = await saveImage(buffer, file.name);
+  const watermark = formData.get("watermark") !== "false"; // true par défaut si absent
+  const { display, hd } = await saveImage(buffer, file.name, { watermark });
   return NextResponse.json({ url: display, hdUrl: hd });
 }

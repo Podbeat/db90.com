@@ -25,6 +25,7 @@ export default function AdminLayout({ children }) {
     { href: "/admin/collections", label: "Collections" },
     { href: "/admin/reports", label: "Signalements" },
     { href: "/admin/import", label: "Import en masse" },
+    { href: "/admin/compte", label: "Mon compte" },
   ];
 
   return (

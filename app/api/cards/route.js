@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { translateFreeText } from "@/lib/translate";
+import { naturalSortByNumero } from "@/lib/naturalSort";
 
 export async function GET(request) {
   try {
@@ -32,16 +33,18 @@ export async function GET(request) {
       ],
     };
 
-    const [cards, total] = await Promise.all([
-      prisma.card.findMany({
-        where,
-        include: { collection: { select: { nom: true, pays: true } } },
-        orderBy: [{ collectionId: "asc" }, { numero: "asc" }],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.card.count({ where }),
-    ]);
+    // Le tri par référence se fait "naturellement" (4 < 10 < 16) plutôt qu'en texte brut
+    // (10 < 16 < 4) : impossible à exprimer proprement en SQL pour des références mixtes,
+    // donc on récupère tout le lot filtré, on trie côté serveur, puis on pagine à la main.
+    const allMatching = await prisma.card.findMany({
+      where,
+      include: { collection: { select: { nom: true, pays: true } } },
+      orderBy: [{ collectionId: "asc" }],
+    });
+    allMatching.sort(naturalSortByNumero);
+
+    const total = allMatching.length;
+    const cards = allMatching.slice((page - 1) * pageSize, page * pageSize);
 
     return NextResponse.json({ cards, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
   } catch (e) {

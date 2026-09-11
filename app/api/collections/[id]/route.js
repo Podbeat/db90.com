@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { translateCollectionDescription } from "@/lib/translate";
+import { naturalSortByNumero } from "@/lib/naturalSort";
 
 export async function GET(request, { params }) {
   try {
     const collection = await prisma.collection.findUnique({
       where: { id: params.id },
-      include: { cards: { orderBy: { numero: "asc" } } },
+      include: { cards: true },
     });
     if (!collection) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
+    collection.cards.sort(naturalSortByNumero);
     return NextResponse.json(collection);
   } catch (e) {
     console.error("Erreur GET /api/collections/[id] :", e);

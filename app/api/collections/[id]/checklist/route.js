@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { naturalSortByNumero } from "@/lib/naturalSort";
-import PDFDocument from "pdfkit";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export const runtime = "nodejs";
 
@@ -16,58 +16,84 @@ export async function GET(request, { params }) {
 
   const cards = [...collection.cards].sort(naturalSortByNumero);
 
-  const doc = new PDFDocument({ size: "A4", margin: 50 });
-  const chunks = [];
-  doc.on("data", (chunk) => chunks.push(chunk));
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  const done = new Promise((resolve) => {
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-  });
-
-  doc.fontSize(18).text(collection.nom, { align: "left" });
-  const meta = [collection.editeur, collection.pays, collection.annee].filter(Boolean).join(" · ");
-  if (meta) doc.fontSize(10).fillColor("#666666").text(meta);
-  doc.moveDown(0.3);
-  doc.fontSize(9).fillColor("#999999").text(`Checklist générée le ${new Date().toLocaleDateString("fr-FR")} — DB Non-Off 90's`);
-  doc.moveDown(1);
-  doc.fillColor("#000000");
-
-  const startX = 50;
-  let y = doc.y;
+  const pageWidth = 595.28; // A4 portrait, en points
+  const pageHeight = 841.89;
+  const marginX = 50;
   const rowHeight = 20;
-  const colCheckW = 25, colNumW = 60, colNomW = 220, colRareteW = 180;
 
-  function drawHeader() {
-    doc.fontSize(10).font("Helvetica-Bold");
-    doc.text("", startX, y, { width: colCheckW });
-    doc.text("Réf.", startX + colCheckW, y, { width: colNumW });
-    doc.text("Personnage", startX + colCheckW + colNumW, y, { width: colNomW });
-    doc.text("Variante", startX + colCheckW + colNumW + colNomW, y, { width: colRareteW });
-    y += rowHeight;
-    doc.moveTo(startX, y - 4).lineTo(545, y - 4).strokeColor("#cccccc").stroke();
-    doc.font("Helvetica");
+  const colCheckX = marginX;
+  const colNumX = marginX + 25;
+  const colNomX = marginX + 90;
+  const colRareteX = marginX + 310;
+  const rightEdge = pageWidth - marginX;
+
+  let page = pdfDoc.addPage([pageWidth, pageHeight]);
+  let y = pageHeight - 60;
+
+  function drawHeaderBlock() {
+    page.drawText(collection.nom, { x: marginX, y, size: 16, font: fontBold });
+    y -= 18;
+    const meta = [collection.editeur, collection.pays, collection.annee].filter(Boolean).join(" - ");
+    if (meta) {
+      page.drawText(meta, { x: marginX, y, size: 9, font, color: rgb(0.4, 0.4, 0.4) });
+      y -= 14;
+    }
+    const dateStr = new Date().toLocaleDateString("fr-FR");
+    page.drawText(`Checklist generee le ${dateStr} - DB Non-Off 90's`, { x: marginX, y, size: 8, font, color: rgb(0.6, 0.6, 0.6) });
+    y -= 24;
   }
 
-  drawHeader();
+  function drawColumnHeader() {
+    page.drawText("Ref.", { x: colNumX, y, size: 9, font: fontBold });
+    page.drawText("Personnage", { x: colNomX, y, size: 9, font: fontBold });
+    page.drawText("Variante", { x: colRareteX, y, size: 9, font: fontBold });
+    y -= 6;
+    page.drawLine({ start: { x: marginX, y }, end: { x: rightEdge, y }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+    y -= rowHeight - 6;
+  }
+
+  drawHeaderBlock();
+  drawColumnHeader();
+
+  // Une seule police standard (WinAnsi) : on retire les accents pour éviter tout caractère
+  // hors de son jeu de caractères plutôt que de faire planter la génération du PDF.
+  function safe(str) {
+    return (str || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\x00-\x7F]/g, "?");
+  }
 
   for (const c of cards) {
-    if (y > 760) {
-      doc.addPage();
-      y = 50;
-      drawHeader();
+    if (y < 60) {
+      page = pdfDoc.addPage([pageWidth, pageHeight]);
+      y = pageHeight - 60;
+      drawColumnHeader();
     }
-    doc.rect(startX + 4, y, 12, 12).strokeColor("#999999").stroke();
-    doc.fontSize(9).fillColor("#000000");
-    doc.text(c.numero, startX + colCheckW, y, { width: colNumW });
-    doc.text(c.personnage, startX + colCheckW + colNumW, y, { width: colNomW });
-    doc.text(c.rarete || "", startX + colCheckW + colNumW + colNomW, y, { width: colRareteW });
-    y += rowHeight;
+
+    page.drawRectangle({
+      x: colCheckX,
+      y: y - 2,
+      width: 10,
+      height: 10,
+      borderColor: rgb(0.6, 0.6, 0.6),
+      borderWidth: 0.7,
+    });
+
+    page.drawText(safe(c.numero), { x: colNumX, y, size: 9, font });
+    page.drawText(safe(c.personnage).slice(0, 38), { x: colNomX, y, size: 9, font });
+    page.drawText(safe(c.rarete).slice(0, 30), { x: colRareteX, y, size: 9, font });
+
+    y -= rowHeight;
   }
 
-  doc.end();
-  const pdfBuffer = await done;
+  const pdfBytes = await pdfDoc.save();
 
-  return new Response(pdfBuffer, {
+  return new Response(pdfBytes, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="checklist-${collection.nom.replace(/[^a-z0-9]+/gi, "-")}.pdf"`,

@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Search, Shuffle } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 export default function CataloguePage() {
   const { t } = useLanguage();
-  const router = useRouter();
   const [collections, setCollections] = useState([]);
   const [personnages, setPersonnages] = useState([]);
   const [raretes, setRaretes] = useState([]);
@@ -29,12 +27,15 @@ export default function CataloguePage() {
   const hasActiveFilters =
     query || filterCollection !== "all" || filterPersonnage !== "all" || filterRarete !== "all" || filterPays !== "all";
 
-  async function goToRandomCard() {
-    try {
-      const res = await fetch("/api/cards/random");
-      const data = await res.json();
-      if (res.ok && data.id) router.push(`/cartes/${data.id}`);
-    } catch (e) {}
+  function shuffleCards() {
+    setCards((prev) => {
+      const arr = [...prev];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    });
   }
 
   useEffect(() => {
@@ -146,16 +147,13 @@ export default function CataloguePage() {
           <button
             className="btn-ghost"
             style={{ width: "100%", marginTop: hasActiveFilters ? "0.5rem" : 0, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
-            onClick={goToRandomCard}
+            onClick={shuffleCards}
           >
             <Shuffle size={13} /> {t.randomCard}
           </button>
         </aside>
 
         <div className="main-col">
-          {!hasActiveFilters && highlights && highlights.totalCards > 0 && (
-            <div className="milestone-banner">🎉 {t.totalCardsArchived(highlights.totalCards)}</div>
-          )}
           {!hasActiveFilters && highlights && (highlights.lastCard || highlights.lastCollection) && (
             <div className="highlights-row">
               {highlights.lastCard && (

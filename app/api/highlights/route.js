@@ -4,7 +4,7 @@ import { naturalSortByNumero } from "@/lib/naturalSort";
 
 export async function GET() {
   try {
-    const [lastCard, lastCollection, totalCards] = await Promise.all([
+    const [lastCard, lastCollection] = await Promise.all([
       prisma.card.findFirst({
         orderBy: { createdAt: "desc" },
         include: { collection: { select: { nom: true } } },
@@ -13,7 +13,6 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         include: { cards: { select: { numero: true, image: true } } },
       }),
-      prisma.card.count(),
     ]);
 
     let lastCollectionWithPreview = null;
@@ -23,7 +22,7 @@ export async function GET() {
       lastCollectionWithPreview = { ...rest, previewImage: sorted[0]?.image || lastCollection.cover || null };
     }
 
-    return NextResponse.json({ lastCard, lastCollection: lastCollectionWithPreview, totalCards });
+    return NextResponse.json({ lastCard, lastCollection: lastCollectionWithPreview });
   } catch (e) {
     console.error("Erreur GET /api/highlights :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });

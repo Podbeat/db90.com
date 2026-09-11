@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ImageOff } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { getFlagEmoji } from "@/lib/countryFlags";
 
 export default function CollectionsPage() {
   const { t } = useLanguage();
@@ -30,18 +32,29 @@ export default function CollectionsPage() {
             const pct = col.total ? Math.min(100, Math.round((archived / col.total) * 100)) : 0;
             return (
               <Link key={col.id} href={`/collections/${col.id}`} className="collection-tile">
-                <div className="display-font" style={{ fontSize: "0.95rem" }}>{col.nom}</div>
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
-                  {[col.editeur, col.pays, col.annee].filter(Boolean).join(" · ")}
+                <div className="collection-thumb">
+                  {col.previewImage ? (
+                    <img src={col.previewImage} alt={col.nom} />
+                  ) : (
+                    <div className="collection-thumb-empty"><ImageOff size={22} /></div>
+                  )}
                 </div>
-                <div style={{ fontSize: "0.75rem", marginTop: "0.7rem" }}>
-                  {t.archivedOf(archived, col.total)}
-                </div>
-                {col.total && (
-                  <div className="progress-track">
-                    <div className="progress-fill" style={{ width: `${pct}%` }} />
+                <div className="collection-tile-body">
+                  <div className="display-font" style={{ fontSize: "0.95rem" }}>{col.nom}</div>
+                  <div className="collection-meta">
+                    {col.pays && <span>{getFlagEmoji(col.pays)}</span>}
+                    <span>{[col.pays, col.annee].filter(Boolean).join(" · ")}</span>
                   </div>
-                )}
+                  {col.editeur && <div className="collection-editor">{col.editeur}</div>}
+                  <div style={{ fontSize: "0.75rem", marginTop: "0.7rem" }}>
+                    {t.archivedOf(archived, col.total)}
+                  </div>
+                  {col.total && (
+                    <div className="progress-track">
+                      <div className="progress-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  )}
+                </div>
               </Link>
             );
           })}

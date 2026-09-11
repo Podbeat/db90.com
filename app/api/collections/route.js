@@ -2,14 +2,27 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { translateCollectionDescription } from "@/lib/translate";
+import { naturalSortByNumero } from "@/lib/naturalSort";
 
 export async function GET() {
   try {
     const collections = await prisma.collection.findMany({
       orderBy: { annee: "asc" },
-      include: { _count: { select: { cards: true } } },
+      include: {
+        _count: { select: { cards: true } },
+        cards: { select: { numero: true, image: true } },
+      },
     });
-    return NextResponse.json(collections);
+
+    // Vignette = image de la première carte de la série (triée naturellement), à défaut
+    // le visuel de couverture éventuellement défini à la main.
+    const withPreview = collections.map((col) => {
+      const sorted = [...col.cards].sort(naturalSortByNumero);
+      const { cards, ...rest } = col;
+      return { ...rest, previewImage: sorted[0]?.image || col.cover || null };
+    });
+
+    return NextResponse.json(withPreview);
   } catch (e) {
     console.error("Erreur GET /api/collections :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });

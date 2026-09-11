@@ -40,6 +40,7 @@ export async function PUT(request, { params }) {
         imageHD: body.imageHD || body.image || undefined,
         dos: body.dos !== undefined ? body.dos || null : undefined,
         dosHD: body.dosHD || body.dos || undefined,
+        contributeur: body.contributeur || null,
         collectionId: body.collectionId,
         ...(descriptionChanged
           ? {

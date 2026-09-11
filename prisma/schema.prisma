@@ -42,6 +42,7 @@ model Card {
   imageHD         String?
   dos             String? // visuel de dos propre à cette carte, si différent de celui de la série
   dosHD           String?
+  contributeur    String? // pseudo/nom optionnel de la personne ayant fourni le scan, affiché publiquement si renseigné
   collectionId    String
   collection      Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   reports         Report[]

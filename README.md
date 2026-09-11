@@ -189,3 +189,12 @@ prisma/
 - Ajoutez un compte par membre de l'équipe plutôt que de partager un seul mot de passe (actuellement, seul le script `seed` crée des comptes ; dites-le-moi si vous voulez une page d'admin dédiée à la gestion des comptes).
 - La dépendance `xlsx` a volontairement été écartée du projet (vulnérabilités connues sans correctif) au profit d'un import CSV avec un parseur maison.
 - Lancez `npm audit` régulièrement et maintenez Next.js à jour.
+
+## Nouvelles fonctionnalités communautaires
+
+- **Contributeur** : champ optionnel sur chaque carte (formulaire admin et colonne `contributeur` de l'import CSV), affiché publiquement sur la fiche ("Scan fourni par...").
+- **Cartes manquantes** : sur la page d'une collection dont le total est connu, si toutes les références sont de simples numéros, les numéros manquants s'affichent automatiquement avec un lien vers la page Contact.
+- **Carte au hasard** : bouton dans le catalogue, route `/api/cards/random`.
+- **Jalon public** : nombre total de cartes archivées affiché en haut du catalogue.
+- **Export checklist PDF** : bouton sur chaque page de collection (`/api/collections/[id]/checklist`), génère un PDF avec cases à cocher via `pdfkit`.
+- **Soutien financier (Ko-fi)** : bouton dans le footer + section dédiée sur la page Informations expliquant que le site est actuellement gratuit à faire tourner, et que les dons couvriraient d'éventuels besoins futurs (stockage, nom de domaine). **Pensez à remplacer `KOFI_URL`** dans `components/Footer.js` et `app/informations/page.js` par votre vraie page Ko-fi une fois créée.

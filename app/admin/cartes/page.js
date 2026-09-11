@@ -16,6 +16,7 @@ function emptyForm(defaultCollectionId) {
     imageHD: null,
     dos: null,
     dosHD: null,
+    contributeur: "",
   };
 }
 
@@ -134,6 +135,7 @@ export default function AdminCardsPage() {
       imageHD: null,
       dos: null,
       dosHD: null,
+      contributeur: "",
     });
     setMessage({ type: "success", text: "Référence et personnage repris — précisez la nouvelle variante/effet et son scan." });
   }
@@ -182,6 +184,17 @@ export default function AdminCardsPage() {
             <textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
               Écrite en français : traduite automatiquement dans les 3 autres langues à l'enregistrement.
+            </div>
+          </div>
+          <div className="field">
+            <span className="field-label">Contributeur (facultatif)</span>
+            <input
+              value={form.contributeur || ""}
+              onChange={(e) => setForm({ ...form, contributeur: e.target.value })}
+              placeholder="Pseudo de la personne ayant fourni ce scan"
+            />
+            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+              Affiché publiquement sur la fiche de la carte, uniquement si rempli.
             </div>
           </div>
           <div className="admin-grid-2">

@@ -74,6 +74,7 @@ export async function POST(request) {
         descriptionEn: translations.en,
         descriptionZhTW: translations.zhTW,
         descriptionZhCN: translations.zhCN,
+        contributeur: body.contributeur || null,
         image: body.image || null,
         imageHD: body.imageHD || body.image || null,
         dos: body.dos || null,

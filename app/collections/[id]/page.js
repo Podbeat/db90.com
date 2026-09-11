@@ -47,6 +47,9 @@ export default function CollectionDetailPage({ params }) {
             {" — "}
             {t.archivedOf(collection.cards.length, collection.total)}
           </div>
+          <a href={`/api/collections/${collection.id}/checklist`} className="btn-ghost" style={{ display: "inline-block", marginTop: "0.6rem", fontSize: "0.75rem" }}>
+            {t.downloadChecklist}
+          </a>
         </div>
       </div>
 
@@ -57,6 +60,38 @@ export default function CollectionDetailPage({ params }) {
             {desc}
           </p>
         ) : null;
+      })()}
+
+      {(() => {
+        // Liste des cartes manquantes : uniquement calculable si toutes les références
+        // existantes sont de simples numéros (pas des codes du type "ZCB-01"), et si le
+        // total de la série est connu.
+        if (!collection.total) return null;
+        const numeros = collection.cards.map((c) => c.numero);
+        const allNumeric = numeros.length > 0 && numeros.every((n) => /^\d+$/.test(n));
+        if (!allNumeric) return null;
+
+        const present = new Set(numeros.map((n) => parseInt(n, 10)));
+        const missing = [];
+        for (let i = 1; i <= collection.total; i++) {
+          if (!present.has(i)) missing.push(i);
+        }
+        if (missing.length === 0) return null;
+
+        return (
+          <div className="missing-cards-box">
+            <div className="missing-cards-title">{t.missingCards} ({missing.length})</div>
+            <p className="missing-cards-intro">{t.missingCardsIntro}</p>
+            <div className="missing-cards-list">
+              {missing.map((n) => (
+                <span key={n} className="missing-card-chip">{n}</span>
+              ))}
+            </div>
+            <Link href="/informations" className="btn-ghost" style={{ display: "inline-block", marginTop: "0.8rem" }}>
+              {t.navInfo}
+            </Link>
+          </div>
+        );
       })()}
 
       {collection.cards.length === 0 ? (

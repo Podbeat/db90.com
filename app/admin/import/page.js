@@ -66,7 +66,7 @@ export default function AdminImportPage() {
           avec les colonnes suivantes, en-tête en première ligne :
         </p>
         <p style={{ fontFamily: "monospace", color: "var(--text)" }}>
-          collection, numero, personnage, rarete, description, image
+          collection, numero, personnage, rarete, description, image, contributeur
         </p>
         <a href="/templates/modele-import-cartes.csv" download className="btn-ghost" style={{ display: "inline-block", marginBottom: "0.9rem" }}>
           Télécharger le modèle CSV

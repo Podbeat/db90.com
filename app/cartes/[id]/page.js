@@ -80,6 +80,9 @@ export default function CardDetailPage({ params }) {
           {card.description && (
             <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "var(--text-muted)" }}>{localize(card, "description", lang)}</p>
           )}
+          {card.contributeur && (
+            <p style={{ marginTop: "0.6rem", fontSize: "0.75rem", color: "var(--gold)" }}>{t.contributedBy(card.contributeur)}</p>
+          )}
           <ReportError cardId={card.id} />
         </div>
       </div>

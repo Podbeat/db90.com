@@ -96,6 +96,7 @@ export async function POST(request) {
             descriptionZhCN: translations.zhCN,
             image: imageUrl,
             imageHD: imageHDUrl,
+            contributeur: row.contributeur || null,
             collectionId: collection.id,
           },
         });

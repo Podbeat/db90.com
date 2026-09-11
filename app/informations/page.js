@@ -2,6 +2,10 @@
 
 import { useLanguage } from "@/components/LanguageProvider";
 import ContactForm from "@/components/ContactForm";
+import { Coffee } from "lucide-react";
+
+// À remplacer par votre vraie page une fois créée : ko-fi.com/votre-nom
+const KOFI_URL = "https://ko-fi.com/dbnonoff90s";
 
 export default function InformationsPage() {
   const { t } = useLanguage();
@@ -29,6 +33,14 @@ export default function InformationsPage() {
 
       <p className="info-text">{t.infoClosing}</p>
       <p className="info-welcome">{t.infoWelcome}</p>
+
+      <div className="donate-box">
+        <div className="info-subtitle" style={{ marginTop: 0 }}>{t.donateTitle}</div>
+        <p className="info-text">{t.donateText}</p>
+        <a href={KOFI_URL} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+          <Coffee size={15} /> {t.donateButton}
+        </a>
+      </div>
 
       <h2 className="info-subtitle">{t.contactTitle}</h2>
       <p className="info-text">{t.contactIntro}</p>

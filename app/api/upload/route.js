@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
-import { saveImage } from "@/lib/storage";
+import { processDisplayImage } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
+// Ne traite désormais QUE la version d'affichage (redimensionnée + filigrane optionnel).
+// Le fichier HD original est envoyé directement au stockage par le navigateur via une URL
+// signée (voir /api/upload/presign), pour ne jamais dépasser la limite de taille de requête
+// de la fonction serveur avec un scan haute définition.
 export async function POST(request) {
   try {
     const session = await requireAdmin(request);
@@ -16,9 +20,9 @@ export async function POST(request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const watermark = formData.get("watermark") !== "false"; // true par défaut si absent
-    const { display, hd } = await saveImage(buffer, file.name, { watermark });
-    return NextResponse.json({ url: display, hdUrl: hd });
+    const watermark = formData.get("watermark") !== "false";
+    const { display } = await processDisplayImage(buffer, file.name, { watermark });
+    return NextResponse.json({ url: display });
   } catch (e) {
     console.error("Erreur POST /api/upload :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });

@@ -51,6 +51,15 @@ Alternative si vous préférez tout maîtriser vous-même (plus de travail de co
 
 Quand vous êtes prêt à déployer sur Vercel, ajoutez les mêmes variables d'environnement que dans `.env.example` depuis les réglages du projet, puis lancez `npx prisma migrate deploy` une fois (localement, pointé sur la base de production) pour créer les tables.
 
+## Envoi des images — upload direct au stockage
+
+Les scans sont envoyés en deux temps, pour contourner une limite technique des fonctions serveur (environ 4,5 Mo par requête sur Vercel, qu'un scan haute définition dépasse facilement) :
+
+1. Le fichier **original** est envoyé **directement du navigateur vers le stockage**, via une URL signée à usage unique (`/api/upload/presign`) — il ne transite jamais par la fonction serveur.
+2. Une **copie redimensionnée**, générée dans le navigateur, est envoyée à `/api/upload` pour le traitement final (filigrane optionnel + compression) : c'est elle qui devient la version d'affichage.
+
+Ce circuit (`lib/clientUpload.js`) est utilisé partout : ajout de carte, visuel de dos, et import en masse (chaque image du lot est traitée une par une, avant l'envoi du CSV).
+
 ## Importer vos scans existants en masse
 
 Rendez-vous sur `/admin/import` une fois connecté. Préparez :

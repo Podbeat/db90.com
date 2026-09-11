@@ -2,17 +2,19 @@ import { NextResponse } from "next/server";
 import { parseCSV } from "@/lib/csv";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { saveImage } from "@/lib/storage";
 import { translateFreeText } from "@/lib/translate";
 
 export const runtime = "nodejs";
-// Un import avec plusieurs images peut prendre plus de temps que la limite par défaut
-// (10s sur Vercel Hobby). On autorise explicitement jusqu'à 60s, le maximum du plan gratuit.
 export const maxDuration = 60;
 
 // Colonnes attendues dans le fichier CSV (en-têtes insensibles à la casse) :
 // collection, numero, personnage, rarete, description, image
-// "image" doit correspondre exactement au nom du fichier scan envoyé en même temps.
+// "image" doit correspondre exactement au nom du fichier scan.
+//
+// Les images elles-mêmes ne transitent plus par cette route : chaque fichier est envoyé
+// directement au stockage depuis le navigateur (voir lib/clientUpload.js), qui fournit ici
+// un simple "imageMap" (nom de fichier → URLs déjà traitées). Ça évite d'envoyer plusieurs
+// fichiers volumineux d'un coup à la fonction serveur, qui a une limite de taille de requête.
 
 export async function POST(request) {
   try {
@@ -21,20 +23,21 @@ export async function POST(request) {
 
     const formData = await request.formData();
     const sheetFile = formData.get("sheet");
-    const imageFiles = formData.getAll("images");
-    const watermark = formData.get("watermark") !== "false"; // true par défaut si absent
+    const imageMapRaw = formData.get("imageMap");
 
     if (!sheetFile) {
       return NextResponse.json({ error: "Aucun fichier de métadonnées (CSV) reçu." }, { status: 400 });
     }
 
+    let imageMap = {};
+    try {
+      imageMap = imageMapRaw ? JSON.parse(imageMapRaw) : {};
+    } catch (e) {
+      return NextResponse.json({ error: "Format d'imageMap invalide." }, { status: 400 });
+    }
+
     const sheetText = await sheetFile.text();
     const rows = parseCSV(sheetText);
-
-    const imageByName = new Map();
-    for (const file of imageFiles) {
-      imageByName.set(file.name, file);
-    }
 
     const collectionCache = new Map();
     async function getOrCreateCollection(nom) {
@@ -71,12 +74,12 @@ export async function POST(request) {
         let imageUrl = null;
         let imageHDUrl = null;
         if (row.image) {
-          const file = imageByName.get(row.image);
-          if (file) {
-            const buffer = Buffer.from(await file.arrayBuffer());
-            const { display, hd } = await saveImage(buffer, file.name, { watermark });
-            imageUrl = display;
-            imageHDUrl = hd;
+          const uploaded = imageMap[row.image];
+          if (uploaded && uploaded.url) {
+            imageUrl = uploaded.url;
+            imageHDUrl = uploaded.hdUrl;
+          } else if (uploaded && uploaded.error) {
+            results.errors.push(`Ligne ${lineNumber} : échec de l'envoi de "${row.image}" (${uploaded.error}).`);
           } else {
             results.errors.push(`Ligne ${lineNumber} : image "${row.image}" non trouvée parmi les fichiers envoyés.`);
           }

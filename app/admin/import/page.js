@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { uploadCardImage } from "@/lib/clientUpload";
 
 export default function AdminImportPage() {
   const [sheet, setSheet] = useState(null);
   const [images, setImages] = useState([]);
   const [applyWatermark, setApplyWatermark] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
@@ -20,10 +22,25 @@ export default function AdminImportPage() {
     setError("");
     setResult(null);
     try {
+      // Chaque image est envoyée directement au stockage depuis le navigateur, une par une
+      // (l'original en direct, une copie légère pour le traitement) — évite d'envoyer
+      // plusieurs fichiers volumineux d'un coup à la fonction serveur, qui a une limite de taille.
+      const imageMap = {};
+      for (let i = 0; i < images.length; i++) {
+        const file = images[i];
+        setProgress(`Envoi de l'image ${i + 1} / ${images.length} (${file.name})…`);
+        try {
+          const data = await uploadCardImage(file, { watermark: applyWatermark });
+          imageMap[file.name] = data;
+        } catch (err) {
+          imageMap[file.name] = { error: err.message || "Échec de l'envoi." };
+        }
+      }
+      setProgress("Enregistrement des cartes…");
+
       const fd = new FormData();
       fd.append("sheet", sheet);
-      fd.append("watermark", applyWatermark ? "true" : "false");
-      images.forEach((img) => fd.append("images", img));
+      fd.append("imageMap", JSON.stringify(imageMap));
       const res = await fetch("/api/import", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
@@ -35,6 +52,7 @@ export default function AdminImportPage() {
       setError("Erreur réseau pendant l'import.");
     } finally {
       setLoading(false);
+      setProgress("");
     }
   }
 
@@ -89,7 +107,7 @@ export default function AdminImportPage() {
         </label>
         {error && <div className="toast error">{error}</div>}
         <button className="btn-primary" type="submit" disabled={loading}>
-          {loading ? "Import en cours…" : "Lancer l'import"}
+          {loading ? (progress || "Import en cours…") : "Lancer l'import"}
         </button>
       </form>
 

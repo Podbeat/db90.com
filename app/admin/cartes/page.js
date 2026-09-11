@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Plus, Pencil, Trash2, Upload, Copy } from "lucide-react";
+import { uploadCardImage } from "@/lib/clientUpload";
 
 function emptyForm(defaultCollectionId) {
   return {
@@ -64,18 +65,10 @@ export default function AdminCardsPage() {
     if (!file) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("watermark", applyWatermark ? "true" : "false");
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (res.ok) {
-        setForm((f) => ({ ...f, image: data.url, imageHD: data.hdUrl }));
-      } else {
-        setMessage({ type: "error", text: data.error || "Échec de l'import de l'image." });
-      }
-    } catch (e) {
-      setMessage({ type: "error", text: "Échec de l'import de l'image." });
+      const data = await uploadCardImage(file, { watermark: applyWatermark });
+      setForm((f) => ({ ...f, image: data.url, imageHD: data.hdUrl }));
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Échec de l'import de l'image." });
     } finally {
       setUploading(false);
     }
@@ -86,18 +79,10 @@ export default function AdminCardsPage() {
     if (!file) return;
     setUploadingDos(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("watermark", applyWatermarkDos ? "true" : "false");
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (res.ok) {
-        setForm((f) => ({ ...f, dos: data.url, dosHD: data.hdUrl }));
-      } else {
-        setMessage({ type: "error", text: data.error || "Échec de l'import de l'image." });
-      }
-    } catch (e) {
-      setMessage({ type: "error", text: "Échec de l'import de l'image." });
+      const data = await uploadCardImage(file, { watermark: applyWatermarkDos });
+      setForm((f) => ({ ...f, dos: data.url, dosHD: data.hdUrl }));
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Échec de l'import de l'image." });
     } finally {
       setUploadingDos(false);
     }

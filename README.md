@@ -130,14 +130,17 @@ Beaucoup de séries non-officielles ont un dos de carte identique pour toute la 
 
 Si vous ne connaissez pas le nombre total de cartes d'une série (fréquent pour les sets non-officiels), laissez le champ "Nombre total de cartes connu" vide dans l'admin. Le site affiche alors "X cartes archivées · série en cours de complétion" plutôt qu'une progression sur un total arbitraire, et vous pouvez ajouter de nouvelles cartes au fil de vos découvertes sans jamais avoir à corriger un total.
 
-## Deux versions de chaque scan : affichage compressé + original HD
+## Deux versions de chaque scan : affichage compressé + original HD (désactivé pour l'instant)
 
-Chaque image importée (via l'admin ou l'import en masse) est automatiquement déclinée en deux fichiers, gérés par `lib/storage.js` :
+Chaque image importée (via l'admin ou l'import en masse) *peut* être déclinée en deux fichiers, gérés par `lib/clientUpload.js` côté navigateur :
 
 - **Version d'affichage** (`image`) : redimensionnée (~900px de large) et compressée en JPEG. C'est elle qui s'affiche dans le catalogue, les grilles et les fiches — rapide à charger, y compris pour une base de plusieurs milliers de cartes.
 - **Version haute définition** (`imageHD`) : le fichier original, jamais modifié. Sur chaque fiche carte, un lien "Voir le scan en haute définition" pointe directement vers ce fichier — utile pour examiner un détail, un hologramme, ou vérifier l'authenticité d'une carte.
 
-Le redimensionnement utilise la librairie `sharp` (déjà incluse dans `package.json`).
+**L'envoi du HD est actuellement désactivé** (`HD_ENABLED = false` dans `lib/clientUpload.js`) pour économiser l'espace de stockage gratuit (1 Go chez Supabase) le temps de valider l'usage réel du site avec plusieurs centaines de cartes. Sans HD, chaque carte ne pèse plus que ~50-70 Ko (au lieu de plusieurs Mo), permettant d'héberger plusieurs milliers de cartes gratuitement. Le lien "Voir en HD" disparaît simplement de l'affichage tant qu'aucun fichier HD n'existe pour une carte donnée.
+
+Pour réactiver le HD plus tard (par exemple après être passé sur une offre de stockage payante), changez `HD_ENABLED` à `true` dans `lib/clientUpload.js` — aucun autre changement de code n'est nécessaire.
+
 
 ## Statistiques du site (admin)
 

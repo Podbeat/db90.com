@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ImageOff } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
-import { getFlagEmoji } from "@/lib/countryFlags";
+import { getFlagSvg } from "@/lib/countryFlags";
 
 export default function CollectionsPage() {
   const { t } = useLanguage();
@@ -42,7 +42,7 @@ export default function CollectionsPage() {
                 <div className="collection-tile-body">
                   <div className="display-font" style={{ fontSize: "0.95rem" }}>{col.nom}</div>
                   <div className="collection-meta">
-                    {col.pays && <span>{getFlagEmoji(col.pays)}</span>}
+                    {col.pays && <img src={getFlagSvg(col.pays)} alt="" style={{ width: 16, height: "auto", borderRadius: 2, flexShrink: 0 }} />}
                     <span>{[col.pays, col.annee].filter(Boolean).join(" · ")}</span>
                   </div>
                   {col.editeur && <div className="collection-editor">{col.editeur}</div>}

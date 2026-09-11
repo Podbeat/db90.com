@@ -53,7 +53,7 @@ export default function CollectionDetailPage({ params }) {
       {(() => {
         const desc = localize(collection, "description", lang);
         return desc ? (
-          <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", lineHeight: 1.6, maxWidth: 720, marginBottom: "1.75rem", whiteSpace: "pre-wrap" }}>
+          <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", lineHeight: 1.6, marginBottom: "1.75rem", whiteSpace: "pre-wrap" }}>
             {desc}
           </p>
         ) : null;

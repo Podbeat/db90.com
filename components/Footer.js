@@ -29,7 +29,11 @@ export default function Footer() {
         </div>
       </div>
       <div className="container">
-        <div className="footer-copy">{t.footerCopy}</div>
+        <div className="footer-copy">
+          {t.footerCopy}
+          {" · "}
+          <Link href="/admin" className="footer-admin-link">{t.navAdmin}</Link>
+        </div>
       </div>
     </footer>
   );

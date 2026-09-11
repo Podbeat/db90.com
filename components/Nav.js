@@ -33,7 +33,6 @@ export default function Nav() {
             <Link href="/" className={`nav-btn ${isActive("/") ? "active" : ""}`}>{t.navCatalogue}</Link>
             <Link href="/collections" className={`nav-btn ${isActive("/collections") ? "active" : ""}`}>{t.navCollections}</Link>
             <Link href="/informations" className={`nav-btn ${isActive("/informations") ? "active" : ""}`}>{t.navInfo}</Link>
-            <Link href="/admin" className={`nav-btn ${isActive("/admin") ? "active" : ""}`}>{t.navAdmin}</Link>
           </div>
           <button
             className="theme-toggle"

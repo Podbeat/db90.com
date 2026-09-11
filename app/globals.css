@@ -262,6 +262,8 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
   font-size: 0.72rem; color: var(--header-muted); opacity: 0.8;
   border-top: 1px solid var(--header-line); padding: 0.9rem 0;
 }
+.footer-admin-link { color: inherit; opacity: 0.75; text-decoration: underline; text-underline-offset: 2px; }
+.footer-admin-link:hover { opacity: 1; }
 
 .pagination { display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.5rem; }
 .admin-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 1rem; }

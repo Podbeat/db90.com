@@ -28,8 +28,19 @@ export default function CollectionDetailPage({ params }) {
   return (
     <div className="container page">
       <Link href="/collections" style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{t.backToCollections}</Link>
-      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "flex-start", margin: "0.6rem 0 1.5rem" }}>
-        <div style={{ flex: 1, minWidth: 220 }}>
+      <div style={{ display: "flex", gap: "1.1rem", alignItems: "flex-start", margin: "0.6rem 0 1.5rem" }}>
+        {collection.dos && (
+          <div style={{ textAlign: "center", flexShrink: 0 }}>
+            <img src={collection.dos} alt={`${t.verso} — ${collection.nom}`} style={{ width: 70, border: "1px solid var(--line)" }} />
+            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>{t.verso}</div>
+            {collection.dosHD && (
+              <a href={collection.dosHD} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.65rem", color: "var(--gold)" }}>
+                {t.viewHD}
+              </a>
+            )}
+          </div>
+        )}
+        <div>
           <h1 className="display-font" style={{ fontSize: "1.4rem", margin: "0 0 0.2rem" }}>{collection.nom}</h1>
           <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
             {[collection.editeur, collection.pays, collection.annee].filter(Boolean).join(" · ")}
@@ -37,17 +48,6 @@ export default function CollectionDetailPage({ params }) {
             {t.archivedOf(collection.cards.length, collection.total)}
           </div>
         </div>
-        {collection.dos && (
-          <div style={{ textAlign: "center" }}>
-            <img src={collection.dos} alt={`${t.verso} — ${collection.nom}`} style={{ width: 90, border: "1px solid var(--line)" }} />
-            <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>{t.verso}</div>
-            {collection.dosHD && (
-              <a href={collection.dosHD} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.68rem", color: "var(--gold)" }}>
-                {t.viewHD}
-              </a>
-            )}
-          </div>
-        )}
       </div>
 
       {(() => {

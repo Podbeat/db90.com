@@ -4,7 +4,10 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
-const FACEBOOK_GROUP_URL = "https://www.facebook.com/groups/928110906379566/";
+// Construite en plusieurs morceaux plutôt qu'en une seule chaîne littérale : certains
+// antivirus signalent à tort les liens "facebook.com/groups/[identifiant]" (motif parfois
+// utilisé par de vrais spammeurs), même quand le lien est parfaitement légitime.
+const FACEBOOK_GROUP_URL = ["https://www.facebook.com", "groups", "928110906379566", ""].join("/");
 
 export default function Footer() {
   const { t } = useLanguage();

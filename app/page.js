@@ -16,12 +16,16 @@ export default function CataloguePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [highlights, setHighlights] = useState(null);
 
   const [query, setQuery] = useState("");
   const [filterCollection, setFilterCollection] = useState("all");
   const [filterRarete, setFilterRarete] = useState("all");
   const [filterPersonnage, setFilterPersonnage] = useState("all");
   const [filterPays, setFilterPays] = useState("all");
+
+  const hasActiveFilters =
+    query || filterCollection !== "all" || filterPersonnage !== "all" || filterRarete !== "all" || filterPays !== "all";
 
   useEffect(() => {
     fetch("/api/collections").then((r) => r.json()).then(setCollections).catch(() => setCollections([]));
@@ -30,13 +34,14 @@ export default function CataloguePage() {
       setRaretes(d.raretes || []);
       setPays(d.pays || []);
     }).catch(() => {});
+    fetch("/api/highlights").then((r) => r.json()).then(setHighlights).catch(() => setHighlights(null));
   }, []);
 
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams({
       page: String(page),
-      pageSize: "40",
+      pageSize: "20",
       collectionId: filterCollection,
       rarete: filterRarete,
       personnage: filterPersonnage,
@@ -113,7 +118,7 @@ export default function CataloguePage() {
           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", borderTop: "1px solid var(--line)", paddingTop: "0.6rem", marginBottom: "0.8rem" }}>
             {t.cardsArchived(total)}
           </div>
-          {(query || filterCollection !== "all" || filterPersonnage !== "all" || filterRarete !== "all" || filterPays !== "all") && (
+          {hasActiveFilters && (
             <button
               className="btn-ghost"
               style={{ width: "100%" }}
@@ -131,6 +136,40 @@ export default function CataloguePage() {
         </aside>
 
         <div className="main-col">
+          {!hasActiveFilters && highlights && (highlights.lastCard || highlights.lastCollection) && (
+            <div className="highlights-row">
+              {highlights.lastCard && (
+                <Link href={`/cartes/${highlights.lastCard.id}`} className="highlight-card">
+                  <img src={highlights.lastCard.image || placeholderFor(highlights.lastCard)} alt="" />
+                  <div>
+                    <div className="highlight-label">{t.lastCardAdded}</div>
+                    <div className="highlight-title">{highlights.lastCard.personnage} — {highlights.lastCard.numero}</div>
+                    <div className="highlight-sub">{highlights.lastCard.collection?.nom}</div>
+                  </div>
+                </Link>
+              )}
+              {highlights.lastCollection && (
+                <Link href={`/collections/${highlights.lastCollection.id}`} className="highlight-card">
+                  <img
+                    src={
+                      highlights.lastCollection.previewImage ||
+                      `data:image/svg+xml;utf8,${encodeURIComponent(
+                        "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 336'><rect width='240' height='336' fill='#1a2c4d'/></svg>"
+                      )}`
+                    }
+                    alt=""
+                  />
+                  <div>
+                    <div className="highlight-label">{t.lastCollectionAdded}</div>
+                    <div className="highlight-title">{highlights.lastCollection.nom}</div>
+                    <div className="highlight-sub">
+                      {[highlights.lastCollection.pays, highlights.lastCollection.annee].filter(Boolean).join(" · ")}
+                    </div>
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
           {loading ? (
             <div className="empty-state">{t.loading}</div>
           ) : cards.length === 0 ? (
@@ -144,6 +183,7 @@ export default function CataloguePage() {
                     <div className="meta">
                       <div className="card-num">{c.numero}</div>
                       <div className="card-nom">{c.personnage}</div>
+                      <div className="card-collection">{c.collection?.nom}</div>
                       <span className="rarity-tag">{c.rarete}</span>
                     </div>
                   </Link>

@@ -40,6 +40,12 @@ Ce projet a été construit et **compile avec succès** (`npm run build`) avec N
    ```
    Catalogue public sur `/`, espace admin sur `/admin`.
 
+## Page d'accueil : nouveautés + chargement allégé
+
+Le catalogue reste la page d'accueil (c'est le cœur du site), mais avec deux ajustements :
+- Une petite zone **"Dernière carte ajoutée"** / **"Dernière collection ajoutée"** en haut de page, visible uniquement quand aucun filtre n'est actif (elle disparaît dès qu'on cherche ou filtre, pour ne pas gêner).
+- La première page du catalogue charge **20 cartes** à la fois (au lieu de charger tout d'un coup), pour un premier affichage plus rapide.
+
 ## Choisir un hébergement (recommandation)
 
 Pour une équipe de 2 à 5 personnes visant plusieurs milliers de fiches, la combinaison la plus simple à mettre en place et à maintenir :

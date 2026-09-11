@@ -92,7 +92,16 @@ export default function AdminCollectionsPage() {
             </div>
             <div className="field">
               <span className="field-label">Pays / origine</span>
-              <input value={form.pays} onChange={(e) => setForm({ ...form, pays: e.target.value })} />
+              <select value={form.pays} onChange={(e) => setForm({ ...form, pays: e.target.value })}>
+                <option value="">Sélectionner…</option>
+                <option value="Hong Kong">Hong Kong</option>
+                <option value="Taïwan">Taïwan</option>
+                <option value="Chine continentale">Chine continentale</option>
+                <option value="Malaisie">Malaisie</option>
+                <option value="Thaïlande">Thaïlande</option>
+                <option value="France">France</option>
+                <option value="Inconnue">Inconnue</option>
+              </select>
             </div>
             <div className="field">
               <span className="field-label">Année</span>

@@ -14,6 +14,8 @@ export async function GET(request) {
     const pays = searchParams.get("pays");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") || "40", 10)));
+    const random = searchParams.get("random") === "true";
+    const excludeIds = (searchParams.get("excludeIds") || "").split(",").filter(Boolean);
 
     const where = {
       AND: [
@@ -41,6 +43,23 @@ export async function GET(request) {
       include: { collection: { select: { nom: true, pays: true } } },
       orderBy: [{ collectionId: "asc" }],
     });
+
+    if (random) {
+      // Mode découverte (page d'accueil sans filtre) : cartes dans un ordre aléatoire, en
+      // excluant celles déjà vues dans cette session pour ne pas répéter les mêmes tant que
+      // le lot n'est pas épuisé — auquel cas on recommence depuis l'ensemble complet.
+      const excludeSet = new Set(excludeIds);
+      let pool = allMatching.filter((c) => !excludeSet.has(c.id));
+      if (pool.length < pageSize) pool = allMatching;
+
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      const cards = pool.slice(0, pageSize);
+      return NextResponse.json({ cards, total: allMatching.length, page: 1, pageSize, totalPages: 1, random: true });
+    }
+
     allMatching.sort(naturalSortByNumero);
 
     const total = allMatching.length;

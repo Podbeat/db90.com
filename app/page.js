@@ -17,6 +17,7 @@ export default function CataloguePage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [highlights, setHighlights] = useState(null);
+  const [seenIds, setSeenIds] = useState([]);
 
   const [query, setQuery] = useState("");
   const [filterCollection, setFilterCollection] = useState("all");
@@ -27,15 +28,54 @@ export default function CataloguePage() {
   const hasActiveFilters =
     query || filterCollection !== "all" || filterPersonnage !== "all" || filterRarete !== "all" || filterPays !== "all";
 
+  // En mode découverte (aucun filtre actif), "Mélanger" ne réordonne pas les mêmes cartes :
+  // il va chercher un nouveau lot aléatoire, en excluant celles déjà vues, jusqu'à épuiser
+  // le catalogue puis recommencer.
   function shuffleCards() {
-    setCards((prev) => {
-      const arr = [...prev];
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
+    if (hasActiveFilters) {
+      setCards((prev) => {
+        const arr = [...prev];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      });
+      return;
+    }
+    fetchRandomCards(seenIds);
+  }
+
+  function fetchRandomCards(excludeIds) {
+    setLoading(true);
+    const params = new URLSearchParams({
+      random: "true",
+      pageSize: "20",
+      excludeIds: excludeIds.join(","),
+      collectionId: filterCollection,
+      rarete: filterRarete,
+      personnage: filterPersonnage,
+      pays: filterPays,
+      q: query,
     });
+    fetch(`/api/cards?${params.toString()}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const newCards = data.cards || [];
+        setCards(newCards);
+        setTotal(data.total || 0);
+        setTotalPages(1);
+        const newIds = newCards.map((c) => c.id);
+        // Repart de zéro si le lot renvoyé chevauche largement l'historique (catalogue
+        // épuisé et recommencé côté serveur), sinon on cumule au fil des mélanges.
+        const overlap = newIds.filter((id) => excludeIds.includes(id)).length;
+        setSeenIds(overlap > newIds.length / 2 ? newIds : [...excludeIds, ...newIds]);
+      })
+      .catch(() => {
+        setCards([]);
+        setTotal(0);
+      })
+      .finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -49,6 +89,11 @@ export default function CataloguePage() {
   }, []);
 
   useEffect(() => {
+    if (!hasActiveFilters) {
+      // Page d'accueil sans filtre : cartes aléatoires dès l'arrivée, pas triées par numéro.
+      fetchRandomCards([]);
+      return;
+    }
     setLoading(true);
     const params = new URLSearchParams({
       page: String(page),
@@ -199,9 +244,8 @@ export default function CataloguePage() {
                   <Link key={c.id} href={`/cartes/${c.id}`} className="card-tile">
                     <img src={c.image || placeholderFor(c)} alt={c.personnage} />
                     <div className="meta">
-                      <div className="card-num">{c.numero}</div>
+                      <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>
                       <div className="card-nom">{c.personnage}</div>
-                      <div className="card-collection">{c.collection?.nom}</div>
                       <span className="rarity-tag">{c.rarete}</span>
                     </div>
                   </Link>

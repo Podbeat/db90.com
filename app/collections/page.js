@@ -51,7 +51,7 @@ export default function CollectionsPage() {
                   </div>
                   {col.total && (
                     <div className="progress-track">
-                      <div className="progress-fill" style={{ width: `${pct}%` }} />
+                      <div className={`progress-fill ${pct >= 100 ? "progress-complete" : ""}`} style={{ width: `${pct}%` }} />
                     </div>
                   )}
                 </div>

@@ -14,12 +14,16 @@ export async function GET() {
       },
     });
 
-    // Vignette = image de la première carte de la série (triée naturellement), à défaut
-    // le visuel de couverture éventuellement défini à la main.
+    // Vignette = image de la première carte de la série (triée naturellement, en ignorant
+    // celles sans scan), à défaut le visuel de couverture éventuellement défini à la main.
+    // withImagesCount sert au calcul de complétude : une carte cataloguée sans scan (avis
+    // de recherche) ne doit pas compter comme "archivée" tant qu'il lui manque son visuel.
     const withPreview = collections.map((col) => {
       const sorted = [...col.cards].sort(naturalSortByNumero);
+      const firstWithImage = sorted.find((c) => c.image);
+      const withImagesCount = col.cards.filter((c) => c.image).length;
       const { cards, ...rest } = col;
-      return { ...rest, previewImage: sorted[0]?.image || col.cover || null };
+      return { ...rest, previewImage: firstWithImage?.image || col.cover || null, withImagesCount };
     });
 
     return NextResponse.json(withPreview);

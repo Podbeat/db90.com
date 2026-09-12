@@ -50,10 +50,13 @@ export async function GET(request) {
     if (random) {
       // Mode découverte (page d'accueil sans filtre) : cartes dans un ordre aléatoire, en
       // excluant celles déjà vues dans cette session pour ne pas répéter les mêmes tant que
-      // le lot n'est pas épuisé — auquel cas on recommence depuis l'ensemble complet.
+      // le lot n'est pas épuisé — auquel cas on recommence depuis l'ensemble complet. On
+      // exclut aussi les cartes sans scan (visuel "recherchée") : pas d'intérêt à les mettre
+      // en avant en découverte, elles restent visibles dans le catalogue et les collections.
+      const withVisuals = allMatching.filter((c) => c.image);
       const excludeSet = new Set(excludeIds);
-      let pool = allMatching.filter((c) => !excludeSet.has(c.id));
-      if (pool.length < pageSize) pool = allMatching;
+      let pool = withVisuals.filter((c) => !excludeSet.has(c.id));
+      if (pool.length < pageSize) pool = withVisuals;
 
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));

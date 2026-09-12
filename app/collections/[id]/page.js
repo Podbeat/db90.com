@@ -46,7 +46,7 @@ export default function CollectionDetailPage({ params }) {
           <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
             {[collection.editeur, collection.pays, collection.annee].filter(Boolean).join(" · ")}
             {" — "}
-            {t.archivedOf(collection.cards.length, collection.total)}
+            {t.archivedOf(collection.cards.filter((c) => c.image).length, collection.total)}
           </div>
           <a href={`/api/collections/${collection.id}/checklist`} className="btn-ghost" style={{ display: "inline-block", marginTop: "0.6rem", fontSize: "0.75rem" }}>
             {t.downloadChecklist}
@@ -68,11 +68,25 @@ export default function CollectionDetailPage({ params }) {
         // existantes sont de simples numéros (pas des codes du type "ZCB-01"), et si le
         // total de la série est connu.
         if (!collection.total) return null;
+
+        // Si la série est déjà complète (autant de cartes que prévu, toutes avec un
+        // visuel), on ne cherche pas plus loin : certaines séries ont une numérotation
+        // erronée d'origine (doublons, sauts de numéro dus à un défaut d'impression),
+        // ce qui ferait ressortir de faux "numéros manquants" alors que rien ne manque.
+        const hasAllVisuals =
+          collection.cards.length >= collection.total && collection.cards.every((c) => c.image);
+        if (hasAllVisuals) return null;
+
         const numeros = collection.cards.map((c) => c.numero);
         const allNumeric = numeros.length > 0 && numeros.every((n) => /^\d+$/.test(n));
         if (!allNumeric) return null;
 
-        const present = new Set(numeros.map((n) => parseInt(n, 10)));
+        // "Présente" signifie avoir un vrai scan, pas seulement une ligne en base : une
+        // carte créée sans visuel (avis de recherche) doit continuer à apparaître ici tant
+        // qu'elle n'a pas de scan, même si elle est déjà cataloguée.
+        const present = new Set(
+          collection.cards.filter((c) => c.image).map((c) => parseInt(c.numero, 10))
+        );
         const missing = [];
         for (let i = 1; i <= collection.total; i++) {
           if (!present.has(i)) missing.push(i);

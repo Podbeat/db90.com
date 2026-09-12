@@ -28,7 +28,7 @@ export default function CollectionsPage() {
       ) : (
         <div className="collection-grid">
           {collections.map((col) => {
-            const archived = col._count?.cards ?? 0;
+            const archived = col.withImagesCount ?? 0;
             const pct = col.total ? Math.min(100, Math.round((archived / col.total) * 100)) : 0;
             return (
               <Link key={col.id} href={`/collections/${col.id}`} className="collection-tile">

@@ -18,6 +18,11 @@ export async function POST(request) {
       return NextResponse.json({ error: "Identifiants incorrects." }, { status: 401 });
     }
 
+    const banned = await prisma.bannedEmail.findUnique({ where: { email: user.email } });
+    if (banned) {
+      return NextResponse.json({ error: "Ce compte n'est plus accessible." }, { status: 403 });
+    }
+
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       return NextResponse.json({ error: "Identifiants incorrects." }, { status: 401 });

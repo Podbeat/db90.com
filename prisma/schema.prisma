@@ -86,6 +86,17 @@ model UserCard {
   @@index([status])
 }
 
+// Adresses e-mail bannies par l'admin : empêche à la fois la connexion et une nouvelle
+// inscription avec cette adresse. Le compte utilisateur correspondant est supprimé au
+// moment du bannissement (voir /api/admin/users/[id]/ban) ; cette table ne fait que
+// mémoriser l'adresse pour bloquer un retour.
+model BannedEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
 model Report {
   id        String   @id @default(cuid())
   cardId    String

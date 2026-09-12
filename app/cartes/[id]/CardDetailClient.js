@@ -8,6 +8,7 @@ import ReportError from "@/components/ReportError";
 import ShareButton from "@/components/ShareButton";
 import HoloCard from "@/components/HoloCard";
 import CardStatusToggle from "@/components/CardStatusToggle";
+import CardScanUpload from "@/components/CardScanUpload";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
@@ -66,6 +67,7 @@ export default function CardDetailClient({ id }) {
               {t.viewHD}
             </a>
           )}
+          {!card.image && <CardScanUpload cardId={card.id} />}
         </div>
         {(card.dos || card.collection.dos) && (
           <div style={{ width: 280, maxWidth: "100%" }}>

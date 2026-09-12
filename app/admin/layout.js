@@ -24,6 +24,7 @@ export default function AdminLayout({ children }) {
     { href: "/admin/cartes", label: "Cartes" },
     { href: "/admin/collections", label: "Collections" },
     { href: "/admin/utilisateurs", label: "Utilisateurs" },
+    { href: "/admin/scans", label: "Scans proposés" },
     { href: "/admin/reports", label: "Signalements" },
     { href: "/admin/import", label: "Import en masse" },
     { href: "/admin/compte", label: "Mon compte" },

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Sun, Moon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Sun, Moon, User, LogOut } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useTheme } from "@/components/ThemeProvider";
 import { LANGUAGES } from "@/lib/translations";
@@ -14,6 +14,22 @@ export default function Nav() {
   const { lang, setLang, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const [pulsing, setPulsing] = useState(null);
+  const [me, setMe] = useState(null);
+  const [meLoaded, setMeLoaded] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/users/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setMe)
+      .catch(() => setMe(null))
+      .finally(() => setMeLoaded(true));
+  }, [pathname]);
+
+  async function handleLogout() {
+    await fetch("/api/users/logout", { method: "POST" });
+    setMe(null);
+    window.location.href = "/";
+  }
 
   function selectLang(code) {
     setLang(code);
@@ -56,6 +72,28 @@ export default function Nav() {
               </button>
             ))}
           </div>
+          {meLoaded && (
+            me ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <Link href="/compte" className="nav-account" title={t.myAccount}>
+                  {me.avatar ? (
+                    <img src={me.avatar} alt="" className="nav-avatar" />
+                  ) : (
+                    <User size={16} />
+                  )}
+                  <span>{me.username}</span>
+                </Link>
+                <button className="btn-icon" onClick={handleLogout} title={t.logout} aria-label={t.logout}>
+                  <LogOut size={14} />
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <Link href="/compte/connexion" className="nav-btn">{t.login}</Link>
+                <Link href="/compte/inscription" className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>{t.signup}</Link>
+              </div>
+            )
+          )}
         </div>
       </div>
     </div>

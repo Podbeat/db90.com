@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import ReportError from "@/components/ReportError";
 import ShareButton from "@/components/ShareButton";
 import HoloCard from "@/components/HoloCard";
+import CardStatusToggle from "@/components/CardStatusToggle";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
@@ -91,6 +92,9 @@ export default function CardDetailClient({ id }) {
           >
             {t.downloadCardPdf}
           </a>
+          <div style={{ marginBottom: "1.25rem" }}>
+            <CardStatusToggle cardId={card.id} />
+          </div>
           <div className="data-row"><span className="data-label">{t.collection}</span><span>{card.collection.nom}</span></div>
           <div className="data-row"><span className="data-label">{t.reference}</span><span>{card.numero}</span></div>
           <div className="data-row"><span className="data-label">{t.variant}</span><span>{card.rarete}</span></div>

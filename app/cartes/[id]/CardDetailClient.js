@@ -84,6 +84,13 @@ export default function CardDetailClient({ id }) {
           <div style={{ marginBottom: "1rem" }}>
             <ShareButton url={cardUrl} title={`${card.personnage} — ${card.numero} — DB Non-Off 90's`} />
           </div>
+          <a
+            href={`/api/cards/${card.id}/pdf`}
+            className="btn-ghost"
+            style={{ display: "inline-block", marginBottom: "1rem", fontSize: "0.75rem" }}
+          >
+            {t.downloadCardPdf}
+          </a>
           <div className="data-row"><span className="data-label">{t.collection}</span><span>{card.collection.nom}</span></div>
           <div className="data-row"><span className="data-label">{t.reference}</span><span>{card.numero}</span></div>
           <div className="data-row"><span className="data-label">{t.variant}</span><span>{card.rarete}</span></div>

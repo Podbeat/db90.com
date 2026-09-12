@@ -1,198 +1,127 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { useState } from "react";
 import { uploadCardImage } from "@/lib/clientUpload";
 
-function emptyForm() {
-  return { id: null, nom: "", annee: "", editeur: "", pays: "", total: "", description: "", dos: null, dosHD: null };
-}
-
-export default function AdminCollectionsPage() {
-  const [collections, setCollections] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState(null);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [message, setMessage] = useState(null);
-  const [uploading, setUploading] = useState(false);
+export default function AdminImportPage() {
+  const [sheet, setSheet] = useState(null);
+  const [images, setImages] = useState([]);
   const [applyWatermark, setApplyWatermark] = useState(false);
-  const fileRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState("");
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
 
-  async function load() {
-    setLoading(true);
-    const res = await fetch("/api/collections");
-    setCollections(await res.json());
-    setLoading(false);
-  }
-
-  useEffect(() => { load(); }, []);
-
-  async function handleDosFile(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const data = await uploadCardImage(file, { watermark: applyWatermark });
-      setForm((f) => ({ ...f, dos: data.url, dosHD: data.hdUrl }));
-    } catch (err) {
-      setMessage({ type: "error", text: err.message || "Échec de l'import de l'image." });
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  async function handleSave(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    const method = form.id ? "PUT" : "POST";
-    const url = form.id ? `/api/collections/${form.id}` : "/api/collections";
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setForm(null);
-      setMessage({ type: "success", text: "Collection enregistrée." });
-      load();
-    } else {
-      const data = await res.json();
-      setMessage({ type: "error", text: data.error || "Échec de l'enregistrement." });
+    if (!sheet) {
+      setError("Sélectionnez un fichier CSV ou Excel.");
+      return;
     }
-  }
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      // Chaque image est envoyée directement au stockage depuis le navigateur, une par une
+      // (l'original en direct, une copie légère pour le traitement) — évite d'envoyer
+      // plusieurs fichiers volumineux d'un coup à la fonction serveur, qui a une limite de taille.
+      const imageMap = {};
+      for (let i = 0; i < images.length; i++) {
+        const file = images[i];
+        setProgress(`Envoi de l'image ${i + 1} / ${images.length} (${file.name})…`);
+        try {
+          const data = await uploadCardImage(file, { watermark: applyWatermark });
+          imageMap[file.name] = data;
+        } catch (err) {
+          imageMap[file.name] = { error: err.message || "Échec de l'envoi." };
+        }
+      }
+      setProgress("Enregistrement des cartes…");
 
-  async function handleDelete(id) {
-    const res = await fetch(`/api/collections/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      setConfirmDelete(null);
-      load();
+      const fd = new FormData();
+      fd.append("sheet", sheet);
+      fd.append("imageMap", JSON.stringify(imageMap));
+      const res = await fetch("/api/import", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Échec de l'import.");
+      } else {
+        setResult(data);
+      }
+    } catch (e) {
+      setError("Erreur réseau pendant l'import.");
+    } finally {
+      setLoading(false);
+      setProgress("");
     }
   }
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-        <div style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>{collections.length} collection(s)</div>
-        <button className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.35rem" }} onClick={() => setForm(emptyForm())}>
-          <Plus size={14} /> Ajouter une collection
-        </button>
+      <h1 className="display-font" style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Import en masse</h1>
+
+      <div className="form-panel" style={{ marginBottom: "1.5rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+        <p style={{ marginTop: 0 }}>
+          Préparez un fichier <strong>CSV</strong> (depuis Excel ou Google Sheets : "Fichier → Télécharger → CSV")
+          avec les colonnes suivantes, en-tête en première ligne :
+        </p>
+        <p style={{ fontFamily: "monospace", color: "var(--text)" }}>
+          collection, numero, personnage, rarete, description, image, contributeur
+        </p>
+        <a href="/templates/modele-import-cartes.csv" download className="btn-ghost" style={{ display: "inline-block", marginBottom: "0.9rem" }}>
+          Télécharger le modèle CSV
+        </a>
+        <p>
+          La colonne <strong>image</strong> doit contenir le nom exact du fichier scan correspondant (ex. <code>0014.jpg</code>).
+          Sélectionnez ensuite tous vos fichiers scans dans le second champ : ils seront associés automatiquement par nom de fichier.
+          Si une collection n'existe pas encore, elle est créée automatiquement.
+        </p>
+        <p>
+          Si la colonne <strong>description</strong> est remplie, chaque ligne déclenche un petit appel de traduction automatique
+          (anglais, chinois traditionnel, chinois simplifié) : pour un gros lot, l'import peut prendre plusieurs minutes.
+        </p>
       </div>
 
-      {message && <div className={`toast ${message.type}`}>{message.text}</div>}
-
-      {form && (
-        <form onSubmit={handleSave} className="form-panel" style={{ marginBottom: "1.5rem" }}>
-          <div className="admin-grid-2">
-            <div className="field">
-              <span className="field-label">Nom de la collection</span>
-              <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required />
-            </div>
-            <div className="field">
-              <span className="field-label">Éditeur (optionnel)</span>
-              <input value={form.editeur} onChange={(e) => setForm({ ...form, editeur: e.target.value })} />
-            </div>
-            <div className="field">
-              <span className="field-label">Pays / origine</span>
-              <select value={form.pays} onChange={(e) => setForm({ ...form, pays: e.target.value })}>
-                <option value="">Sélectionner…</option>
-                <option value="Hong Kong">Hong Kong</option>
-                <option value="Taïwan">Taïwan</option>
-                <option value="Chine continentale">Chine continentale</option>
-                <option value="Malaisie">Malaisie</option>
-                <option value="Thaïlande">Thaïlande</option>
-                <option value="France">France</option>
-                <option value="Inconnue">Inconnue</option>
-              </select>
-            </div>
-            <div className="field">
-              <span className="field-label">Année</span>
-              <input value={form.annee} onChange={(e) => setForm({ ...form, annee: e.target.value })} />
-            </div>
-            <div className="field">
-              <span className="field-label">Nombre total de cartes connu (laisser vide si inconnu)</span>
-              <input type="number" value={form.total} onChange={(e) => setForm({ ...form, total: e.target.value })} />
-            </div>
-          </div>
-
-          <div className="field">
-            <span className="field-label">Présentation de la collection (provenance, histoire, contexte…)</span>
-            <textarea
-              rows={5}
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Ex. : série sortie à Taïwan vers 1995, produite en dehors des circuits Bandai officiels, connue pour ses cartes à fond prismé..."
-            />
-            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
-              Écrivez ce texte en français : il est traduit automatiquement en anglais, chinois traditionnel et chinois simplifié à l'enregistrement.
-            </div>
-          </div>
-
-          <div className="field">
-            <span className="field-label">Visuel du dos (partagé par toute la série, si identique)</span>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.82rem", marginBottom: "0.5rem", cursor: "pointer" }}>
-              <input
-                type="checkbox"
-                checked={applyWatermark}
-                onChange={(e) => setApplyWatermark(e.target.checked)}
-                style={{ width: "auto" }}
-              />
-              Ajouter le filigrane "DB Non-Off 90's" (à décocher si le logo est déjà sur le scan)
-            </label>
-            <div className="upload-zone" onClick={() => fileRef.current?.click()}>
-              <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
-              {uploading ? "Envoi en cours…" : form.dos ? "Remplacer le visuel du dos" : "Cliquer pour importer le scan du dos"}
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleDosFile} style={{ display: "none" }} />
-            </div>
-            {form.dos && <img src={form.dos} alt="" style={{ width: 90, marginTop: "0.6rem" }} />}
-          </div>
-
-          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-            <button type="button" className="btn-ghost" onClick={() => setForm(null)}>Annuler</button>
-            <button type="submit" className="btn-primary" disabled={uploading}>Enregistrer</button>
-          </div>
-        </form>
-      )}
-
-      {loading ? (
-        <div className="empty-state">Chargement…</div>
-      ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table className="admin-table">
-            <thead>
-              <tr><th></th><th>Nom</th><th>Origine</th><th>Année</th><th>Total connu</th><th>Archivées</th><th></th></tr>
-            </thead>
-            <tbody>
-              {collections.map((col) => (
-                <tr key={col.id}>
-                  <td>{col.dos && <img src={col.dos} alt="" style={{ width: 28, height: 40, objectFit: "cover" }} />}</td>
-                  <td>{col.nom}</td>
-                  <td>{col.pays || "—"}</td>
-                  <td>{col.annee || "—"}</td>
-                  <td>{col.total || "En cours de complétion"}</td>
-                  <td>{col._count?.cards ?? "—"}</td>
-                  <td>
-                    <div style={{ display: "flex", gap: "0.4rem" }}>
-                      <button className="btn-icon" onClick={() => setForm({ ...col, total: col.total || "" })}><Pencil size={13} /></button>
-                      <button className="btn-icon" onClick={() => setConfirmDelete(col)}><Trash2 size={13} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <form onSubmit={handleSubmit} className="form-panel">
+        <div className="field">
+          <span className="field-label">Fichier de métadonnées (CSV)</span>
+          <input type="file" accept=".csv" onChange={(e) => setSheet(e.target.files?.[0] || null)} />
         </div>
-      )}
-
-      {confirmDelete && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(10,8,5,0.78)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }} onClick={() => setConfirmDelete(null)}>
-          <div className="form-panel" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
-            <p style={{ fontSize: "0.9rem", marginTop: 0 }}>
-              Supprimer « {confirmDelete.nom} » ? Toutes les cartes de cette collection seront supprimées aussi.
-            </p>
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-              <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>Annuler</button>
-              <button className="btn-danger" onClick={() => handleDelete(confirmDelete.id)}>Supprimer</button>
+        <div className="field">
+          <span className="field-label">Scans des cartes (sélection multiple)</span>
+          <input type="file" accept="image/*" multiple onChange={(e) => setImages(Array.from(e.target.files || []))} />
+          {images.length > 0 && (
+            <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
+              {images.length} fichier(s) sélectionné(s)
             </div>
-          </div>
+          )}
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", marginBottom: "1rem", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={applyWatermark}
+            onChange={(e) => setApplyWatermark(e.target.checked)}
+            style={{ width: "auto" }}
+          />
+          Ajouter le filigrane "DB Non-Off 90's" sur tout le lot (à laisser décoché si vos scans l'ont déjà)
+        </label>
+        {error && <div className="toast error">{error}</div>}
+        <button className="btn-primary" type="submit" disabled={loading}>
+          {loading ? (progress || "Import en cours…") : "Lancer l'import"}
+        </button>
+      </form>
+
+      {result && (
+        <div className="form-panel" style={{ marginTop: "1.5rem" }}>
+          <div className="toast success">{result.created} carte(s) importée(s) avec succès.</div>
+          {result.errors?.length > 0 && (
+            <div>
+              <div style={{ fontSize: "0.85rem", marginBottom: "0.4rem" }}>{result.errors.length} ligne(s) en erreur :</div>
+              <ul style={{ fontSize: "0.8rem", color: "var(--text-muted)", paddingLeft: "1.2rem" }}>
+                {result.errors.map((err, i) => <li key={i}>{err}</li>)}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

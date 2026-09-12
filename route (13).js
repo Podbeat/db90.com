@@ -1,65 +1,27 @@
 import { NextResponse } from "next/server";
+import { resolveUserSession } from "@/lib/currentUser";
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
-import { translateCollectionDescription } from "@/lib/translate";
-import { naturalSortByNumero } from "@/lib/naturalSort";
+import { processAvatarImage } from "@/lib/storage";
 
-export async function GET() {
-  try {
-    const collections = await prisma.collection.findMany({
-      orderBy: { annee: "asc" },
-      include: {
-        _count: { select: { cards: true } },
-        cards: { select: { numero: true, image: true } },
-      },
-    });
-
-    // Vignette = image de la première carte de la série (triée naturellement), à défaut
-    // le visuel de couverture éventuellement défini à la main.
-    const withPreview = collections.map((col) => {
-      const sorted = [...col.cards].sort(naturalSortByNumero);
-      const { cards, ...rest } = col;
-      return { ...rest, previewImage: sorted[0]?.image || col.cover || null };
-    });
-
-    return NextResponse.json(withPreview);
-  } catch (e) {
-    console.error("Erreur GET /api/collections :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
-  }
-}
+export const runtime = "nodejs";
 
 export async function POST(request) {
   try {
-    const session = await requireAdmin(request);
-    if (!session) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
+    const session = await resolveUserSession(request);
+    if (!session) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
 
-    const body = await request.json();
-    if (!body.nom) {
-      return NextResponse.json({ error: "Le nom de la collection est obligatoire." }, { status: 400 });
-    }
+    const formData = await request.formData();
+    const file = formData.get("file");
+    if (!file) return NextResponse.json({ error: "Aucun fichier reçu." }, { status: 400 });
 
-    const translations = await translateCollectionDescription(body.description);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const avatarUrl = await processAvatarImage(buffer, file.name);
 
-    const collection = await prisma.collection.create({
-      data: {
-        nom: body.nom,
-        annee: body.annee || null,
-        editeur: body.editeur || null,
-        pays: body.pays || null,
-        total: body.total ? parseInt(body.total, 10) : null,
-        cover: body.cover || null,
-        dos: body.dos || null,
-        dosHD: body.dosHD || body.dos || null,
-        description: body.description || null,
-        descriptionEn: translations.en,
-        descriptionZhTW: translations.zhTW,
-        descriptionZhCN: translations.zhCN,
-      },
-    });
-    return NextResponse.json(collection, { status: 201 });
+    await prisma.user.update({ where: { id: session.sub }, data: { avatar: avatarUrl } });
+
+    return NextResponse.json({ avatar: avatarUrl });
   } catch (e) {
-    console.error("Erreur POST /api/collections :", e);
+    console.error("Erreur POST /api/users/me/avatar :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
   }
 }

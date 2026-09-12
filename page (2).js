@@ -1,54 +1,71 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-export default function AdminLoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+export default function AdminAccountPage() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    if (newPassword !== confirmPassword) {
+      setError("Les deux nouveaux mots de passe ne correspondent pas.");
+      return;
+    }
+
+    setStatus("sending");
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Connexion impossible.");
-        return;
+      if (res.ok) {
+        setStatus("done");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setStatus("idle");
+        setError(data.error || "Échec du changement de mot de passe.");
       }
-      router.push("/admin");
-      router.refresh();
     } catch (e) {
-      setError("Erreur réseau, réessayez.");
-    } finally {
-      setLoading(false);
+      setStatus("idle");
+      setError("Erreur réseau.");
     }
   }
 
   return (
-    <div className="container page" style={{ maxWidth: 380 }}>
-      <h1 className="display-font" style={{ fontSize: "1.1rem", marginBottom: "1.25rem" }}>Espace administration</h1>
-      <form onSubmit={handleSubmit} className="form-panel">
-        <div className="field">
-          <span className="field-label">Adresse e-mail</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </div>
-        <div className="field">
-          <span className="field-label">Mot de passe</span>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        </div>
+    <div>
+      <h1 className="display-font" style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Mon compte</h1>
+
+      <form onSubmit={handleSubmit} className="form-panel" style={{ maxWidth: 420 }}>
+        <div style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>Changer le mot de passe</div>
+
+        {status === "done" && <div className="toast success">Mot de passe mis à jour avec succès.</div>}
         {error && <div className="toast error">{error}</div>}
-        <button className="btn-primary" type="submit" disabled={loading} style={{ width: "100%" }}>
-          {loading ? "Connexion…" : "Se connecter"}
+
+        <div className="field">
+          <span className="field-label">Mot de passe actuel</span>
+          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+        </div>
+        <div className="field">
+          <span className="field-label">Nouveau mot de passe (8 caractères minimum)</span>
+          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
+        </div>
+        <div className="field">
+          <span className="field-label">Confirmer le nouveau mot de passe</span>
+          <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} />
+        </div>
+
+        <button className="btn-primary" type="submit" disabled={status === "sending"}>
+          {status === "sending" ? "Enregistrement…" : "Changer le mot de passe"}
         </button>
       </form>
     </div>

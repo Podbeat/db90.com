@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, Coffee } from "lucide-react";
+import { ExternalLink, HeartHandshake } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
 // Construite en plusieurs morceaux plutôt qu'en une seule chaîne littérale : certains
@@ -9,8 +9,9 @@ import { useLanguage } from "@/components/LanguageProvider";
 // utilisé par de vrais spammeurs), même quand le lien est parfaitement légitime.
 const FACEBOOK_GROUP_URL = ["https://www.facebook.com", "groups", "928110906379566", ""].join("/");
 
-// À remplacer par votre vraie page une fois créée : ko-fi.com/votre-nom
-const KOFI_URL = "https://ko-fi.com/dbnonoff90s";
+// À remplacer par votre vrai lien une fois le compte PayPal du site créé, ex. :
+// "https://www.paypal.com/paypalme/votre-nom" ou "https://www.paypal.com/donate/?hosted_button_id=..."
+const DONATE_URL = "https://www.paypal.com/paypalme/dbnonoff90s";
 
 export default function Footer() {
   const { t } = useLanguage();
@@ -25,8 +26,8 @@ export default function Footer() {
           </div>
           <div className="footer-links">
             <Link href="/informations" className="footer-nav-link">{t.navInfo}</Link>
-            <a href={KOFI_URL} target="_blank" rel="noopener noreferrer" className="footer-kofi-link">
-              <Coffee size={14} /> {t.supportUs}
+            <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="footer-kofi-link">
+              <HeartHandshake size={14} /> {t.supportUs}
             </a>
             <a href={FACEBOOK_GROUP_URL} target="_blank" rel="noopener noreferrer" className="footer-fb-link">
               {t.footerJoinGroup} <ExternalLink size={14} />

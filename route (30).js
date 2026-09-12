@@ -1,30 +1,45 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { naturalSortByNumero } from "@/lib/naturalSort";
+import nodemailer from "nodemailer";
 
-export async function GET() {
+// Envoie un e-mail via le compte Gmail configuré côté serveur (jamais exposé au client).
+// Variables requises dans .env : CONTACT_EMAIL_USER, CONTACT_EMAIL_APP_PASSWORD
+// (un "mot de passe d'application" Gmail, pas le mot de passe habituel du compte).
+
+export async function POST(request) {
+  const { subject, message, replyTo } = await request.json();
+
+  if (!message || !message.trim()) {
+    return NextResponse.json({ error: "Message manquant." }, { status: 400 });
+  }
+  if (message.length > 5000) {
+    return NextResponse.json({ error: "Message trop long." }, { status: 400 });
+  }
+
+  const user = process.env.CONTACT_EMAIL_USER;
+  const appPassword = process.env.CONTACT_EMAIL_APP_PASSWORD;
+
+  if (!user || !appPassword) {
+    console.error("CONTACT_EMAIL_USER / CONTACT_EMAIL_APP_PASSWORD manquants dans .env");
+    return NextResponse.json({ error: "Envoi indisponible pour le moment." }, { status: 500 });
+  }
+
   try {
-    const [lastCard, lastCollection] = await Promise.all([
-      prisma.card.findFirst({
-        orderBy: { createdAt: "desc" },
-        include: { collection: { select: { nom: true } } },
-      }),
-      prisma.collection.findFirst({
-        orderBy: { createdAt: "desc" },
-        include: { cards: { select: { numero: true, image: true } } },
-      }),
-    ]);
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: { user, pass: appPassword },
+    });
 
-    let lastCollectionWithPreview = null;
-    if (lastCollection) {
-      const sorted = [...lastCollection.cards].sort(naturalSortByNumero);
-      const { cards, ...rest } = lastCollection;
-      lastCollectionWithPreview = { ...rest, previewImage: sorted[0]?.image || lastCollection.cover || null };
-    }
+    await transporter.sendMail({
+      from: `"DB Non-Off 90's — Site" <${user}>`,
+      to: user,
+      replyTo: replyTo && replyTo.trim() ? replyTo.trim() : undefined,
+      subject: subject && subject.trim() ? `[Site] ${subject.trim()}` : "[Site] Nouveau message",
+      text: message.trim(),
+    });
 
-    return NextResponse.json({ lastCard, lastCollection: lastCollectionWithPreview });
+    return NextResponse.json({ ok: true });
   } catch (e) {
-    console.error("Erreur GET /api/highlights :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    console.error("Erreur envoi e-mail:", e.message);
+    return NextResponse.json({ error: "Échec de l'envoi." }, { status: 500 });
   }
 }

@@ -1,25 +1,40 @@
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
+import { signUserSession, COOKIE_NAME } from "@/lib/userAuth";
 
-// Renvoie les valeurs distinctes utilisées pour peupler les filtres du catalogue
-// (personnages, variantes/raretés, pays d'origine), sans avoir à charger toutes les cartes côté client.
-export async function GET() {
+export async function POST(request) {
   try {
-    const [personnages, raretes, collections] = await Promise.all([
-      prisma.card.findMany({ distinct: ["personnage"], select: { personnage: true }, orderBy: { personnage: "asc" } }),
-      prisma.card.findMany({ distinct: ["rarete"], select: { rarete: true }, orderBy: { rarete: "asc" } }),
-      prisma.collection.findMany({ select: { pays: true }, orderBy: { pays: "asc" } }),
-    ]);
+    const { identifier, password } = await request.json();
+    if (!identifier || !password) {
+      return NextResponse.json({ error: "Identifiants manquants." }, { status: 400 });
+    }
 
-    const paysSet = Array.from(new Set(collections.map((c) => c.pays).filter(Boolean))).sort();
-
-    return NextResponse.json({
-      personnages: personnages.map((p) => p.personnage).filter(Boolean),
-      raretes: raretes.map((r) => r.rarete).filter(Boolean),
-      pays: paysSet,
+    const normalized = identifier.trim().toLowerCase();
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ username: normalized }, { email: normalized }] },
     });
+    if (!user) {
+      return NextResponse.json({ error: "Identifiants incorrects." }, { status: 401 });
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return NextResponse.json({ error: "Identifiants incorrects." }, { status: 401 });
+    }
+
+    const token = await signUserSession({ sub: user.id, username: user.username });
+    const response = NextResponse.json({ ok: true, username: user.username });
+    response.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    return response;
   } catch (e) {
-    console.error("Erreur GET /api/facets :", e);
+    console.error("Erreur POST /api/users/login :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
   }
 }

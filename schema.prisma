@@ -46,12 +46,44 @@ model Card {
   collectionId    String
   collection      Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   reports         Report[]
+  userCards       UserCard[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
   @@index([collectionId])
   @@index([rarete])
   @@index([personnage])
+}
+
+// Compte utilisateur public (distinct des comptes admin) : permet à un visiteur de suivre
+// sa propre collection et sa liste de cartes recherchées, avec une page profil publique.
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  email        String     @unique
+  passwordHash String
+  avatar       String?
+  bio          String?
+  createdAt    DateTime   @default(now())
+  cards        UserCard[]
+}
+
+// Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
+// "wanted" (je la recherche). Une carte donnée ne peut avoir qu'un seul statut à la fois
+// pour un même utilisateur (contrainte unique userId+cardId).
+model UserCard {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  status    String // "owned" | "wanted"
+  createdAt DateTime @default(now())
+
+  @@unique([userId, cardId])
+  @@index([userId])
+  @@index([cardId])
+  @@index([status])
 }
 
 model Report {

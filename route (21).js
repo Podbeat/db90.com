@@ -1,56 +1,39 @@
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { signSession, COOKIE_NAME } from "@/lib/auth";
 
-// GET : liste des signalements (admin uniquement)
-export async function GET(request) {
-  try {
-    const session = await requireAdmin(request);
-    if (!session) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
-
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-
-    const reports = await prisma.report.findMany({
-      where: status && status !== "all" ? { status } : {},
-      include: { card: { include: { collection: { select: { nom: true } } } } },
-      orderBy: { createdAt: "desc" },
-    });
-    return NextResponse.json(reports);
-  } catch (e) {
-    console.error("Erreur GET /api/reports :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
-  }
-}
-
-// POST : signalement public — n'importe quel visiteur peut signaler une erreur sur une carte.
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { cardId, message, contact } = body;
+    const { email, password } = await request.json();
 
-    if (!cardId || !message || !message.trim()) {
-      return NextResponse.json({ error: "Message manquant." }, { status: 400 });
-    }
-    if (message.length > 1000) {
-      return NextResponse.json({ error: "Message trop long." }, { status: 400 });
+    if (!email || !password) {
+      return NextResponse.json({ error: "Identifiants manquants." }, { status: 400 });
     }
 
-    const card = await prisma.card.findUnique({ where: { id: cardId } });
-    if (!card) {
-      return NextResponse.json({ error: "Carte introuvable." }, { status: 404 });
+    const user = await prisma.adminUser.findUnique({ where: { email } });
+    if (!user) {
+      return NextResponse.json({ error: "Identifiants incorrects." }, { status: 401 });
     }
 
-    const report = await prisma.report.create({
-      data: {
-        cardId,
-        message: message.trim().slice(0, 1000),
-        contact: contact ? String(contact).trim().slice(0, 200) : null,
-      },
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      return NextResponse.json({ error: "Identifiants incorrects." }, { status: 401 });
+    }
+
+    const token = await signSession({ sub: user.id, email: user.email, nom: user.nom, role: user.role });
+
+    const response = NextResponse.json({ ok: true, nom: user.nom });
+    response.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
     });
-    return NextResponse.json({ ok: true, id: report.id }, { status: 201 });
+    return response;
   } catch (e) {
-    console.error("Erreur POST /api/reports :", e);
+    console.error("Erreur POST /api/auth/login :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
   }
 }

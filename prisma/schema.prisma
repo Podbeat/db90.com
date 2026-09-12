@@ -44,11 +44,12 @@ model Card {
   dosHD           String?
   contributeur    String? // pseudo/nom optionnel de la personne ayant fourni le scan, affiché publiquement si renseigné
   collectionId    String
-  collection      Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collection      Collection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   reports         Report[]
   userCards       UserCard[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  submissions     CardSubmission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([collectionId])
   @@index([rarete])
@@ -66,6 +67,7 @@ model User {
   bio          String?
   createdAt    DateTime   @default(now())
   cards        UserCard[]
+  submissions  CardSubmission[]
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -95,6 +97,29 @@ model BannedEmail {
   email     String   @unique
   reason    String?
   createdAt DateTime @default(now())
+}
+
+// Scan proposé par un utilisateur pour une carte (typiquement une carte "recherchée", sans
+// visuel). Traité comme un import classique (redimensionnement/compression via la même
+// fonction que l'admin), mais reste en attente ("pending") tant qu'un admin ne l'a pas
+// validé — voir /admin/scans. Une seule ligne par (carte, utilisateur) : un nouvel envoi
+// remplace le précédent tant qu'il n'a pas encore été traité.
+model CardSubmission {
+  id         String    @id @default(cuid())
+  cardId     String
+  card       Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image      String
+  imageHD    String?
+  status     String    @default("pending") // pending | approved | rejected
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  @@unique([cardId, userId])
+  @@index([cardId])
+  @@index([userId])
+  @@index([status])
 }
 
 model Report {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, Shuffle } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
 export default function CataloguePage() {
   const { t } = useLanguage();
@@ -203,7 +204,7 @@ export default function CataloguePage() {
             <div className="highlights-row">
               {highlights.lastCard && (
                 <Link href={`/cartes/${highlights.lastCard.id}`} className="highlight-card">
-                  <img src={highlights.lastCard.image || placeholderFor(highlights.lastCard)} alt="" />
+                  <img src={highlights.lastCard.image || missingCardPlaceholder(highlights.lastCard, t)} alt="" />
                   <div>
                     <div className="highlight-label">{t.lastCardAdded}</div>
                     <div className="highlight-title">{highlights.lastCard.personnage} — {highlights.lastCard.numero}</div>
@@ -242,7 +243,7 @@ export default function CataloguePage() {
               <div className="card-grid">
                 {cards.map((c) => (
                   <Link key={c.id} href={`/cartes/${c.id}`} className="card-tile">
-                    <img src={c.image || placeholderFor(c)} alt={c.personnage} />
+                    <img src={c.image || missingCardPlaceholder(c, t)} alt={c.personnage} />
                     <div className="meta">
                       <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>
                       <div className="card-nom">{c.personnage}</div>
@@ -270,9 +271,4 @@ export default function CataloguePage() {
       </div>
     </div>
   );
-}
-
-function placeholderFor(card) {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 336'><rect width='240' height='336' fill='#1a2c4d'/><text x='120' y='170' font-family='Arial' font-size='16' fill='#8ea3c4' text-anchor='middle'>${card.numero}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }

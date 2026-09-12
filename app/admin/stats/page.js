@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+
+const PERIOD_OPTIONS = [
+  { key: "30d", label: "Dernier mois" },
+  { key: "90d", label: "Dernier trimestre" },
+  { key: "365d", label: "Dernière année" },
+];
 
 function StatCard({ label, value }) {
   return (
@@ -12,13 +19,22 @@ function StatCard({ label, value }) {
   );
 }
 
+function formatBucketLabel(dateStr, bucket) {
+  if (bucket === "day") return dateStr.slice(5); // MM-JJ
+  if (bucket === "week") return dateStr.split("-S").join(" S"); // 2026 S37
+  return dateStr; // YYYY-MM
+}
+
 export default function AdminStatsPage() {
+  const [period, setPeriod] = useState("30d");
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/stats")
+    setLoading(true);
+    setError("");
+    fetch(`/api/admin/stats?period=${period}`)
       .then((r) => {
         if (!r.ok) throw new Error("failed");
         return r.json();
@@ -26,83 +42,115 @@ export default function AdminStatsPage() {
       .then(setStats)
       .catch(() => setError("Impossible de charger les statistiques."))
       .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="empty-state">Chargement…</div>;
-  if (error || !stats) return <div className="empty-state">{error || "Aucune donnée."}</div>;
+  }, [period]);
 
   return (
     <div>
       <h1 className="display-font" style={{ fontSize: "1.3rem", marginBottom: "0.4rem" }}>Statistiques du site</h1>
-      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1.5rem" }}>
+      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
         Données anonymes uniquement : aucune adresse IP n'est enregistrée, seulement des vues de page,
         un pays approximatif et un identifiant aléatoire non lié à une identité.
       </p>
 
-      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "2rem" }}>
-        <StatCard label="Pages vues (total)" value={stats.totals.pageViews} />
-        <StatCard label="Pages vues (7 derniers jours)" value={stats.last7Days.pageViews} />
-        <StatCard label="Pages vues (30 derniers jours)" value={stats.last30Days.pageViews} />
-        <StatCard label="Visiteurs uniques (30 jours)" value={stats.last30Days.uniqueVisitors} />
-        <StatCard label="Visiteurs uniques (total)" value={stats.totals.uniqueVisitorsAllTime} />
-        <StatCard label="Téléchargements HD (total)" value={stats.totals.hdDownloads} />
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+        {PERIOD_OPTIONS.map((opt) => (
+          <button
+            key={opt.key}
+            onClick={() => setPeriod(opt.key)}
+            className={period === opt.key ? "btn-primary" : "btn-ghost"}
+            style={{ fontSize: "0.8rem", padding: "0.4rem 0.9rem" }}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
-      <div className="filter-panel" style={{ marginBottom: "2rem" }}>
-        <div style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>Évolution des pages vues — 30 derniers jours</div>
-        <div style={{ width: "100%", height: 260 }}>
-          <ResponsiveContainer>
-            <LineChart data={stats.daily}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--text-muted)" }} tickFormatter={(d) => d.slice(5)} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "var(--text-muted)" }} />
-              <Tooltip
-                contentStyle={{ background: "var(--surface-raised)", border: "1px solid var(--line)", fontSize: "0.8rem" }}
-                labelStyle={{ color: "var(--text)" }}
-              />
-              <Line type="monotone" dataKey="views" stroke="var(--accent)" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      {loading || !stats ? (
+        <div className="empty-state">{error || "Chargement…"}</div>
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "2rem" }}>
+            <StatCard label="Pages vues (total)" value={stats.totals.pageViews} />
+            <StatCard label="Pages vues (7 derniers jours)" value={stats.last7Days.pageViews} />
+            <StatCard label="Pages vues (30 derniers jours)" value={stats.last30Days.pageViews} />
+            <StatCard label={`Pages vues (${stats.periodLabel})`} value={stats.periodStats.pageViews} />
+            <StatCard label={`Visiteurs uniques (${stats.periodLabel})`} value={stats.periodStats.uniqueVisitors} />
+            <StatCard label="Visiteurs uniques (total)" value={stats.totals.uniqueVisitorsAllTime} />
+            <StatCard label="Téléchargements HD (total)" value={stats.totals.hdDownloads} />
+          </div>
 
-      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
-        <div className="filter-panel" style={{ flex: 1, minWidth: 260 }}>
-          <div style={{ fontSize: "0.85rem", marginBottom: "0.8rem" }}>Pays d'origine des visiteurs (30 jours)</div>
-          {stats.byCountry.length === 0 ? (
-            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Pas encore de données.</div>
-          ) : (
-            <table className="admin-table">
-              <tbody>
-                {stats.byCountry.map((c) => (
-                  <tr key={c.country}>
-                    <td>{c.country}</td>
-                    <td style={{ textAlign: "right" }}>{c.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+          <div className="filter-panel" style={{ marginBottom: "2rem" }}>
+            <div style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>Évolution des pages vues — {stats.periodLabel}</div>
+            <div style={{ width: "100%", height: 260 }}>
+              <ResponsiveContainer>
+                <LineChart data={stats.daily}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: "var(--text-muted)" }}
+                    tickFormatter={(d) => formatBucketLabel(d, stats.bucket)}
+                  />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: "var(--text-muted)" }} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--surface-raised)", border: "1px solid var(--line)", fontSize: "0.8rem" }}
+                    labelStyle={{ color: "var(--text)" }}
+                    labelFormatter={(d) => formatBucketLabel(d, stats.bucket)}
+                  />
+                  <Line type="monotone" dataKey="views" stroke="var(--accent)" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
 
-        <div className="filter-panel" style={{ flex: 1, minWidth: 260 }}>
-          <div style={{ fontSize: "0.85rem", marginBottom: "0.8rem" }}>Pages les plus consultées (30 jours)</div>
-          {stats.topPages.length === 0 ? (
-            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Pas encore de données.</div>
-          ) : (
-            <table className="admin-table">
-              <tbody>
-                {stats.topPages.map((p) => (
-                  <tr key={p.path}>
-                    <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{p.path}</td>
-                    <td style={{ textAlign: "right" }}>{p.count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+          <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+            <div className="filter-panel" style={{ flex: 1, minWidth: 260 }}>
+              <div style={{ fontSize: "0.85rem", marginBottom: "0.8rem" }}>Pays d'origine des visiteurs ({stats.periodLabel})</div>
+              {stats.byCountry.length === 0 ? (
+                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Pas encore de données.</div>
+              ) : (
+                <table className="admin-table">
+                  <tbody>
+                    {stats.byCountry.map((c) => (
+                      <tr key={c.country}>
+                        <td>{c.country}</td>
+                        <td style={{ textAlign: "right" }}>{c.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="filter-panel" style={{ flex: 1, minWidth: 260 }}>
+              <div style={{ fontSize: "0.85rem", marginBottom: "0.8rem" }}>Pages les plus consultées ({stats.periodLabel})</div>
+              {stats.topPages.length === 0 ? (
+                <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>Pas encore de données.</div>
+              ) : (
+                <table className="admin-table">
+                  <tbody>
+                    {stats.topPages.map((p) => (
+                      <tr key={p.path}>
+                        <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>
+                          <Link
+                            href={p.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: "var(--accent)", textDecoration: "none" }}
+                            title={`Ouvrir ${p.path} dans un nouvel onglet`}
+                          >
+                            {p.path}
+                          </Link>
+                        </td>
+                        <td style={{ textAlign: "right" }}>{p.count}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

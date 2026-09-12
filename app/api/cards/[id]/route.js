@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { translateFreeText } from "@/lib/translate";
+import { cleanupCardFiles } from "@/lib/cardFileCleanup";
 
 export async function GET(request, { params }) {
   try {
@@ -63,7 +64,8 @@ export async function DELETE(request, { params }) {
     const session = await requireAdmin(request);
     if (!session) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
 
-    await prisma.card.delete({ where: { id: params.id } });
+    const deleted = await prisma.card.delete({ where: { id: params.id } });
+    await cleanupCardFiles([deleted]);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Erreur DELETE /api/cards/[id] :", e);

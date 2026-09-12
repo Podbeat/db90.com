@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import { localize } from "@/lib/localize";
+import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
 export default function CollectionDetailPage({ params }) {
   const { t, lang } = useLanguage();
@@ -101,12 +102,7 @@ export default function CollectionDetailPage({ params }) {
           {collection.cards.map((c) => (
             <Link key={c.id} href={`/cartes/${c.id}`} className="card-tile">
               <img
-                src={
-                  c.image ||
-                  `data:image/svg+xml;utf8,${encodeURIComponent(
-                    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 336'><rect width='240' height='336' fill='#1a2c4d'/><text x='120' y='170' font-family='Arial' font-size='16' fill='#8ea3c4' text-anchor='middle'>${c.numero}</text></svg>`
-                  )}`
-                }
+                src={c.image || missingCardPlaceholder(c, t)}
                 alt={c.personnage}
               />
               <div className="meta">

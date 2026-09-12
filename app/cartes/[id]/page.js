@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import ReportError from "@/components/ReportError";
 import { localize } from "@/lib/localize";
+import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
 export default function CardDetailPage({ params }) {
   const { t, lang } = useLanguage();
@@ -37,11 +38,7 @@ export default function CardDetailPage({ params }) {
   if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   if (notFound || !card) return <div className="container page"><div className="empty-state">{t.notFound}</div></div>;
 
-  const image =
-    card.image ||
-    `data:image/svg+xml;utf8,${encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 336'><rect width='240' height='336' fill='#1a2c4d'/><text x='120' y='170' font-family='Arial' font-size='16' fill='#8ea3c4' text-anchor='middle'>${card.numero}</text></svg>`
-    )}`;
+  const image = card.image || missingCardPlaceholder(card, t);
 
   return (
     <div className="container page">

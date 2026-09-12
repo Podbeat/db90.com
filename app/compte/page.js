@@ -3,29 +3,30 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Trash2, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 
-function CardRow({ card, onRemove, t }) {
+function MiniPreview({ cards }) {
+  const shown = cards.slice(0, 8);
+  const rest = cards.length - shown.length;
+  if (cards.length === 0) return null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", padding: "0.5rem 0", borderBottom: "1px solid var(--line)" }}>
-      <img
-        src={card.image || ""}
-        alt={card.personnage}
-        style={{ width: 40, height: 56, objectFit: "cover", background: "var(--surface-raised)", flexShrink: 0 }}
-      />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: "0.85rem" }}>{card.personnage}</div>
-        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-          {card.collection?.nom} — n°{card.numero}
+    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
+      {shown.map((c) => (
+        <Link key={c.id} href={`/cartes/${c.id}`} title={`${c.personnage} — n°${c.numero}`}>
+          <img
+            src={c.image || ""}
+            alt={c.personnage}
+            style={{ width: 32, height: 45, objectFit: "cover", background: "var(--surface-raised)", border: "1px solid var(--line)" }}
+          />
+        </Link>
+      ))}
+      {rest > 0 && (
+        <div style={{ width: 32, height: 45, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", color: "var(--text-muted)", border: "1px solid var(--line)" }}>
+          +{rest}
         </div>
-      </div>
-      <Link href={`/cartes/${card.id}`} className="btn-ghost" style={{ fontSize: "0.72rem", padding: "0.3rem 0.6rem" }}>
-        {"→"}
-      </Link>
-      <button className="btn-icon" onClick={() => onRemove(card.id)} title={t.removeFromList}>
-        <Trash2 size={13} />
-      </button>
+      )}
     </div>
   );
 }
@@ -42,6 +43,7 @@ export default function AccountPage() {
   const [wanted, setWanted] = useState([]);
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [message, setMessage] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -60,6 +62,7 @@ export default function AccountPage() {
         setMe(data);
         setBio(data.bio || "");
         setEmail(data.email || "");
+        setUsername(data.username || "");
       })
       .finally(() => setLoading(false));
 
@@ -72,16 +75,6 @@ export default function AccountPage() {
   useEffect(() => {
     if (notAuthed) router.push("/compte/connexion");
   }, [notAuthed, router]);
-
-  async function handleRemove(cardId, list) {
-    await fetch("/api/users/me/cards", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cardId, status: null }),
-    });
-    if (list === "owned") setOwned((prev) => prev.filter((c) => c.id !== cardId));
-    else setWanted((prev) => prev.filter((c) => c.id !== cardId));
-  }
 
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0];
@@ -104,11 +97,15 @@ export default function AccountPage() {
     const res = await fetch("/api/users/me", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bio, email }),
+      body: JSON.stringify({ username, bio, email }),
     });
     const data = await res.json();
-    if (res.ok) setMessage({ type: "success", text: "Profil mis à jour." });
-    else setMessage({ type: "error", text: data.error });
+    if (res.ok) {
+      setMe((prev) => ({ ...prev, username: data.username, email: data.email, bio: data.bio }));
+      setMessage({ type: "success", text: "Profil mis à jour." });
+    } else {
+      setMessage({ type: "error", text: data.error });
+    }
   }
 
   async function handleChangePassword(e) {
@@ -137,7 +134,7 @@ export default function AccountPage() {
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <div style={{ position: "relative" }}>
           <img
-            src={me.avatar || `data:image/svg+xml;utf8,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='#1a2c4d'/></svg>")}`}
+            src={me.avatar || avatarPlaceholder(me.username)}
             alt=""
             style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)" }}
           />
@@ -166,6 +163,16 @@ export default function AccountPage() {
         <form onSubmit={handleSaveProfile} className="form-panel" style={{ flex: 1, minWidth: 280 }}>
           <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.8rem" }}>{t.accountSettings}</div>
           <div className="field">
+            <span className="field-label">{t.usernameLabel}</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase())}
+              pattern="[a-z0-9_-]{3,20}"
+              title="3 à 20 caractères : lettres minuscules, chiffres, - ou _"
+              required
+            />
+          </div>
+          <div className="field">
             <span className="field-label">{t.emailLabel}</span>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
@@ -193,18 +200,25 @@ export default function AccountPage() {
 
       <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
         <div className="filter-panel" style={{ flex: 1, minWidth: 280 }}>
-          <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.6rem" }}>
-            {t.myCollectionTitle} · {t.cardsCount(owned.length)}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+            <div className="display-font" style={{ fontSize: "0.95rem" }}>
+              {t.myCollectionTitle} · {t.cardsCount(owned.length)}
+            </div>
+            {owned.length > 0 && (
+              <a href="/api/users/me/owned/pdf" className="btn-ghost" style={{ fontSize: "0.72rem" }}>
+                {t.downloadOwnedPdf}
+              </a>
+            )}
           </div>
           {owned.length === 0 ? (
-            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{t.noCardsOwned}</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>{t.noCardsOwned}</div>
           ) : (
-            owned.map((c) => <CardRow key={c.id} card={c} onRemove={(id) => handleRemove(id, "owned")} t={t} />)
+            <MiniPreview cards={owned} />
           )}
         </div>
 
         <div className="filter-panel" style={{ flex: 1, minWidth: 280 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
             <div className="display-font" style={{ fontSize: "0.95rem" }}>
               {t.myWantedTitle} · {t.cardsCount(wanted.length)}
             </div>
@@ -215,9 +229,9 @@ export default function AccountPage() {
             )}
           </div>
           {wanted.length === 0 ? (
-            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{t.noCardsWanted}</div>
+            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>{t.noCardsWanted}</div>
           ) : (
-            wanted.map((c) => <CardRow key={c.id} card={c} onRemove={(id) => handleRemove(id, "wanted")} t={t} />)
+            <MiniPreview cards={wanted} />
           )}
         </div>
       </div>

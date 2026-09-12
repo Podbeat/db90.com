@@ -36,6 +36,7 @@ export default function AdminCardsPage() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [message, setMessage] = useState(null);
   const [applyWatermark, setApplyWatermark] = useState(false);
+  const [applySharpen, setApplySharpen] = useState(false);
   const [applyWatermarkDos, setApplyWatermarkDos] = useState(false);
   const fileRef = useRef(null);
   const dosFileRef = useRef(null);
@@ -106,7 +107,7 @@ export default function AdminCardsPage() {
     if (!file) return;
     setUploading(true);
     try {
-      const data = await uploadCardImage(file, { watermark: applyWatermark });
+      const data = await uploadCardImage(file, { watermark: applyWatermark, sharpen: applySharpen });
       setForm((f) => ({ ...f, image: data.url, imageHD: data.hdUrl }));
     } catch (err) {
       setMessage({ type: "error", text: err.message || "Échec de l'import de l'image." });
@@ -294,6 +295,10 @@ export default function AdminCardsPage() {
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", marginBottom: "0.5rem", cursor: "pointer" }}>
                 <input type="checkbox" checked={applyWatermark} onChange={(e) => setApplyWatermark(e.target.checked)} style={{ width: "auto" }} />
                 Ajouter le filigrane
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+                <input type="checkbox" checked={applySharpen} onChange={(e) => setApplySharpen(e.target.checked)} style={{ width: "auto" }} />
+                Renforcer la netteté (utile pour un scan ancien flou)
               </label>
               <div className="upload-zone" onClick={() => fileRef.current?.click()}>
                 <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />

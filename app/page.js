@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Search, Shuffle } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
+import HoloCard from "@/components/HoloCard";
+import { playShuffleSound } from "@/lib/playShuffleSound";
 
 export default function CataloguePage() {
   const { t } = useLanguage();
@@ -19,6 +22,7 @@ export default function CataloguePage() {
   const [loading, setLoading] = useState(true);
   const [highlights, setHighlights] = useState(null);
   const [seenIds, setSeenIds] = useState([]);
+  const [shuffling, setShuffling] = useState(false);
 
   const [query, setQuery] = useState("");
   const [filterCollection, setFilterCollection] = useState("all");
@@ -33,6 +37,10 @@ export default function CataloguePage() {
   // il va chercher un nouveau lot aléatoire, en excluant celles déjà vues, jusqu'à épuiser
   // le catalogue puis recommencer.
   function shuffleCards() {
+    playShuffleSound();
+    setShuffling(true);
+    setTimeout(() => setShuffling(false), 350);
+
     if (hasActiveFilters) {
       setCards((prev) => {
         const arr = [...prev];
@@ -204,7 +212,7 @@ export default function CataloguePage() {
             <div className="highlights-row">
               {highlights.lastCard && (
                 <Link href={`/cartes/${highlights.lastCard.id}`} className="highlight-card">
-                  <img src={highlights.lastCard.image || missingCardPlaceholder(highlights.lastCard, t)} alt="" />
+                  <Image src={highlights.lastCard.image} alt="" width={36} height={50} style={{ objectFit: "cover" }} />
                   <div>
                     <div className="highlight-label">{t.lastCardAdded}</div>
                     <div className="highlight-title">{highlights.lastCard.personnage} — {highlights.lastCard.numero}</div>
@@ -214,15 +222,17 @@ export default function CataloguePage() {
               )}
               {highlights.lastCollection && (
                 <Link href={`/collections/${highlights.lastCollection.id}`} className="highlight-card">
-                  <img
-                    src={
-                      highlights.lastCollection.previewImage ||
-                      `data:image/svg+xml;utf8,${encodeURIComponent(
+                  {highlights.lastCollection.previewImage ? (
+                    <Image src={highlights.lastCollection.previewImage} alt="" width={36} height={50} style={{ objectFit: "cover" }} />
+                  ) : (
+                    <img
+                      src={`data:image/svg+xml;utf8,${encodeURIComponent(
                         "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 336'><rect width='240' height='336' fill='#1a2c4d'/></svg>"
-                      )}`
-                    }
-                    alt=""
-                  />
+                      )}`}
+                      alt=""
+                      style={{ width: 36, height: 50, objectFit: "cover" }}
+                    />
+                  )}
                   <div>
                     <div className="highlight-label">{t.lastCollectionAdded}</div>
                     <div className="highlight-title">{highlights.lastCollection.nom}</div>
@@ -240,10 +250,26 @@ export default function CataloguePage() {
             <div className="empty-state">{t.noResults}</div>
           ) : (
             <>
-              <div className="card-grid">
+              <div className={`card-grid ${shuffling ? "shuffling" : ""}`}>
                 {cards.map((c) => (
                   <Link key={c.id} href={`/cartes/${c.id}`} className="card-tile">
-                    <img src={c.image || missingCardPlaceholder(c, t)} alt={c.personnage} />
+                    <HoloCard className="card-tile-media">
+                      {c.image ? (
+                        <Image
+                          src={c.image}
+                          alt={c.personnage}
+                          fill
+                          sizes="(max-width: 640px) 45vw, 220px"
+                          style={{ objectFit: "cover" }}
+                        />
+                      ) : (
+                        <img
+                          src={missingCardPlaceholder(c, t)}
+                          alt={c.personnage}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      )}
+                    </HoloCard>
                     <div className="meta">
                       <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>
                       <div className="card-nom">{c.personnage}</div>

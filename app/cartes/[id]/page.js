@@ -1,88 +1,34 @@
-"use client";
+import { prisma } from "@/lib/db";
+import CardDetailClient from "./CardDetailClient";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useLanguage } from "@/components/LanguageProvider";
-import ReportError from "@/components/ReportError";
-import { localize } from "@/lib/localize";
-import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app";
 
+export async function generateMetadata({ params }) {
+  const card = await prisma.card.findUnique({
+    where: { id: params.id },
+    include: { collection: { select: { nom: true } } },
+  });
+
+  if (!card) return { title: "Carte introuvable — DB Non-Off 90's" };
+
+  const title = `${card.personnage} — n°${card.numero} — ${card.collection.nom} | DB Non-Off 90's`;
+  const description =
+    (card.description && card.description.slice(0, 155)) ||
+    `Carte Dragon Ball non-officielle "${card.personnage}" (réf. ${card.numero}), série ${card.collection.nom}. Archive communautaire à but non lucratif.`;
+  const url = `${SITE_URL}/cartes/${card.id}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, siteName: "DB Non-Off 90's", type: "article" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
+
+// Ce fichier est un composant serveur (pas de "use client") : c'est ce qui permet de
+// générer des métadonnées différentes pour chaque carte. Toute la logique d'affichage
+// reste dans CardDetailClient.js, inchangée.
 export default function CardDetailPage({ params }) {
-  const { t, lang } = useLanguage();
-  const [card, setCard] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
-  useEffect(() => {
-    fetch(`/api/cards/${params.id}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("not found");
-        return r.json();
-      })
-      .then(setCard)
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
-  }, [params.id]);
-
-  function trackHDDownload(path) {
-    try {
-      fetch("/api/track", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "hd_download", path }),
-        keepalive: true,
-      }).catch(() => {});
-    } catch (e) {}
-  }
-
-  if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
-  if (notFound || !card) return <div className="container page"><div className="empty-state">{t.notFound}</div></div>;
-
-  const image = card.image || missingCardPlaceholder(card, t);
-
-  return (
-    <div className="container page">
-      <Link href={`/collections/${card.collectionId}`} style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-        {t.backToCollection(card.collection.nom)}
-      </Link>
-      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginTop: "1.25rem" }}>
-        <div style={{ width: 280, maxWidth: "100%" }}>
-          <img src={image} alt={card.personnage} style={{ width: "100%", border: "1px solid var(--line)" }} />
-          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", marginTop: "0.4rem" }}>{t.recto}</div>
-          {card.imageHD && (
-            <a href={card.imageHD} target="_blank" rel="noopener noreferrer" onClick={() => trackHDDownload(`/cartes/${card.id}`)} style={{ display: "block", marginTop: "0.2rem", fontSize: "0.78rem", color: "var(--gold)", textAlign: "center" }}>
-              {t.viewHD}
-            </a>
-          )}
-        </div>
-        {(card.dos || card.collection.dos) && (
-          <div style={{ width: 280, maxWidth: "100%" }}>
-            <img src={card.dos || card.collection.dos} alt={`${t.verso} — ${card.collection.nom}`} style={{ width: "100%", border: "1px solid var(--line)" }} />
-            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", marginTop: "0.4rem" }}>{t.verso}</div>
-            {(card.dosHD || card.collection.dosHD) && (
-              <a href={card.dosHD || card.collection.dosHD} target="_blank" rel="noopener noreferrer" onClick={() => trackHDDownload(`/cartes/${card.id}#dos`)} style={{ display: "block", marginTop: "0.2rem", fontSize: "0.78rem", color: "var(--gold)", textAlign: "center" }}>
-                {t.viewHD}
-              </a>
-            )}
-          </div>
-        )}
-        <div style={{ flex: 1, minWidth: 280 }}>
-          <h1 className="display-font" style={{ fontSize: "1.3rem", marginBottom: "1rem" }}>{card.personnage}</h1>
-          <div className="data-row"><span className="data-label">{t.collection}</span><span>{card.collection.nom}</span></div>
-          <div className="data-row"><span className="data-label">{t.reference}</span><span>{card.numero}</span></div>
-          <div className="data-row"><span className="data-label">{t.variant}</span><span>{card.rarete}</span></div>
-          <div className="data-row"><span className="data-label">{t.editor}</span><span>{card.collection.editeur || "—"}</span></div>
-          <div className="data-row"><span className="data-label">{t.origin}</span><span>{card.collection.pays || "—"}</span></div>
-          <div className="data-row"><span className="data-label">{t.year}</span><span>{card.collection.annee || "—"}</span></div>
-          {card.description && (
-            <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "var(--text-muted)" }}>{localize(card, "description", lang)}</p>
-          )}
-          {card.contributeur && (
-            <p style={{ marginTop: "0.6rem", fontSize: "0.75rem", color: "var(--gold)" }}>{t.contributedBy(card.contributeur)}</p>
-          )}
-          <ReportError cardId={card.id} />
-        </div>
-      </div>
-    </div>
-  );
+  return <CardDetailClient params={params} />;
 }

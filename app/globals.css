@@ -194,6 +194,45 @@ a { color: inherit; text-decoration: none; }
 }
 .card-tile:hover { border-color: var(--accent); transform: translateY(-2px); }
 .card-tile img { width: 100%; aspect-ratio: 5 / 7; object-fit: cover; display: block; background: var(--surface-raised); }
+.card-tile-media { position: relative; width: 100%; aspect-ratio: 5 / 7; background: var(--surface-raised); overflow: hidden; }
+.card-tile-media img { object-fit: cover; }
+
+/* Effet holo/foil au survol (voir components/HoloCard.js) */
+.holo-card { position: relative; overflow: hidden; }
+.holo-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 0, 150, 0.45) 36%,
+    rgba(0, 200, 255, 0.45) 45%,
+    rgba(255, 210, 0, 0.45) 54%,
+    transparent 70%
+  );
+  background-size: 220% 220%;
+  background-position: var(--holo-x, 50%) var(--holo-y, 50%);
+  mix-blend-mode: color-dodge;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.holo-card:hover::after { opacity: 0.5; }
+
+/* Micro-animations : apparition en douceur des grilles, léger retour au clic */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card-tile, .collection-tile { animation: fadeInUp 0.35s ease both; }
+.btn-primary:active, .btn-ghost:active, .btn-icon:active { transform: scale(0.96); }
+
+@keyframes shufflePulse {
+  0% { opacity: 0.35; transform: scale(0.985); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.card-grid.shuffling { animation: shufflePulse 0.35s ease; }
 .card-tile .meta { padding: 0.55rem 0.6rem; }
 .card-num { font-family: 'Archivo Black', sans-serif; font-size: 0.68rem; color: var(--gold); }
 .card-num-inline { font-family: 'Archivo Black', sans-serif; color: var(--gold); }
@@ -205,7 +244,7 @@ a { color: inherit; text-decoration: none; }
 .collection-grid { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 .collection-tile { background: var(--surface); border: 1px solid var(--line); overflow: hidden; display: block; }
 .collection-tile:hover { border-color: var(--accent); }
-.collection-thumb { width: 100%; aspect-ratio: 16 / 9; background: var(--surface-raised); overflow: hidden; }
+.collection-thumb { position: relative; width: 100%; aspect-ratio: 16 / 9; background: var(--surface-raised); overflow: hidden; }
 .collection-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
 .collection-thumb-empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.6rem; opacity: 0.4; }
 .collection-tile-body { padding: 0.9rem 1rem 1rem; }

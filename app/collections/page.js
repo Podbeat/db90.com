@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getFlagSvg } from "@/lib/countryFlags";
@@ -34,7 +35,7 @@ export default function CollectionsPage() {
               <Link key={col.id} href={`/collections/${col.id}`} className="collection-tile">
                 <div className="collection-thumb">
                   {col.previewImage ? (
-                    <img src={col.previewImage} alt={col.nom} />
+                    <Image src={col.previewImage} alt={col.nom} fill sizes="(max-width: 640px) 90vw, 300px" style={{ objectFit: "cover", objectPosition: "top center" }} />
                   ) : (
                     <div className="collection-thumb-empty"><ImageOff size={22} /></div>
                   )}

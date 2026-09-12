@@ -8,12 +8,15 @@ import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import HoloCard from "@/components/HoloCard";
 import ShareIconButton from "@/components/ShareIconButton";
+import CardStatusIcons from "@/components/CardStatusIcons";
 
 export default function CollectionDetailClient({ id }) {
   const { t, lang } = useLanguage();
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [statusMap, setStatusMap] = useState({});
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     fetch(`/api/collections/${id}`)
@@ -24,7 +27,30 @@ export default function CollectionDetailClient({ id }) {
       .then(setCollection)
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
+
+    fetch("/api/users/me/cards")
+      .then((r) => {
+        setLoggedIn(r.ok);
+        return r.ok ? r.json() : null;
+      })
+      .then((d) => {
+        if (!d) return;
+        const map = {};
+        for (const c of d.owned) map[c.id] = "owned";
+        for (const c of d.wanted) map[c.id] = "wanted";
+        setStatusMap(map);
+      })
+      .catch(() => {});
   }, [id]);
+
+  function handleStatusChange(cardId, status) {
+    setStatusMap((prev) => {
+      const next = { ...prev };
+      if (status) next[cardId] = status;
+      else delete next[cardId];
+      return next;
+    });
+  }
 
   if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   if (notFound || !collection) return <div className="container page"><div className="empty-state">{t.notFound}</div></div>;
@@ -140,6 +166,7 @@ export default function CollectionDetailClient({ id }) {
                   />
                 )}
                 <ShareIconButton path={`/cartes/${c.id}`} title={`${c.personnage} — DB Non-Off 90's`} />
+                {loggedIn && <CardStatusIcons cardId={c.id} status={statusMap[c.id] || null} onChange={handleStatusChange} />}
               </HoloCard>
               <div className="meta">
                 <div className="card-num">{c.numero}</div>

@@ -6,17 +6,22 @@ import Image from "next/image";
 import { ImageOff } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getFlagSvg } from "@/lib/countryFlags";
+import CollectionStatusButtons from "@/components/CollectionStatusButtons";
 
 export default function CollectionsPage() {
   const { t } = useLanguage();
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     fetch("/api/collections")
       .then((r) => r.json())
       .then(setCollections)
       .finally(() => setLoading(false));
+    fetch("/api/users/me")
+      .then((r) => setLoggedIn(r.ok))
+      .catch(() => setLoggedIn(false));
   }, []);
 
   return (
@@ -60,6 +65,7 @@ export default function CollectionsPage() {
                       <div className={`progress-fill ${pct >= 100 ? "progress-complete" : ""}`} style={{ width: `${pct}%` }} />
                     </div>
                   )}
+                  {loggedIn && <CollectionStatusButtons collectionId={col.id} />}
                 </div>
               </Link>
             );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Share2, Check } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { shareUrl } from "@/lib/share";
 
 // Logos vectoriels minimalistes (currentColor, alignés sur la couleur/hover de .btn-icon),
 // à la place de simples caractères texte — mêmes proportions que les icônes lucide-react
@@ -23,6 +24,21 @@ function FacebookIcon({ size = 14 }) {
   );
 }
 
+function MessengerIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2C6.477 2 2 6.145 2 11.5c0 2.9 1.325 5.51 3.5 7.29V22l3.2-1.76c.99.27 2.03.42 3.3.42 5.523 0 10-4.145 10-9.16S17.523 2 12 2z"
+      />
+      <path
+        fill="var(--surface, #141f38)"
+        d="M6.7 13.4l3.5-3.7 2.25 1.65 3.5-2.85-3.5 3.85-2.25-1.65-3.5 2.7z"
+      />
+    </svg>
+  );
+}
+
 // Bouton de partage léger : Web Share API si le navigateur la propose (la plupart des
 // mobiles, et de plus en plus de navigateurs desktop), sinon copie du lien dans le
 // presse-papier. Complété de deux liens rapides X / Facebook, sans SDK ni clé d'API.
@@ -31,20 +47,10 @@ export default function ShareButton({ url, title }) {
   const [copied, setCopied] = useState(false);
 
   async function handleShare() {
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title, url });
-      } catch (e) {
-        // L'utilisateur a annulé le partage, ou l'API a échoué : rien à faire.
-      }
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
+    const ok = await shareUrl(url, title);
+    if (ok && !(typeof navigator !== "undefined" && navigator.share)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      // Presse-papier indisponible (contexte non sécurisé, permission refusée...).
     }
   }
 
@@ -81,6 +87,14 @@ export default function ShareButton({ url, title }) {
         style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
       >
         <FacebookIcon size={13} />
+      </a>
+      <a
+        href={`fb-messenger://share/?link=${encodedUrl}`}
+        className="btn-icon"
+        title="Messenger"
+        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+      >
+        <MessengerIcon size={13} />
       </a>
     </div>
   );

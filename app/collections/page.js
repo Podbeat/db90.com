@@ -28,11 +28,16 @@ export default function CollectionsPage() {
         <div className="empty-state">{t.noCollections}</div>
       ) : (
         <div className="collection-grid">
-          {collections.map((col) => {
+          {collections.map((col, i) => {
             const archived = col.withImagesCount ?? 0;
             const pct = col.total ? Math.min(100, Math.round((archived / col.total) * 100)) : 0;
             return (
-              <Link key={col.id} href={`/collections/${col.id}`} className="collection-tile">
+              <Link
+                key={col.id}
+                href={`/collections/${col.id}`}
+                className="collection-tile"
+                style={{ "--stagger-delay": `${Math.min(i * 50, 400)}ms` }}
+              >
                 <div className="collection-thumb">
                   {col.previewImage ? (
                     <Image src={col.previewImage} alt={col.nom} fill sizes="(max-width: 640px) 90vw, 300px" style={{ objectFit: "cover", objectPosition: "top center" }} />

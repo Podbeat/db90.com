@@ -7,6 +7,7 @@ import { Search, Shuffle } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import HoloCard from "@/components/HoloCard";
+import ShareIconButton from "@/components/ShareIconButton";
 import { playShuffleSound } from "@/lib/playShuffleSound";
 
 export default function CataloguePage() {
@@ -279,8 +280,13 @@ export default function CataloguePage() {
           ) : (
             <>
               <div className={`card-grid ${shuffling ? "shuffling" : ""}`}>
-                {cards.map((c) => (
-                  <Link key={c.id} href={`/cartes/${c.id}`} className="card-tile">
+                {cards.map((c, i) => (
+                  <Link
+                    key={c.id}
+                    href={`/cartes/${c.id}`}
+                    className="card-tile"
+                    style={{ "--stagger-delay": `${Math.min(i * 40, 400)}ms` }}
+                  >
                     <HoloCard className="card-tile-media">
                       {c.image ? (
                         <Image
@@ -297,6 +303,7 @@ export default function CataloguePage() {
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
                       )}
+                      <ShareIconButton path={`/cartes/${c.id}`} title={`${c.personnage} — DB Non-Off 90's`} />
                     </HoloCard>
                     <div className="meta">
                       <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>

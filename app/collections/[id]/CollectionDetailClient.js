@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import HoloCard from "@/components/HoloCard";
+import ShareIconButton from "@/components/ShareIconButton";
 
 export default function CollectionDetailClient({ id }) {
   const { t, lang } = useLanguage();
@@ -115,8 +116,13 @@ export default function CollectionDetailClient({ id }) {
         <div className="empty-state">{t.noResults}</div>
       ) : (
         <div className="card-grid">
-          {collection.cards.map((c) => (
-            <Link key={c.id} href={`/cartes/${c.id}`} className="card-tile">
+          {collection.cards.map((c, i) => (
+            <Link
+              key={c.id}
+              href={`/cartes/${c.id}`}
+              className="card-tile"
+              style={{ "--stagger-delay": `${Math.min(i * 40, 400)}ms` }}
+            >
               <HoloCard className="card-tile-media">
                 {c.image ? (
                   <Image
@@ -133,6 +139,7 @@ export default function CollectionDetailClient({ id }) {
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />
                 )}
+                <ShareIconButton path={`/cartes/${c.id}`} title={`${c.personnage} — DB Non-Off 90's`} />
               </HoloCard>
               <div className="meta">
                 <div className="card-num">{c.numero}</div>

@@ -101,9 +101,9 @@ export async function POST(request) {
         descriptionZhCN: translations.zhCN,
         contributeur: body.contributeur || null,
         image: body.image || null,
-        imageHD: body.imageHD || body.image || null,
+        imageHD: body.imageHD || null,
         dos: body.dos || null,
-        dosHD: body.dosHD || body.dos || null,
+        dosHD: body.dosHD || null,
         collectionId: body.collectionId,
       },
     });

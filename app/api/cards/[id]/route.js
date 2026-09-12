@@ -40,9 +40,9 @@ export async function PUT(request, { params }) {
         rarete: body.rarete || "Commune",
         description: body.description || null,
         image: body.image || undefined,
-        imageHD: body.imageHD || body.image || undefined,
+        imageHD: body.imageHD || null,
         dos: body.dos !== undefined ? body.dos || null : undefined,
-        dosHD: body.dosHD || body.dos || undefined,
+        dosHD: body.dosHD || null,
         contributeur: body.contributeur || null,
         collectionId: body.collectionId,
         ...(descriptionChanged

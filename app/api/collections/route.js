@@ -54,7 +54,7 @@ export async function POST(request) {
         total: body.total ? parseInt(body.total, 10) : null,
         cover: body.cover || null,
         dos: body.dos || null,
-        dosHD: body.dosHD || body.dos || null,
+        dosHD: body.dosHD || null,
         description: body.description || null,
         descriptionEn: translations.en,
         descriptionZhTW: translations.zhTW,

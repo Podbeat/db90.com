@@ -46,7 +46,7 @@ export async function PUT(request, { params }) {
         total: body.total ? parseInt(body.total, 10) : null,
         cover: body.cover || null,
         dos: body.dos || undefined,
-        dosHD: body.dosHD || body.dos || undefined,
+        dosHD: body.dosHD || null,
         description: body.description || null,
         ...(descriptionChanged
           ? {

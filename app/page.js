@@ -88,14 +88,42 @@ export default function CataloguePage() {
   }
 
   useEffect(() => {
-    fetch("/api/collections").then((r) => r.json()).then(setCollections).catch(() => setCollections([]));
-    fetch("/api/facets").then((r) => r.json()).then((d) => {
-      setPersonnages(d.personnages || []);
-      setRaretes(d.raretes || []);
-      setPays(d.pays || []);
-    }).catch(() => {});
     fetch("/api/highlights").then((r) => r.json()).then(setHighlights).catch(() => setHighlights(null));
   }, []);
+
+  // Facettage croisé : la liste des collections/personnages/pays/effets proposée dans
+  // chaque filtre tient compte des autres filtres déjà actifs, pour ne jamais laisser
+  // sélectionné un choix qui n'existe plus compte tenu du reste de la sélection.
+  useEffect(() => {
+    const params = new URLSearchParams({
+      collectionId: filterCollection,
+      rarete: filterRarete,
+      personnage: filterPersonnage,
+      pays: filterPays,
+      q: query,
+    });
+    fetch(`/api/facets?${params.toString()}`)
+      .then((r) => r.json())
+      .then((d) => {
+        const newPersonnages = d.personnages || [];
+        const newRaretes = d.raretes || [];
+        const newPays = d.pays || [];
+        const newCollections = d.collections || [];
+        setPersonnages(newPersonnages);
+        setRaretes(newRaretes);
+        setPays(newPays);
+        setCollections(newCollections);
+
+        // Si le filtre actuellement sélectionné n'a plus lieu d'être (plus aucune carte
+        // ne correspond compte tenu des autres filtres), on le réinitialise plutôt que de
+        // laisser l'utilisateur bloqué sur une combinaison vide.
+        if (filterPersonnage !== "all" && !newPersonnages.includes(filterPersonnage)) setFilterPersonnage("all");
+        if (filterRarete !== "all" && !newRaretes.includes(filterRarete)) setFilterRarete("all");
+        if (filterPays !== "all" && !newPays.includes(filterPays)) setFilterPays("all");
+        if (filterCollection !== "all" && !newCollections.some((c) => c.id === filterCollection)) setFilterCollection("all");
+      })
+      .catch(() => {});
+  }, [filterCollection, filterRarete, filterPersonnage, filterPays, query]);
 
   useEffect(() => {
     if (!hasActiveFilters) {

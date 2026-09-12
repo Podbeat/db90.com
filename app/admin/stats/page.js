@@ -10,6 +10,11 @@ const PERIOD_OPTIONS = [
   { key: "365d", label: "Dernière année" },
 ];
 
+const METRIC_OPTIONS = [
+  { key: "views", label: "Pages vues", dataKey: "views" },
+  { key: "uniqueVisitors", label: "Visiteurs uniques", dataKey: "uniqueVisitors" },
+];
+
 function StatCard({ label, value }) {
   return (
     <div className="filter-panel" style={{ minWidth: 160 }}>
@@ -27,6 +32,7 @@ function formatBucketLabel(dateStr, bucket) {
 
 export default function AdminStatsPage() {
   const [period, setPeriod] = useState("30d");
+  const [metric, setMetric] = useState("views");
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -80,7 +86,23 @@ export default function AdminStatsPage() {
           </div>
 
           <div className="filter-panel" style={{ marginBottom: "2rem" }}>
-            <div style={{ fontSize: "0.85rem", marginBottom: "1rem" }}>Évolution des pages vues — {stats.periodLabel}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.6rem", marginBottom: "1rem" }}>
+              <div style={{ fontSize: "0.85rem" }}>
+                Évolution {metric === "views" ? "des pages vues" : "des visiteurs uniques"} — {stats.periodLabel}
+              </div>
+              <div style={{ display: "flex", gap: "0.4rem" }}>
+                {METRIC_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setMetric(opt.key)}
+                    className={metric === opt.key ? "btn-primary" : "btn-ghost"}
+                    style={{ fontSize: "0.75rem", padding: "0.3rem 0.7rem" }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div style={{ width: "100%", height: 260 }}>
               <ResponsiveContainer>
                 <LineChart data={stats.daily}>
@@ -96,7 +118,13 @@ export default function AdminStatsPage() {
                     labelStyle={{ color: "var(--text)" }}
                     labelFormatter={(d) => formatBucketLabel(d, stats.bucket)}
                   />
-                  <Line type="monotone" dataKey="views" stroke="var(--accent)" strokeWidth={2} dot={false} />
+                  <Line
+                    type="monotone"
+                    dataKey={METRIC_OPTIONS.find((o) => o.key === metric).dataKey}
+                    stroke="var(--accent)"
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>

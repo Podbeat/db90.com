@@ -60,32 +60,38 @@ export async function GET(request) {
     const pageViews30 = pageViewsPeriod.filter((e) => e.createdAt >= since30);
 
     // Évolution sur la période choisie, avec un pas adapté (jour / semaine / mois)
-    // afin que le graphique reste lisible sur 30 jours comme sur 1 an.
+    // afin que le graphique reste lisible sur 30 jours comme sur 1 an. On garde un Set de
+    // visiteurs par case pour pouvoir aussi tracer les visiteurs uniques, pas seulement
+    // le nombre de vues.
     const keyFn = period.bucket === "day" ? dayKey : period.bucket === "week" ? weekKey : monthKey;
     const bucketMap = new Map();
     const stepMs = period.bucket === "day" ? 24 * 60 * 60 * 1000 : period.bucket === "week" ? 7 * 24 * 60 * 60 * 1000 : null;
+    function ensureBucket(k) {
+      if (!bucketMap.has(k)) bucketMap.set(k, { views: 0, visitors: new Set() });
+      return bucketMap.get(k);
+    }
     if (stepMs) {
       const steps = Math.ceil(period.days * 24 * 60 * 60 * 1000 / stepMs);
       for (let i = steps - 1; i >= 0; i--) {
         const d = new Date(now.getTime() - i * stepMs);
-        bucketMap.set(keyFn(d), 0);
+        ensureBucket(keyFn(d));
       }
     } else {
       // pas mensuel : on énumère les 12 (ou N) mois calendaires couverts
       const months = Math.ceil(period.days / 30) + 1;
       for (let i = months - 1; i >= 0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        bucketMap.set(monthKey(d), 0);
+        ensureBucket(monthKey(d));
       }
     }
     for (const e of pageViewsPeriod) {
-      const k = keyFn(e.createdAt);
-      if (bucketMap.has(k)) bucketMap.set(k, bucketMap.get(k) + 1);
-      else bucketMap.set(k, (bucketMap.get(k) || 0) + 1);
+      const bucket = ensureBucket(keyFn(e.createdAt));
+      bucket.views += 1;
+      if (e.visitorId) bucket.visitors.add(e.visitorId);
     }
     const daily = Array.from(bucketMap.entries())
       .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-      .map(([date, views]) => ({ date, views }));
+      .map(([date, b]) => ({ date, views: b.views, uniqueVisitors: b.visitors.size }));
 
     // Répartition par pays (sur la période choisie)
     const countryCounts = {};

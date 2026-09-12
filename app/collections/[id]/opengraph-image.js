@@ -6,8 +6,9 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image({ params }) {
+  const { id } = await params;
   const collection = await prisma.collection.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { cards: { select: { numero: true, image: true } } },
   });
 

@@ -4,8 +4,9 @@ import CardDetailClient from "./CardDetailClient";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app";
 
 export async function generateMetadata({ params }) {
+  const { id } = await params;
   const card = await prisma.card.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { collection: { select: { nom: true } } },
   });
 
@@ -28,7 +29,10 @@ export async function generateMetadata({ params }) {
 
 // Ce fichier est un composant serveur (pas de "use client") : c'est ce qui permet de
 // générer des métadonnées différentes pour chaque carte. Toute la logique d'affichage
-// reste dans CardDetailClient.js, inchangée.
-export default function CardDetailPage({ params }) {
-  return <CardDetailClient params={params} />;
+// reste dans CardDetailClient.js, inchangée. Next.js 15 fournit `params` sous forme de
+// Promise dans les composants serveur : on l'attend ici et on ne transmet au client que
+// l'id déjà résolu (un client component ne peut pas "await" une prop directement).
+export default async function CardDetailPage({ params }) {
+  const { id } = await params;
+  return <CardDetailClient id={id} />;
 }

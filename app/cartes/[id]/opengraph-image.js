@@ -8,8 +8,9 @@ export const contentType = "image/png";
 // générer et référencer automatiquement l'image Open Graph de la fiche carte (pas besoin
 // de la déclarer manuellement dans generateMetadata).
 export default async function Image({ params }) {
+  const { id } = await params;
   const card = await prisma.card.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { collection: { select: { nom: true } } },
   });
 

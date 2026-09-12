@@ -8,14 +8,14 @@ import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import HoloCard from "@/components/HoloCard";
 
-export default function CollectionDetailClient({ params }) {
+export default function CollectionDetailClient({ id }) {
   const { t, lang } = useLanguage();
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/collections/${params.id}`)
+    fetch(`/api/collections/${id}`)
       .then((r) => {
         if (!r.ok) throw new Error("not found");
         return r.json();
@@ -23,7 +23,7 @@ export default function CollectionDetailClient({ params }) {
       .then(setCollection)
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   if (notFound || !collection) return <div className="container page"><div className="empty-state">{t.notFound}</div></div>;

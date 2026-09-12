@@ -10,14 +10,14 @@ import HoloCard from "@/components/HoloCard";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
-export default function CardDetailClient({ params }) {
+export default function CardDetailClient({ id }) {
   const { t, lang } = useLanguage();
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/cards/${params.id}`)
+    fetch(`/api/cards/${id}`)
       .then((r) => {
         if (!r.ok) throw new Error("not found");
         return r.json();
@@ -25,7 +25,7 @@ export default function CardDetailClient({ params }) {
       .then(setCard)
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [id]);
 
   function trackHDDownload(path) {
     try {

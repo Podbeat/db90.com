@@ -4,7 +4,8 @@ import CollectionDetailClient from "./CollectionDetailClient";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app";
 
 export async function generateMetadata({ params }) {
-  const collection = await prisma.collection.findUnique({ where: { id: params.id } });
+  const { id } = await params;
+  const collection = await prisma.collection.findUnique({ where: { id } });
   if (!collection) return { title: "Collection introuvable — DB Non-Off 90's" };
 
   const title = `${collection.nom} — DB Non-Off 90's`;
@@ -23,7 +24,10 @@ export async function generateMetadata({ params }) {
 }
 
 // Composant serveur (pas de "use client") pour permettre des métadonnées par collection.
-// L'affichage reste entièrement dans CollectionDetailClient.js, inchangé.
-export default function CollectionDetailPage({ params }) {
-  return <CollectionDetailClient params={params} />;
+// L'affichage reste entièrement dans CollectionDetailClient.js, inchangé. Next.js 15
+// fournit `params` sous forme de Promise ici : on l'attend et on ne transmet au client
+// que l'id déjà résolu.
+export default async function CollectionDetailPage({ params }) {
+  const { id } = await params;
+  return <CollectionDetailClient id={id} />;
 }

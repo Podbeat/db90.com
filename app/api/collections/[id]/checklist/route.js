@@ -35,8 +35,9 @@ async function fetchImageBytes(url) {
 }
 
 export async function GET(request, { params }) {
+  const { id } = await params;
   const collection = await prisma.collection.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { cards: true },
   });
 

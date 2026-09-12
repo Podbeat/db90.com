@@ -6,8 +6,9 @@ import { cleanupCardFiles } from "@/lib/cardFileCleanup";
 
 export async function GET(request, { params }) {
   try {
+    const { id } = await params;
     const card = await prisma.card.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { collection: true },
     });
     if (!card) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
@@ -23,15 +24,16 @@ export async function PUT(request, { params }) {
     const session = await requireAdmin(request);
     if (!session) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
 
+    const { id } = await params;
     const body = await request.json();
 
     // On ne retraduit que si la description a réellement changé.
-    const existing = await prisma.card.findUnique({ where: { id: params.id }, select: { description: true } });
+    const existing = await prisma.card.findUnique({ where: { id }, select: { description: true } });
     const descriptionChanged = (body.description || null) !== (existing?.description || null);
     const translations = descriptionChanged ? await translateFreeText(body.description) : null;
 
     const card = await prisma.card.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         numero: body.numero,
         personnage: body.personnage,
@@ -64,7 +66,8 @@ export async function DELETE(request, { params }) {
     const session = await requireAdmin(request);
     if (!session) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
 
-    const deleted = await prisma.card.delete({ where: { id: params.id } });
+    const { id } = await params;
+    const deleted = await prisma.card.delete({ where: { id } });
     await cleanupCardFiles([deleted]);
     return NextResponse.json({ ok: true });
   } catch (e) {

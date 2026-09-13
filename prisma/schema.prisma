@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Fonctionne avec n'importe quelle base Postgres (Supabase, Neon, Vercel Postgres, OVH...).
+  // Pour tester en local sans serveur Postgres, vous pouvez temporairement mettre
+  // provider = "sqlite" et url = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Collection {
+  id              String   @id @default(cuid())
+  nom             String
+  annee           String?
+  editeur         String?
+  pays            String?
+  total           Int?
+  cover           String?
+  dos             String?
+  dosHD           String?
+  description     String? // texte saisi par l'admin, toujours en français
+  descriptionEn   String? // traduction automatique (anglais)
+  descriptionZhTW String? // traduction automatique (chinois traditionnel)
+  descriptionZhCN String? // traduction automatique (chinois simplifié)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  cards           Card[]
+}
+
+model Card {
+  id              String     @id @default(cuid())
+  numero          String
+  personnage      String
+  rarete          String     @default("Commune")
+  description     String? // texte saisi par l'admin, toujours en français
+  descriptionEn   String? // traduction automatique (anglais)
+  descriptionZhTW String? // traduction automatique (chinois traditionnel)
+  descriptionZhCN String? // traduction automatique (chinois simplifié)
+  image           String?
+  imageHD         String?
+  dos             String? // visuel de dos propre à cette carte, si différent de celui de la série
+  dosHD           String?
+  contributeur    String? // pseudo/nom optionnel de la personne ayant fourni le scan, affiché publiquement si renseigné
+  collectionId    String
+  collection      Collection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  reports         Report[]
+  userCards       UserCard[]
+  submissions     CardSubmission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([collectionId])
+  @@index([rarete])
+  @@index([personnage])
+}
+
+// Compte utilisateur public (distinct des comptes admin) : permet à un visiteur de suivre
+// sa propre collection et sa liste de cartes recherchées, avec une page profil publique.
+model User {
+  id           String     @id @default(cuid())
+  username     String     @unique
+  email        String     @unique
+  passwordHash String
+  avatar       String?
+  bio          String?
+  createdAt    DateTime   @default(now())
+  cards        UserCard[]
+  submissions  CardSubmission[]
+}
+
+// Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
+// "wanted" (je la recherche). Une carte donnée ne peut avoir qu'un seul statut à la fois
+// pour un même utilisateur (contrainte unique userId+cardId).
+model UserCard {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  status    String // "owned" | "wanted"
+  createdAt DateTime @default(now())
+
+  @@unique([userId, cardId])
+  @@index([userId])
+  @@index([cardId])
+  @@index([status])
+}
+
+// Adresses e-mail bannies par l'admin : empêche à la fois la connexion et une nouvelle
+// inscription avec cette adresse. Le compte utilisateur correspondant est supprimé au
+// moment du bannissement (voir /api/admin/users/[id]/ban) ; cette table ne fait que
+// mémoriser l'adresse pour bloquer un retour.
+model BannedEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+// Scan proposé par un utilisateur pour une carte (typiquement une carte "recherchée", sans
+// visuel). Traité comme un import classique (redimensionnement/compression via la même
+// fonction que l'admin), mais reste en attente ("pending") tant qu'un admin ne l'a pas
+// validé — voir /admin/scans. Une seule ligne par (carte, utilisateur) : un nouvel envoi
+// remplace le précédent tant qu'il n'a pas encore été traité.
+model CardSubmission {
+  id         String    @id @default(cuid())
+  cardId     String
+  card       Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image      String
+  imageHD    String?
+  status     String    @default("pending") // pending | approved | rejected
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  @@unique([cardId, userId])
+  @@index([cardId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  message   String
+  contact   String?
+  status    String   @default("nouveau") // nouveau | traite | ignore
+  createdAt DateTime @default(now())
+
+  @@index([cardId])
+  @@index([status])
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  nom          String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+}
+
+// Statistiques de fréquentation, volontairement minimalistes et anonymes :
+// pas d'adresse IP stockée, pas d'identifiant lié à une personne. "visitorId"
+// est un jeton aléatoire généré côté navigateur (non rattaché à une identité),
+// utilisé uniquement pour distinguer visiteurs uniques et vues de page.
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  type      String // "page_view" | "hd_download"
+  path      String?
+  country   String? // code pays ISO (ex. "TW"), déduit par Vercel, jamais l'IP elle-même
+  visitorId String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+  @@index([country])
+}

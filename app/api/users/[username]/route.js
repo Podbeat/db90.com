@@ -15,7 +15,7 @@ export async function GET(request, { params }) {
 
     const entries = await prisma.userCard.findMany({
       where: { userId: user.id },
-      include: { card: { include: { collection: { select: { id: true, nom: true } } } } },
+      include: { card: { include: { collection: { select: { id: true, nom: true } }, personnagePrincipal: true } } },
     });
 
     const owned = entries.filter((e) => e.status === "owned").map((e) => e.card).sort(naturalSortByNumero);

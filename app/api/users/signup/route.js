@@ -35,6 +35,11 @@ export async function POST(request) {
       return NextResponse.json({ error: `${field} est déjà utilisé(e).` }, { status: 409 });
     }
 
+    const banned = await prisma.bannedEmail.findUnique({ where: { email } });
+    if (banned) {
+      return NextResponse.json({ error: "Cette adresse e-mail ne peut pas être utilisée." }, { status: 403 });
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: { username, email, passwordHash },

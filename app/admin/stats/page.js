@@ -13,6 +13,7 @@ const PERIOD_OPTIONS = [
 const METRIC_OPTIONS = [
   { key: "views", label: "Pages vues", dataKey: "views" },
   { key: "uniqueVisitors", label: "Visiteurs uniques", dataKey: "uniqueVisitors" },
+  { key: "signups", label: "Inscriptions", dataKey: "signups" },
 ];
 
 function StatCard({ label, value }) {
@@ -83,12 +84,14 @@ export default function AdminStatsPage() {
             <StatCard label={`Visiteurs uniques (${stats.periodLabel})`} value={stats.periodStats.uniqueVisitors} />
             <StatCard label="Visiteurs uniques (total)" value={stats.totals.uniqueVisitorsAllTime} />
             <StatCard label="Téléchargements HD (total)" value={stats.totals.hdDownloads} />
+            <StatCard label="Comptes utilisateurs (total)" value={stats.totals.users} />
+            <StatCard label={`Inscriptions (${stats.periodLabel})`} value={stats.periodStats.signups} />
           </div>
 
           <div className="filter-panel" style={{ marginBottom: "2rem" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.6rem", marginBottom: "1rem" }}>
               <div style={{ fontSize: "0.85rem" }}>
-                Évolution {metric === "views" ? "des pages vues" : "des visiteurs uniques"} — {stats.periodLabel}
+                Évolution {METRIC_OPTIONS.find((o) => o.key === metric).label.toLowerCase()} — {stats.periodLabel}
               </div>
               <div style={{ display: "flex", gap: "0.4rem" }}>
                 {METRIC_OPTIONS.map((opt) => (

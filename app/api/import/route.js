@@ -9,6 +9,10 @@ export const maxDuration = 60;
 
 // Colonnes attendues dans le fichier CSV (en-têtes insensibles à la casse) :
 // collection, numero, personnage, rarete, description, image
+// "numero" est la seule colonne obligatoire. "personnage" est optionnel : une ligne vide
+// laisse la carte "à définir plus tard" (à choisir depuis la liste déroulante dans l'admin
+// une fois la collection en place) — quand un nom est fourni, il est retrouvé ou créé dans
+// la liste maîtresse des personnages, comme pour les collections.
 // "image" doit correspondre exactement au nom du fichier scan.
 //
 // Les images elles-mêmes ne transitent plus par cette route : chaque fichier est envoyé
@@ -55,6 +59,26 @@ export async function POST(request) {
       return collection;
     }
 
+    // Le personnage est optionnel dans le CSV : une ligne vide reste "à définir plus tard"
+    // (on choisira le personnage depuis la liste déroulante dans l'admin, une fois la
+    // collection en place). Quand un nom est fourni, on le retrouve ou le crée dans la
+    // liste maîtresse des personnages, comme pour les collections.
+    const characterCache = new Map();
+    async function getOrCreateCharacter(name) {
+      if (!name) return null;
+      const key = name.toLowerCase();
+      if (characterCache.has(key)) return characterCache.get(key);
+
+      let character = await prisma.character.findFirst({
+        where: { name: { equals: name, mode: "insensitive" } },
+      });
+      if (!character) {
+        character = await prisma.character.create({ data: { name } });
+      }
+      characterCache.set(key, character);
+      return character;
+    }
+
     const results = { created: 0, errors: [] };
 
     for (let i = 0; i < rows.length; i++) {
@@ -62,12 +86,13 @@ export async function POST(request) {
       const lineNumber = i + 2; // +2 : ligne 1 = en-têtes
 
       try {
-        if (!row.personnage || !row.numero) {
-          results.errors.push(`Ligne ${lineNumber} : "personnage" et "numero" sont obligatoires.`);
+        if (!row.numero) {
+          results.errors.push(`Ligne ${lineNumber} : "numero" est obligatoire.`);
           continue;
         }
 
         const collection = await getOrCreateCollection(row.collection || "Collection sans nom");
+        const personnage = await getOrCreateCharacter(row.personnage);
 
         const translations = await translateFreeText(row.description);
 
@@ -88,7 +113,7 @@ export async function POST(request) {
         await prisma.card.create({
           data: {
             numero: row.numero,
-            personnage: row.personnage,
+            personnagePrincipalId: personnage?.id || null,
             rarete: row.rarete || "Commune",
             description: row.description || null,
             descriptionEn: translations.en,

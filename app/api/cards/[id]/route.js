@@ -4,12 +4,18 @@ import { requireAdmin } from "@/lib/auth";
 import { translateFreeText } from "@/lib/translate";
 import { cleanupCardFiles } from "@/lib/cardFileCleanup";
 
+const cardInclude = {
+  collection: true,
+  personnagePrincipal: true,
+  personnagesSecondaires: { include: { character: true } },
+};
+
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
     const card = await prisma.card.findUnique({
       where: { id },
-      include: { collection: true },
+      include: cardInclude,
     });
     if (!card) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
     return NextResponse.json(card);
@@ -31,12 +37,13 @@ export async function PUT(request, { params }) {
     const existing = await prisma.card.findUnique({ where: { id }, select: { description: true } });
     const descriptionChanged = (body.description || null) !== (existing?.description || null);
     const translations = descriptionChanged ? await translateFreeText(body.description) : null;
+    const secondaires = Array.isArray(body.personnagesSecondaires) ? body.personnagesSecondaires.filter(Boolean) : [];
 
     const card = await prisma.card.update({
       where: { id },
       data: {
         numero: body.numero,
-        personnage: body.personnage,
+        personnagePrincipalId: body.personnagePrincipalId || null,
         rarete: body.rarete || "Commune",
         description: body.description || null,
         image: body.image || undefined,
@@ -45,6 +52,10 @@ export async function PUT(request, { params }) {
         dosHD: body.dosHD || null,
         contributeur: body.contributeur || null,
         collectionId: body.collectionId,
+        personnagesSecondaires: {
+          deleteMany: {},
+          create: secondaires.map((characterId) => ({ characterId })),
+        },
         ...(descriptionChanged
           ? {
               descriptionEn: translations.en,
@@ -53,6 +64,7 @@ export async function PUT(request, { params }) {
             }
           : {}),
       },
+      include: cardInclude,
     });
     return NextResponse.json(card);
   } catch (e) {

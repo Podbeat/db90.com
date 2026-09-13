@@ -38,7 +38,7 @@ export async function GET(request, { params }) {
   const { id } = await params;
   const collection = await prisma.collection.findUnique({
     where: { id },
-    include: { cards: true },
+    include: { cards: { include: { personnagePrincipal: true } } },
   });
 
   if (!collection) {
@@ -172,7 +172,7 @@ export async function GET(request, { params }) {
 
     page.drawRectangle({ x, y: y - thumbH - 14, width: 9, height: 9, borderColor: MUTED, borderWidth: 0.7 });
     page.drawText(safe(c.numero), { x: x + 13, y: y - thumbH - 13, size: 8, font: fontBold, color: ACCENT });
-    page.drawText(safe(c.personnage).slice(0, 16), { x, y: y - thumbH - 26, size: 8.5, font, color: INK });
+    page.drawText(safe(c.personnagePrincipal?.name || "").slice(0, 16), { x, y: y - thumbH - 26, size: 8.5, font, color: INK });
     page.drawText(safe(c.rarete).slice(0, 18), { x, y: y - thumbH - 37, size: 7, font: fontItalic, color: MUTED });
   }
 

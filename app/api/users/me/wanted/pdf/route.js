@@ -44,7 +44,7 @@ export async function GET(request) {
 
   const entries = await prisma.userCard.findMany({
     where: { userId: user.id, status: "wanted" },
-    include: { card: { include: { collection: { select: { nom: true } } } } },
+    include: { card: { include: { collection: { select: { nom: true } }, personnagePrincipal: true } } },
   });
 
   const cards = entries.map((e) => e.card).sort(naturalSortByNumero);
@@ -163,7 +163,7 @@ export async function GET(request) {
 
       page.drawRectangle({ x, y: y - thumbH - 14, width: 9, height: 9, borderColor: MUTED, borderWidth: 0.7 });
       page.drawText(safe(c.numero), { x: x + 13, y: y - thumbH - 13, size: 8, font: fontBold, color: ACCENT });
-      page.drawText(safe(c.personnage).slice(0, 16), { x, y: y - thumbH - 26, size: 8.5, font, color: INK });
+      page.drawText(safe(c.personnagePrincipal?.name || "").slice(0, 16), { x, y: y - thumbH - 26, size: 8.5, font, color: INK });
       page.drawText(safe(c.rarete).slice(0, 18), { x, y: y - thumbH - 37, size: 7, font: fontItalic, color: MUTED });
     }
     y -= cellH + rowGap + 10;

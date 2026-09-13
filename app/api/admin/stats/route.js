@@ -41,7 +41,7 @@ export async function GET(request) {
     const since7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const since30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [totalPageViews, totalHDDownloads, periodEvents, allTimeVisitors] = await Promise.all([
+    const [totalPageViews, totalHDDownloads, periodEvents, allTimeVisitors, totalUsers, signupsPeriod] = await Promise.all([
       prisma.analyticsEvent.count({ where: { type: "page_view" } }),
       prisma.analyticsEvent.count({ where: { type: "hd_download" } }),
       prisma.analyticsEvent.findMany({
@@ -53,6 +53,8 @@ export async function GET(request) {
         distinct: ["visitorId"],
         select: { visitorId: true },
       }),
+      prisma.user.count(),
+      prisma.user.findMany({ where: { createdAt: { gte: sincePeriod } }, select: { createdAt: true } }),
     ]);
 
     const pageViewsPeriod = periodEvents.filter((e) => e.type === "page_view");
@@ -67,7 +69,7 @@ export async function GET(request) {
     const bucketMap = new Map();
     const stepMs = period.bucket === "day" ? 24 * 60 * 60 * 1000 : period.bucket === "week" ? 7 * 24 * 60 * 60 * 1000 : null;
     function ensureBucket(k) {
-      if (!bucketMap.has(k)) bucketMap.set(k, { views: 0, visitors: new Set() });
+      if (!bucketMap.has(k)) bucketMap.set(k, { views: 0, visitors: new Set(), signups: 0 });
       return bucketMap.get(k);
     }
     if (stepMs) {
@@ -89,9 +91,13 @@ export async function GET(request) {
       bucket.views += 1;
       if (e.visitorId) bucket.visitors.add(e.visitorId);
     }
+    for (const u of signupsPeriod) {
+      const bucket = ensureBucket(keyFn(u.createdAt));
+      bucket.signups += 1;
+    }
     const daily = Array.from(bucketMap.entries())
       .sort((a, b) => (a[0] < b[0] ? -1 : 1))
-      .map(([date, b]) => ({ date, views: b.views, uniqueVisitors: b.visitors.size }));
+      .map(([date, b]) => ({ date, views: b.views, uniqueVisitors: b.visitors.size, signups: b.signups }));
 
     // Répartition par pays (sur la période choisie)
     const countryCounts = {};
@@ -125,10 +131,11 @@ export async function GET(request) {
         pageViews: totalPageViews,
         hdDownloads: totalHDDownloads,
         uniqueVisitorsAllTime: allTimeVisitors.length,
+        users: totalUsers,
       },
       last7Days: { pageViews: pageViews7.length },
       last30Days: { pageViews: pageViews30.length },
-      periodStats: { pageViews: pageViewsPeriod.length, uniqueVisitors: uniqueVisitorsPeriod },
+      periodStats: { pageViews: pageViewsPeriod.length, uniqueVisitors: uniqueVisitorsPeriod, signups: signupsPeriod.length },
       daily,
       byCountry,
       topPages,

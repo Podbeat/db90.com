@@ -5,13 +5,19 @@ import { translateFreeText } from "@/lib/translate";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 import { cleanupCardFiles } from "@/lib/cardFileCleanup";
 
+const cardInclude = {
+  collection: { select: { nom: true, pays: true } },
+  personnagePrincipal: true,
+  personnagesSecondaires: { include: { character: true } },
+};
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
     const collectionId = searchParams.get("collectionId");
     const rarete = searchParams.get("rarete");
-    const personnage = searchParams.get("personnage");
+    const personnage = searchParams.get("personnage"); // id de Character
     const pays = searchParams.get("pays");
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     // Plafond relevé à 500 pour permettre à l'admin d'afficher (et sélectionner) toutes les
@@ -24,12 +30,15 @@ export async function GET(request) {
       AND: [
         collectionId && collectionId !== "all" ? { collectionId } : {},
         rarete && rarete !== "all" ? { rarete } : {},
-        personnage && personnage !== "all" ? { personnage } : {},
+        // Un personnage peut être recherché comme principal OU comme secondaire.
+        personnage && personnage !== "all"
+          ? { OR: [{ personnagePrincipalId: personnage }, { personnagesSecondaires: { some: { characterId: personnage } } }] }
+          : {},
         pays && pays !== "all" ? { collection: { pays } } : {},
         q
           ? {
               OR: [
-                { personnage: { contains: q, mode: "insensitive" } },
+                { personnagePrincipal: { name: { contains: q, mode: "insensitive" } } },
                 { numero: { contains: q, mode: "insensitive" } },
                 { description: { contains: q, mode: "insensitive" } },
               ],
@@ -43,7 +52,7 @@ export async function GET(request) {
     // donc on récupère tout le lot filtré, on trie côté serveur, puis on pagine à la main.
     const allMatching = await prisma.card.findMany({
       where,
-      include: { collection: { select: { nom: true, pays: true } } },
+      include: cardInclude,
       orderBy: [{ collectionId: "asc" }],
     });
 
@@ -84,16 +93,17 @@ export async function POST(request) {
     if (!session) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
 
     const body = await request.json();
-    if (!body.personnage || !body.numero || !body.collectionId) {
-      return NextResponse.json({ error: "Référence, personnage et collection sont obligatoires." }, { status: 400 });
+    if (!body.numero || !body.collectionId) {
+      return NextResponse.json({ error: "Référence et collection sont obligatoires." }, { status: 400 });
     }
 
     const translations = await translateFreeText(body.description);
+    const secondaires = Array.isArray(body.personnagesSecondaires) ? body.personnagesSecondaires.filter(Boolean) : [];
 
     const card = await prisma.card.create({
       data: {
         numero: body.numero,
-        personnage: body.personnage,
+        personnagePrincipalId: body.personnagePrincipalId || null,
         rarete: body.rarete || "Commune",
         description: body.description || null,
         descriptionEn: translations.en,
@@ -105,7 +115,11 @@ export async function POST(request) {
         dos: body.dos || null,
         dosHD: body.dosHD || null,
         collectionId: body.collectionId,
+        personnagesSecondaires: secondaires.length
+          ? { create: secondaires.map((characterId) => ({ characterId })) }
+          : undefined,
       },
+      include: cardInclude,
     });
     return NextResponse.json(card, { status: 201 });
   } catch (e) {

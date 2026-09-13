@@ -11,7 +11,7 @@ export default async function Image({ params }) {
   const { id } = await params;
   const card = await prisma.card.findUnique({
     where: { id },
-    include: { collection: { select: { nom: true } } },
+    include: { collection: { select: { nom: true } }, personnagePrincipal: true },
   });
 
   if (!card) {
@@ -45,7 +45,7 @@ export default async function Image({ params }) {
             DB Non-Off 90's
           </div>
           <div style={{ display: "flex", fontSize: 56, fontWeight: 900, color: "#eef2fa", marginTop: 18, lineHeight: 1.1 }}>
-            {card.personnage}
+            {card.personnagePrincipal?.name || card.numero}
           </div>
           <div style={{ display: "flex", fontSize: 28, color: "#8ea3c4", marginTop: 14 }}>
             {card.collection.nom} — n°{card.numero}

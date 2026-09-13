@@ -13,7 +13,7 @@ export async function GET(request) {
 
     const reports = await prisma.report.findMany({
       where: status && status !== "all" ? { status } : {},
-      include: { card: { include: { collection: { select: { nom: true } } } } },
+      include: { card: { include: { collection: { select: { nom: true } }, personnagePrincipal: true } } },
       orderBy: { createdAt: "desc" },
     });
     return NextResponse.json(reports);

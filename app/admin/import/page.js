@@ -68,6 +68,11 @@ export default function AdminImportPage() {
         <p style={{ fontFamily: "monospace", color: "var(--text)" }}>
           collection, numero, personnage, rarete, description, image, contributeur
         </p>
+        <p style={{ fontSize: "0.78rem" }}>
+          Seule la colonne <strong>numero</strong> est obligatoire. <strong>personnage</strong> peut rester vide —
+          la carte sera importée "à définir plus tard", à choisir depuis une liste déroulante dans l'onglet Cartes
+          une fois la collection en place (évite de devoir taper le nom du personnage sur chaque ligne).
+        </p>
         <a href="/templates/modele-import-cartes.csv" download className="btn-ghost" style={{ display: "inline-block", marginBottom: "0.9rem" }}>
           Télécharger le modèle CSV
         </a>

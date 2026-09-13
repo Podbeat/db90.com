@@ -7,15 +7,16 @@ export async function generateMetadata({ params }) {
   const { id } = await params;
   const card = await prisma.card.findUnique({
     where: { id },
-    include: { collection: { select: { nom: true } } },
+    include: { collection: { select: { nom: true } }, personnagePrincipal: true },
   });
 
   if (!card) return { title: "Carte introuvable — DB Non-Off 90's" };
 
-  const title = `${card.personnage} — n°${card.numero} — ${card.collection.nom} | DB Non-Off 90's`;
+  const nom = card.personnagePrincipal?.name || card.numero;
+  const title = `${nom} — n°${card.numero} — ${card.collection.nom} | DB Non-Off 90's`;
   const description =
     (card.description && card.description.slice(0, 155)) ||
-    `Carte Dragon Ball non-officielle "${card.personnage}" (réf. ${card.numero}), série ${card.collection.nom}. Archive communautaire à but non lucratif.`;
+    `Carte Dragon Ball non-officielle "${nom}" (réf. ${card.numero}), série ${card.collection.nom}. Archive communautaire à but non lucratif.`;
   const url = `${SITE_URL}/cartes/${card.id}`;
 
   return {

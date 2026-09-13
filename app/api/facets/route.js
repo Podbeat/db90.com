@@ -15,19 +15,21 @@ export async function GET(request) {
     const q = searchParams.get("q")?.trim();
     const collectionId = searchParams.get("collectionId");
     const rarete = searchParams.get("rarete");
-    const personnage = searchParams.get("personnage");
+    const personnage = searchParams.get("personnage"); // id de Character
     const pays = searchParams.get("pays");
 
     function baseWhere(exclude) {
       const clauses = [];
       if (collectionId && collectionId !== "all" && exclude !== "collection") clauses.push({ collectionId });
       if (rarete && rarete !== "all" && exclude !== "rarete") clauses.push({ rarete });
-      if (personnage && personnage !== "all" && exclude !== "personnage") clauses.push({ personnage });
+      if (personnage && personnage !== "all" && exclude !== "personnage") {
+        clauses.push({ OR: [{ personnagePrincipalId: personnage }, { personnagesSecondaires: { some: { characterId: personnage } } }] });
+      }
       if (pays && pays !== "all" && exclude !== "pays") clauses.push({ collection: { pays } });
       if (q) {
         clauses.push({
           OR: [
-            { personnage: { contains: q, mode: "insensitive" } },
+            { personnagePrincipal: { name: { contains: q, mode: "insensitive" } } },
             { numero: { contains: q, mode: "insensitive" } },
             { description: { contains: q, mode: "insensitive" } },
           ],
@@ -36,12 +38,10 @@ export async function GET(request) {
       return clauses.length ? { AND: clauses } : {};
     }
 
-    const [personnages, raretes, paysRows, collectionRows] = await Promise.all([
+    const [personnageCards, raretes, paysRows, collectionRows] = await Promise.all([
       prisma.card.findMany({
         where: baseWhere("personnage"),
-        distinct: ["personnage"],
-        select: { personnage: true },
-        orderBy: { personnage: "asc" },
+        select: { personnagePrincipalId: true, personnagesSecondaires: { select: { characterId: true } } },
       }),
       prisma.card.findMany({
         where: baseWhere("rarete"),
@@ -60,6 +60,15 @@ export async function GET(request) {
       }),
     ]);
 
+    const characterIds = new Set();
+    for (const c of personnageCards) {
+      if (c.personnagePrincipalId) characterIds.add(c.personnagePrincipalId);
+      for (const s of c.personnagesSecondaires) characterIds.add(s.characterId);
+    }
+    const personnages = characterIds.size
+      ? await prisma.character.findMany({ where: { id: { in: [...characterIds] } }, orderBy: { name: "asc" } })
+      : [];
+
     const paysSet = Array.from(new Set(paysRows.map((r) => r.collection?.pays).filter(Boolean))).sort();
     const collections = collectionRows
       .map((r) => ({ id: r.collectionId, nom: r.collection?.nom || "" }))
@@ -67,7 +76,7 @@ export async function GET(request) {
       .sort((a, b) => a.nom.localeCompare(b.nom));
 
     return NextResponse.json({
-      personnages: personnages.map((p) => p.personnage).filter(Boolean),
+      personnages: personnages.map((p) => ({ id: p.id, name: p.name })),
       raretes: raretes.map((r) => r.rarete).filter(Boolean),
       pays: paysSet,
       collections,

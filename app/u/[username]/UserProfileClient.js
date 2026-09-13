@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
+import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 
 function MiniGrid({ cards, t, emptyLabel }) {
   if (cards.length === 0) {
@@ -21,14 +22,14 @@ function MiniGrid({ cards, t, emptyLabel }) {
         >
           <div className="card-tile-media">
             {c.image ? (
-              <Image src={c.image} alt={c.personnage} fill sizes="(max-width: 640px) 45vw, 220px" style={{ objectFit: "cover" }} />
+              <Image src={c.image} alt={c.personnagePrincipal?.name || ""} fill sizes="(max-width: 640px) 45vw, 220px" style={{ objectFit: "cover" }} />
             ) : (
-              <img src={missingCardPlaceholder(c, t)} alt={c.personnage} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={missingCardPlaceholder(c, t)} alt={c.personnagePrincipal?.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             )}
           </div>
           <div className="meta">
             <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>
-            <div className="card-nom">{c.personnage}</div>
+            <div className="card-nom">{c.personnagePrincipal?.name || t.noCharacterAssigned}</div>
           </div>
         </Link>
       ))}
@@ -62,7 +63,7 @@ export default function UserProfileClient({ username }) {
     <div className="container page">
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
         <img
-          src={profile.avatar || `data:image/svg+xml;utf8,${encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' fill='#1a2c4d'/></svg>")}`}
+          src={profile.avatar || avatarPlaceholder(profile.username)}
           alt=""
           style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)" }}
         />

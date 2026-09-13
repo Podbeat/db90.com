@@ -14,7 +14,8 @@ function emptyForm(defaultCollectionId) {
     id: null,
     collectionId: defaultCollectionId || "",
     numero: "",
-    personnage: "",
+    personnagePrincipalId: "",
+    personnagesSecondaires: [],
     rarete: "",
     description: "",
     image: null,
@@ -49,6 +50,34 @@ export default function AdminCardsPage() {
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
+  // Liste maîtresse des personnages (menu déroulant + sélection multiple des secondaires)
+  const [characters, setCharacters] = useState([]);
+  const [newCharacterName, setNewCharacterName] = useState("");
+
+  async function loadCharacters() {
+    const res = await fetch("/api/admin/characters");
+    if (res.ok) setCharacters(await res.json());
+  }
+
+  async function handleAddCharacter() {
+    const name = newCharacterName.trim();
+    if (!name) return;
+    const res = await fetch("/api/admin/characters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setNewCharacterName("");
+      await loadCharacters();
+      // Choisi automatiquement comme personnage principal du formulaire en cours.
+      setForm((f) => (f ? { ...f, personnagePrincipalId: data.id } : f));
+    } else {
+      setMessage({ type: "error", text: data.error });
+    }
+  }
+
   async function loadCollections() {
     const res = await fetch("/api/collections");
     setCollections(await res.json());
@@ -71,6 +100,7 @@ export default function AdminCardsPage() {
 
   useEffect(() => {
     loadCollections();
+    loadCharacters();
     loadCards(1, "all");
   }, []);
 
@@ -198,7 +228,8 @@ export default function AdminCardsPage() {
       id: null,
       collectionId: c.collectionId,
       numero: c.numero,
-      personnage: c.personnage,
+      personnagePrincipalId: c.personnagePrincipalId || "",
+      personnagesSecondaires: (c.personnagesSecondaires || []).map((s) => s.characterId),
       rarete: "",
       description: "",
       image: null,
@@ -266,8 +297,55 @@ export default function AdminCardsPage() {
           </div>
           <div className="field">
             <span className="field-label">Personnage principal</span>
-            <input value={form.personnage} onChange={(e) => setForm({ ...form, personnage: e.target.value })} placeholder="ex. Son Goku" required />
+            <select
+              value={form.personnagePrincipalId || ""}
+              onChange={(e) => setForm({ ...form, personnagePrincipalId: e.target.value })}
+            >
+              <option value="">— À définir plus tard —</option>
+              {characters.map((ch) => (
+                <option key={ch.id} value={ch.id}>{ch.name}</option>
+              ))}
+            </select>
+            <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.4rem" }}>
+              <input
+                value={newCharacterName}
+                onChange={(e) => setNewCharacterName(e.target.value)}
+                placeholder="Nouveau personnage à ajouter à la liste…"
+                style={{ fontSize: "0.78rem" }}
+              />
+              <button type="button" className="btn-ghost" style={{ fontSize: "0.75rem", whiteSpace: "nowrap" }} onClick={handleAddCharacter}>
+                + Ajouter
+              </button>
+            </div>
           </div>
+          {characters.length > 0 && (
+            <div className="field">
+              <span className="field-label">Personnages secondaires (si plusieurs sur la carte)</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem 0.9rem", fontSize: "0.8rem", maxHeight: 120, overflowY: "auto", border: "1px solid var(--line)", padding: "0.5rem", borderRadius: 4 }}>
+                {characters
+                  .filter((ch) => ch.id !== form.personnagePrincipalId)
+                  .map((ch) => (
+                    <label key={ch.id} style={{ display: "flex", alignItems: "center", gap: "0.3rem", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={form.personnagesSecondaires.includes(ch.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setForm((f) => ({
+                            ...f,
+                            personnagesSecondaires: checked
+                              ? [...f.personnagesSecondaires, ch.id]
+                              : f.personnagesSecondaires.filter((id) => id !== ch.id),
+                          }));
+                        }}
+                        style={{ width: "auto" }}
+                      />
+                      {ch.name}
+                    </label>
+                  ))}
+              </div>
+            </div>
+          )}
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "-0.4rem 0 0.9rem" }}>
             Une même référence peut exister plusieurs fois (une ligne par effet/variante) : utilisez "Dupliquer" depuis le tableau pour repartir d'une carte existante.
           </div>
@@ -352,13 +430,23 @@ export default function AdminCardsPage() {
                   </td>
                   <td><img src={c.image || missingCardPlaceholder(c, ADMIN_T)} alt="" style={{ width: 34, height: 48, objectFit: "cover" }} /></td>
                   <td>{c.numero}</td>
-                  <td>{c.personnage}</td>
+                  <td>{c.personnagePrincipal?.name || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
                   <td>{c.collection?.nom || collectionName(c.collectionId)}</td>
                   <td>{c.rarete}</td>
                   <td>
                     <div style={{ display: "flex", gap: "0.4rem" }}>
                       <button className="btn-icon" title="Dupliquer (nouvel effet/variante)" onClick={() => handleDuplicate(c)}><Copy size={13} /></button>
-                      <button className="btn-icon" onClick={() => setForm({ ...c, collectionId: c.collectionId })}><Pencil size={13} /></button>
+                      <button
+                        className="btn-icon"
+                        onClick={() =>
+                          setForm({
+                            ...c,
+                            collectionId: c.collectionId,
+                            personnagePrincipalId: c.personnagePrincipalId || "",
+                            personnagesSecondaires: (c.personnagesSecondaires || []).map((s) => s.characterId),
+                          })
+                        }
+                      ><Pencil size={13} /></button>
                       <button className="btn-icon" onClick={() => setConfirmDelete(c)}><Trash2 size={13} /></button>
                     </div>
                   </td>
@@ -379,7 +467,7 @@ export default function AdminCardsPage() {
       {confirmDelete && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(10,8,5,0.78)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }} onClick={() => setConfirmDelete(null)}>
           <div className="form-panel" style={{ maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
-            <p style={{ fontSize: "0.9rem", marginTop: 0 }}>Supprimer la carte « {confirmDelete.numero} » ({confirmDelete.personnage}) ?</p>
+            <p style={{ fontSize: "0.9rem", marginTop: 0 }}>Supprimer la carte « {confirmDelete.numero} » ({confirmDelete.personnagePrincipal?.name || "personnage non défini"}) ?</p>
             <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
               <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>Annuler</button>
               <button className="btn-danger" onClick={() => handleDelete(confirmDelete.id)}>Supprimer</button>

@@ -118,7 +118,7 @@ export default function CataloguePage() {
         // Si le filtre actuellement sélectionné n'a plus lieu d'être (plus aucune carte
         // ne correspond compte tenu des autres filtres), on le réinitialise plutôt que de
         // laisser l'utilisateur bloqué sur une combinaison vide.
-        if (filterPersonnage !== "all" && !newPersonnages.includes(filterPersonnage)) setFilterPersonnage("all");
+        if (filterPersonnage !== "all" && !newPersonnages.some((p) => p.id === filterPersonnage)) setFilterPersonnage("all");
         if (filterRarete !== "all" && !newRaretes.includes(filterRarete)) setFilterRarete("all");
         if (filterPays !== "all" && !newPays.includes(filterPays)) setFilterPays("all");
         if (filterCollection !== "all" && !newCollections.some((c) => c.id === filterCollection)) setFilterCollection("all");
@@ -187,7 +187,7 @@ export default function CataloguePage() {
             <select value={filterPersonnage} onChange={(e) => setFilterPersonnage(e.target.value)}>
               <option value="all">{t.allPersonnages}</option>
               {personnages.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           </div>
@@ -244,7 +244,7 @@ export default function CataloguePage() {
                   <Image src={highlights.lastCard.image} alt="" width={36} height={50} style={{ objectFit: "cover" }} />
                   <div>
                     <div className="highlight-label">{t.lastCardAdded}</div>
-                    <div className="highlight-title">{highlights.lastCard.personnage} — {highlights.lastCard.numero}</div>
+                    <div className="highlight-title">{highlights.lastCard.personnagePrincipal?.name || t.noCharacterAssigned} — {highlights.lastCard.numero}</div>
                     <div className="highlight-sub">{highlights.lastCard.collection?.nom}</div>
                   </div>
                 </Link>
@@ -291,7 +291,7 @@ export default function CataloguePage() {
                       {c.image ? (
                         <Image
                           src={c.image}
-                          alt={c.personnage}
+                          alt={c.personnagePrincipal?.name || ""}
                           fill
                           sizes="(max-width: 640px) 45vw, 220px"
                           style={{ objectFit: "cover" }}
@@ -299,15 +299,15 @@ export default function CataloguePage() {
                       ) : (
                         <img
                           src={missingCardPlaceholder(c, t)}
-                          alt={c.personnage}
+                          alt={c.personnagePrincipal?.name || ""}
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
                       )}
-                      <ShareIconButton path={`/cartes/${c.id}`} title={`${c.personnage} — DB Non-Off 90's`} />
+                      <ShareIconButton path={`/cartes/${c.id}`} title={`${c.personnagePrincipal?.name || c.numero} — DB Non-Off 90's`} />
                     </HoloCard>
                     <div className="meta">
                       <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>
-                      <div className="card-nom">{c.personnage}</div>
+                      <div className="card-nom">{c.personnagePrincipal?.name || t.noCharacterAssigned}</div>
                       <span className="rarity-tag">{c.rarete}</span>
                     </div>
                   </Link>

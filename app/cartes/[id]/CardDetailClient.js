@@ -8,6 +8,7 @@ import ReportError from "@/components/ReportError";
 import ShareButton from "@/components/ShareButton";
 import HoloCard from "@/components/HoloCard";
 import CardStatusToggle from "@/components/CardStatusToggle";
+import CardScanUpload from "@/components/CardScanUpload";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
@@ -55,9 +56,9 @@ export default function CardDetailClient({ id }) {
         <div style={{ width: 280, maxWidth: "100%" }}>
           <HoloCard style={{ width: "100%", aspectRatio: "240 / 336", border: "1px solid var(--line)" }}>
             {card.image ? (
-              <Image src={card.image} alt={card.personnage} fill sizes="280px" style={{ objectFit: "cover" }} />
+              <Image src={card.image} alt={card.personnagePrincipal?.name || ""} fill sizes="280px" style={{ objectFit: "cover" }} />
             ) : (
-              <img src={image} alt={card.personnage} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={image} alt={card.personnagePrincipal?.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             )}
           </HoloCard>
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", marginTop: "0.4rem" }}>{t.recto}</div>
@@ -66,6 +67,7 @@ export default function CardDetailClient({ id }) {
               {t.viewHD}
             </a>
           )}
+          {!card.image && <CardScanUpload cardId={card.id} />}
         </div>
         {(card.dos || card.collection.dos) && (
           <div style={{ width: 280, maxWidth: "100%" }}>
@@ -81,9 +83,16 @@ export default function CardDetailClient({ id }) {
           </div>
         )}
         <div style={{ flex: 1, minWidth: 280 }}>
-          <h1 className="display-font" style={{ fontSize: "1.3rem", marginBottom: "0.6rem" }}>{card.personnage}</h1>
+          <h1 className="display-font" style={{ fontSize: "1.3rem", marginBottom: "0.2rem" }}>
+            {card.personnagePrincipal?.name || t.noCharacterAssigned}
+          </h1>
+          {card.personnagesSecondaires?.length > 0 && (
+            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.6rem" }}>
+              {t.withCharacters} {card.personnagesSecondaires.map((s) => s.character.name).join(", ")}
+            </div>
+          )}
           <div style={{ marginBottom: "1rem" }}>
-            <ShareButton url={cardUrl} title={`${card.personnage} — ${card.numero} — DB Non-Off 90's`} />
+            <ShareButton url={cardUrl} title={`${card.personnagePrincipal?.name || card.numero} — ${card.numero} — DB Non-Off 90's`} />
           </div>
           <a
             href={`/api/cards/${card.id}/pdf`}

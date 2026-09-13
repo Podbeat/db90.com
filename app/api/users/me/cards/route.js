@@ -23,7 +23,7 @@ export async function GET(request) {
 
     const entries = await prisma.userCard.findMany({
       where: { userId: session.sub },
-      include: { card: { include: { collection: { select: { id: true, nom: true } } } } },
+      include: { card: { include: { collection: { select: { id: true, nom: true } }, personnagePrincipal: true } } },
     });
 
     const owned = entries.filter((e) => e.status === "owned").map((e) => e.card).sort(naturalSortByNumero);

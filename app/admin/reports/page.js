@@ -58,7 +58,7 @@ export default function AdminReportsPage() {
             <div key={r.id} className="form-panel">
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
                 <div style={{ fontSize: "0.85rem" }}>
-                  <strong>{r.card.numero}</strong> — {r.card.personnage} · {r.card.collection?.nom}
+                  <strong>{r.card.numero}</strong> — {r.card.personnagePrincipal?.name || "?"} · {r.card.collection?.nom}
                   <Link href={`/cartes/${r.card.id}`} target="_blank" style={{ marginLeft: "0.6rem", color: "var(--gold)", fontSize: "0.78rem" }}>
                     Voir la fiche ↗
                   </Link>

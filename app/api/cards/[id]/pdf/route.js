@@ -62,7 +62,7 @@ export async function GET(request, { params }) {
   const { id } = await params;
   const card = await prisma.card.findUnique({
     where: { id },
-    include: { collection: true },
+    include: { collection: true, personnagePrincipal: true, personnagesSecondaires: { include: { character: true } } },
   });
 
   if (!card) {
@@ -161,10 +161,13 @@ export async function GET(request, { params }) {
   y = y - imgH - 40;
 
   // Bloc d'informations
-  page.drawText(safe(card.personnage), { x: marginX, y, size: 20, font: fontBold, color: INK });
+  page.drawText(safe(card.personnagePrincipal?.name || "Personnage non defini"), { x: marginX, y, size: 20, font: fontBold, color: INK });
   y -= 24;
 
   const infoLines = [];
+  if (card.personnagesSecondaires?.length) {
+    infoLines.push(["Avec", card.personnagesSecondaires.map((s) => s.character.name).join(", ")]);
+  }
   if (card.rarete) infoLines.push(["Effet / Prisme", card.rarete]);
   if (card.contributeur) infoLines.push(["Scan fourni par", card.contributeur]);
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
+import { recordCoteSnapshot } from "@/lib/cote";
 
 const CONDITIONS = ["Satisfaisant", "Bon état", "Très bon état", "Neuve"];
 
@@ -78,6 +79,8 @@ export async function POST(request, { params }) {
       }
     }
 
+    await recordCoteSnapshot(cardId);
+
     return NextResponse.json(listing);
   } catch (e) {
     console.error("Erreur POST /api/cards/[id]/listings :", e);
@@ -93,6 +96,7 @@ export async function DELETE(request, { params }) {
 
     const { id: cardId } = await params;
     await prisma.cardListing.deleteMany({ where: { cardId, userId: session.sub } });
+    await recordCoteSnapshot(cardId);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Erreur DELETE /api/cards/[id]/listings :", e);

@@ -9,6 +9,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { LANGUAGES } from "@/lib/translations";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import NotificationBell from "@/components/NotificationBell";
+import MemberSearch from "@/components/MemberSearch";
 
 export default function Nav() {
   const pathname = usePathname();
@@ -79,6 +80,7 @@ export default function Nav() {
         </div>
         {meLoaded && (
           <div className="top-bar-account-row">
+            <MemberSearch />
             {me ? (
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                 <NotificationBell />

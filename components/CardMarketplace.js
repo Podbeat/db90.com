@@ -185,20 +185,23 @@ export default function CardMarketplace({ cardId }) {
                   <span style={{ fontWeight: 600, color: cond === "Neuve" ? "var(--gold)" : "var(--text)" }}>{cote.byCondition[cond]} €</span>
                 </div>
               ))}
-              {chartData.length > 1 && (
-                <div style={{ width: "100%", height: 110, marginTop: "0.7rem" }}>
-                  <ResponsiveContainer>
-                    <LineChart data={chartData}>
-                      <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--text-muted)" }} />
-                      <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)" }} width={32} />
-                      <Tooltip
-                        contentStyle={{ background: "var(--surface-raised)", border: "1px solid var(--line)", fontSize: "0.75rem" }}
-                        labelStyle={{ color: "var(--text)" }}
-                        formatter={(v) => [`${v} €`, t.coteNeuveLabel]}
-                      />
-                      <Line type="monotone" dataKey="cote" stroke="var(--accent)" strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
+              <div style={{ width: "100%", height: 110, marginTop: "0.7rem" }}>
+                <ResponsiveContainer>
+                  <LineChart data={chartData}>
+                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--text-muted)" }} />
+                    <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)" }} width={32} domain={["auto", "auto"]} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--surface-raised)", border: "1px solid var(--line)", fontSize: "0.75rem" }}
+                      labelStyle={{ color: "var(--text)" }}
+                      formatter={(v) => [`${v} €`, t.coteNeuveLabel]}
+                    />
+                    <Line type="monotone" dataKey="cote" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: "var(--accent)" }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              {chartData.length <= 1 && (
+                <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontStyle: "italic", marginTop: "0.3rem" }}>
+                  {t.coteChartPending}
                 </div>
               )}
             </>

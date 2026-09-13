@@ -32,7 +32,9 @@ model Collection {
 model Card {
   id              String     @id @default(cuid())
   numero          String
-  personnage      String
+  personnagePrincipalId String?
+  personnagePrincipal   Character?      @relation("PrincipalCharacter", fields: [personnagePrincipalId], references: [id], onDelete: SetNull)
+  personnagesSecondaires CardCharacter[]
   rarete          String     @default("Commune")
   description     String? // texte saisi par l'admin, toujours en français
   descriptionEn   String? // traduction automatique (anglais)
@@ -44,15 +46,42 @@ model Card {
   dosHD           String?
   contributeur    String? // pseudo/nom optionnel de la personne ayant fourni le scan, affiché publiquement si renseigné
   collectionId    String
-  collection      Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collection      Collection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   reports         Report[]
   userCards       UserCard[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  submissions     CardSubmission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([collectionId])
   @@index([rarete])
-  @@index([personnage])
+  @@index([personnagePrincipalId])
+}
+
+// Liste maîtresse des personnages (DBZ et au-delà), gérée depuis l'admin. Une carte a un
+// personnage "principal" (celui affiché en priorité partout sur le site) et, si plusieurs
+// personnages apparaissent dessus, des personnages "secondaires" via CardCharacter.
+// personnagePrincipalId est volontairement optionnel : une carte importée en masse peut
+// rester sans personnage défini jusqu'à ce qu'on le choisisse plus tard dans l'admin.
+model Character {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  primaryCards   Card[]          @relation("PrincipalCharacter")
+  secondaryCards CardCharacter[]
+}
+
+model CardCharacter {
+  id          String    @id @default(cuid())
+  cardId      String
+  card        Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, characterId])
+  @@index([cardId])
+  @@index([characterId])
 }
 
 // Compte utilisateur public (distinct des comptes admin) : permet à un visiteur de suivre
@@ -66,6 +95,7 @@ model User {
   bio          String?
   createdAt    DateTime   @default(now())
   cards        UserCard[]
+  submissions  CardSubmission[]
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -83,6 +113,40 @@ model UserCard {
   @@unique([userId, cardId])
   @@index([userId])
   @@index([cardId])
+  @@index([status])
+}
+
+// Adresses e-mail bannies par l'admin : empêche à la fois la connexion et une nouvelle
+// inscription avec cette adresse. Le compte utilisateur correspondant est supprimé au
+// moment du bannissement (voir /api/admin/users/[id]/ban) ; cette table ne fait que
+// mémoriser l'adresse pour bloquer un retour.
+model BannedEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+// Scan proposé par un utilisateur pour une carte (typiquement une carte "recherchée", sans
+// visuel). Traité comme un import classique (redimensionnement/compression via la même
+// fonction que l'admin), mais reste en attente ("pending") tant qu'un admin ne l'a pas
+// validé — voir /admin/scans. Une seule ligne par (carte, utilisateur) : un nouvel envoi
+// remplace le précédent tant qu'il n'a pas encore été traité.
+model CardSubmission {
+  id         String    @id @default(cuid())
+  cardId     String
+  card       Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image      String
+  imageHD    String?
+  status     String    @default("pending") // pending | approved | rejected
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  @@unique([cardId, userId])
+  @@index([cardId])
+  @@index([userId])
   @@index([status])
 }
 

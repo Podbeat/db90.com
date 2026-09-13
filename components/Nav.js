@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Sun, Moon, User, LogOut } from "lucide-react";
+import { Sun, Moon, LogOut } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useTheme } from "@/components/ThemeProvider";
 import { LANGUAGES } from "@/lib/translations";
+import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 
 export default function Nav() {
   const pathname = usePathname();
@@ -79,7 +80,7 @@ export default function Nav() {
                   {me.avatar ? (
                     <img src={me.avatar} alt="" className="nav-avatar" />
                   ) : (
-                    <User size={16} />
+                    <img src={avatarPlaceholder(me.username)} alt="" className="nav-avatar" />
                   )}
                   <span>{me.username}</span>
                 </Link>

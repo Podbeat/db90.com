@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
+import ActivityFeed from "@/components/ActivityFeed";
 
 function RankList({ items }) {
   if (items.length === 0) return null;
@@ -46,16 +47,19 @@ export default function LeaderboardPage() {
       {loading ? (
         <div className="empty-state">{t.loading}</div>
       ) : (
-        <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.6rem" }}>{t.leaderboardTopCollectors}</div>
-            <RankList items={data?.topCollectors || []} />
+        <>
+          <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.6rem" }}>{t.leaderboardTopCollectors}</div>
+              <RankList items={data?.topCollectors || []} />
+            </div>
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.6rem" }}>{t.leaderboardTopContributors}</div>
+              <RankList items={data?.topContributors || []} />
+            </div>
           </div>
-          <div style={{ flex: 1, minWidth: 280 }}>
-            <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.6rem" }}>{t.leaderboardTopContributors}</div>
-            <RankList items={data?.topContributors || []} />
-          </div>
-        </div>
+          <ActivityFeed />
+        </>
       )}
     </div>
   );

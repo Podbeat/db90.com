@@ -77,6 +77,9 @@ export async function POST(request, { params }) {
           data: interested.map((i) => ({ userId: i.userId, type: "card_for_sale", cardId })),
         });
       }
+      await prisma.activityEvent.create({
+        data: { type: "card_for_sale", userId: session.sub, cardId },
+      });
     }
 
     await recordCoteSnapshot(cardId);

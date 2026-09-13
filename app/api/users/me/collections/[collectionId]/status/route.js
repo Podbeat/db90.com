@@ -38,6 +38,15 @@ export async function POST(request, { params }) {
       )
     );
 
+    if (status === "owned") {
+      const collection = await prisma.collection.findUnique({ where: { id: collectionId }, select: { total: true } });
+      if (collection?.total && collection.total === cardIds.length) {
+        await prisma.activityEvent.create({
+          data: { type: "collection_completed", userId: session.sub, collectionId },
+        });
+      }
+    }
+
     return NextResponse.json({ ok: true, count: cardIds.length, status });
   } catch (e) {
     console.error("Erreur POST /api/users/me/collections/[collectionId]/status :", e);

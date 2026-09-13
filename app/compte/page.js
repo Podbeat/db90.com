@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Upload, ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
+import { computeBadges } from "@/lib/badges";
 
 export default function AccountProfilePage() {
   const { t } = useLanguage();
@@ -188,6 +189,15 @@ export default function AccountProfilePage() {
             <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.6rem", fontStyle: "italic" }}>
               {t.participationNote}
             </div>
+            {computeBadges(participation, t).length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.7rem" }}>
+                {computeBadges(participation, t).map((b) => (
+                  <span key={b.id} style={{ fontSize: "0.68rem", border: "1px solid var(--gold)", color: "var(--gold)", padding: "0.2rem 0.5rem", borderRadius: 999 }}>
+                    {b.label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

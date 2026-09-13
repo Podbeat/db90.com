@@ -32,6 +32,10 @@ export async function POST(request, { params }) {
       }),
     ]);
 
+    await prisma.activityEvent.create({
+      data: { type: "scan_approved", userId: submission.userId, cardId: submission.cardId },
+    });
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Erreur POST /api/admin/submissions/[id]/approve :", e);

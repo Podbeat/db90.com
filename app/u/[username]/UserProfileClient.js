@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, Trophy } from "lucide-react";
+import { Mail, Trophy, ThumbsUp, ThumbsDown, Flag } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import ContactUserModal from "@/components/ContactUserModal";
+import { computeBadges } from "@/lib/badges";
 
 function MiniGrid({ cards, t, emptyLabel }) {
   if (cards.length === 0) {
@@ -71,8 +72,70 @@ function SalesList({ listings, t }) {
   );
 }
 
+function RatingsBox({ username, ratings, me, t, onRated }) {
+  const [showForm, setShowForm] = useState(false);
+  const [positive, setPositive] = useState(true);
+  const [comment, setComment] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit() {
+    setSaving(true);
+    try {
+      await fetch(`/api/users/${username}/ratings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ positive, comment }),
+      });
+      setShowForm(false);
+      setComment("");
+      onRated();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="filter-panel" style={{ maxWidth: 360, marginTop: "1.2rem" }}>
+      <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.6rem" }}>{t.ratingsTitle}</div>
+      <div style={{ display: "flex", gap: "1rem", fontSize: "0.8rem", marginBottom: "0.7rem" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "#4caf6d" }}><ThumbsUp size={13} /> {t.positiveRatingsCount(ratings?.positiveCount || 0)}</span>
+        <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "var(--text-muted)" }}><ThumbsDown size={13} /> {t.negativeRatingsCount(ratings?.negativeCount || 0)}</span>
+      </div>
+
+      {ratings?.ratings?.length > 0 && (
+        <div style={{ marginBottom: "0.8rem" }}>
+          {ratings.ratings.slice(0, 5).filter((r) => r.comment).map((r) => (
+            <div key={r.id} style={{ fontSize: "0.76rem", color: "var(--text-muted)", padding: "0.3rem 0", borderBottom: "1px solid var(--line)" }}>
+              {r.positive ? <ThumbsUp size={11} style={{ color: "#4caf6d" }} /> : <ThumbsDown size={11} />} <strong>{r.rater.username}</strong> — {r.comment}
+            </div>
+          ))}
+        </div>
+      )}
+      {(!ratings || ratings.ratings.length === 0) && <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.8rem" }}>{t.noRatings}</div>}
+
+      {me && me.username !== username && !showForm && (
+        <button className="btn-ghost" style={{ fontSize: "0.76rem" }} onClick={() => setShowForm(true)}>{t.rateThisMember}</button>
+      )}
+      {showForm && (
+        <div>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <button className={positive ? "btn-primary" : "btn-ghost"} style={{ fontSize: "0.75rem" }} onClick={() => setPositive(true)}>{t.ratingPositive}</button>
+            <button className={!positive ? "btn-primary" : "btn-ghost"} style={{ fontSize: "0.75rem" }} onClick={() => setPositive(false)}>{t.ratingNegative}</button>
+          </div>
+          <div className="field">
+            <span className="field-label">{t.ratingCommentLabel}</span>
+            <textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} />
+          </div>
+          <button className="btn-primary" onClick={submit} disabled={saving}>{saving ? "…" : t.submitRating}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ParticipationPanel({ participation, t }) {
   if (!participation) return null;
+  const badges = computeBadges(participation, t);
   return (
     <div className="filter-panel" style={{ maxWidth: 360 }}>
       <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.6rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
@@ -86,6 +149,15 @@ function ParticipationPanel({ participation, t }) {
         <div>{t.participationCompletedLine(participation.completedCollections, participation.completionBonus)}</div>
         <div>{t.participationContribLine(participation.approvedSubmissions, participation.contributionPoints)}</div>
       </div>
+      {badges.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.7rem" }}>
+          {badges.map((b) => (
+            <span key={b.id} style={{ fontSize: "0.68rem", border: "1px solid var(--gold)", color: "var(--gold)", padding: "0.2rem 0.5rem", borderRadius: 999 }}>
+              {b.label}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -98,6 +170,15 @@ export default function UserProfileClient({ username }) {
   const [tab, setTab] = useState("participation");
   const [me, setMe] = useState(null);
   const [showContact, setShowContact] = useState(false);
+  const [ratings, setRatings] = useState(null);
+  const [showReport, setShowReport] = useState(false);
+
+  function loadRatings() {
+    fetch(`/api/users/${username}/ratings`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setRatings)
+      .catch(() => {});
+  }
 
   useEffect(() => {
     fetch(`/api/users/${username}`)
@@ -107,6 +188,8 @@ export default function UserProfileClient({ username }) {
       })
       .then((data) => { if (data) setProfile(data); })
       .finally(() => setLoading(false));
+
+    loadRatings();
 
     fetch("/api/users/me")
       .then((r) => (r.ok ? r.json() : null))
@@ -139,13 +222,22 @@ export default function UserProfileClient({ username }) {
           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{t.memberSince} {memberDate}</div>
         </div>
         {me && me.username !== profile.username && (
-          <button
-            onClick={() => setShowContact(true)}
-            className="btn-ghost"
-            style={{ fontSize: "0.78rem", display: "inline-flex", alignItems: "center", gap: "0.35rem", marginLeft: "auto" }}
-          >
-            <Mail size={13} /> {t.contactSeller}
-          </button>
+          <div style={{ display: "flex", gap: "0.5rem", marginLeft: "auto" }}>
+            <button
+              onClick={() => setShowContact(true)}
+              className="btn-ghost"
+              style={{ fontSize: "0.78rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+            >
+              <Mail size={13} /> {t.contactSeller}
+            </button>
+            <button
+              onClick={() => setShowReport(true)}
+              className="btn-icon"
+              title={t.reportUser}
+            >
+              <Flag size={13} />
+            </button>
+          </div>
         )}
       </div>
       {profile.bio && <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: 560, marginBottom: "1.5rem" }}>{profile.bio}</p>}
@@ -158,7 +250,12 @@ export default function UserProfileClient({ username }) {
         ))}
       </div>
 
-      {tab === "participation" && <ParticipationPanel participation={profile.participation} t={t} />}
+      {tab === "participation" && (
+        <>
+          <ParticipationPanel participation={profile.participation} t={t} />
+          <RatingsBox username={profile.username} ratings={ratings} me={me} t={t} onRated={loadRatings} />
+        </>
+      )}
       {tab === "collection" && <MiniGrid cards={profile.owned} t={t} emptyLabel={t.noCardsOwned} />}
       {tab === "wanted" && <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />}
       {tab === "sales" && <SalesList listings={profile.selling} t={t} />}
@@ -168,6 +265,16 @@ export default function UserProfileClient({ username }) {
           title={t.contactSellerTitle(profile.username)}
           endpoint={`/api/users/${profile.username}/contact`}
           onClose={() => setShowContact(false)}
+        />
+      )}
+      {showReport && (
+        <ContactUserModal
+          title={t.reportUserTitle}
+          endpoint={`/api/users/${profile.username}/report`}
+          messageLabel={t.reportReasonLabel}
+          submitLabel={t.reportUser}
+          successLabel={t.reportSent}
+          onClose={() => setShowReport(false)}
         />
       )}
     </div>

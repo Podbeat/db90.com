@@ -55,11 +55,36 @@ export async function POST(request) {
       return NextResponse.json({ ok: true, status: null });
     }
 
+    const existing = await prisma.userCard.findUnique({
+      where: { userId_cardId: { userId: session.sub, cardId } },
+      select: { status: true },
+    });
+    const wasAlreadyOwned = existing?.status === "owned";
+
     const entry = await prisma.userCard.upsert({
       where: { userId_cardId: { userId: session.sub, cardId } },
       update: { status },
       create: { userId: session.sub, cardId, status },
     });
+
+    // Fil d'activité : on ne loggue une "collection complétée" qu'au moment précis où elle
+    // le devient (cette carte manquait juste avant), pas à chaque nouvelle visite d'une
+    // collection déjà complète.
+    if (status === "owned" && !wasAlreadyOwned) {
+      const card = await prisma.card.findUnique({ where: { id: cardId }, select: { collectionId: true } });
+      const collection = await prisma.collection.findUnique({ where: { id: card.collectionId }, select: { total: true } });
+      if (collection?.total) {
+        const ownedCount = await prisma.userCard.count({
+          where: { userId: session.sub, status: "owned", card: { collectionId: card.collectionId } },
+        });
+        if (ownedCount === collection.total) {
+          await prisma.activityEvent.create({
+            data: { type: "collection_completed", userId: session.sub, collectionId: card.collectionId },
+          });
+        }
+      }
+    }
+
     return NextResponse.json({ ok: true, status: entry.status });
   } catch (e) {
     console.error("Erreur POST /api/users/me/cards :", e);

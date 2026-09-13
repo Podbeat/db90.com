@@ -42,6 +42,7 @@ export default function CompteLayout({ children }) {
     { href: "/compte/collection", label: t.myCollectionTitle },
     { href: "/compte/recherchees", label: t.myWantedTitle },
     { href: "/compte/ventes", label: t.navMySales },
+    { href: "/compte/echanges", label: t.matchesTitle },
   ];
 
   return (

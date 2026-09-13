@@ -27,6 +27,7 @@ export default function AdminLayout({ children }) {
     { href: "/admin/utilisateurs", label: "Utilisateurs" },
     { href: "/admin/scans", label: "Scans proposés" },
     { href: "/admin/reports", label: "Signalements" },
+    { href: "/admin/signalements-membres", label: "Signalements membres" },
     { href: "/admin/import", label: "Import en masse" },
     { href: "/admin/compte", label: "Mon compte" },
   ];

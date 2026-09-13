@@ -7,6 +7,7 @@ import { Search, Shuffle } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import HoloCard from "@/components/HoloCard";
+import ActivityFeed from "@/components/ActivityFeed";
 import ShareIconButton from "@/components/ShareIconButton";
 import { playShuffleSound } from "@/lib/playShuffleSound";
 
@@ -273,6 +274,7 @@ export default function CataloguePage() {
               )}
             </div>
           )}
+          {!hasActiveFilters && <ActivityFeed />}
           {loading ? (
             <div className="empty-state">{t.loading}</div>
           ) : cards.length === 0 ? (

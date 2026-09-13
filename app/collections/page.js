@@ -49,6 +49,7 @@ export default function CollectionsPage() {
                   ) : (
                     <div className="collection-thumb-empty"><ImageOff size={22} /></div>
                   )}
+                  {loggedIn && <CollectionStatusButtons collectionId={col.id} />}
                 </div>
                 <div className="collection-tile-body">
                   <div className="display-font" style={{ fontSize: "0.95rem" }}>{col.nom}</div>
@@ -65,7 +66,6 @@ export default function CollectionsPage() {
                       <div className={`progress-fill ${pct >= 100 ? "progress-complete" : ""}`} style={{ width: `${pct}%` }} />
                     </div>
                   )}
-                  {loggedIn && <CollectionStatusButtons collectionId={col.id} />}
                 </div>
               </Link>
             );

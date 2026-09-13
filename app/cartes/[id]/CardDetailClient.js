@@ -49,9 +49,31 @@ export default function CardDetailClient({ id }) {
 
   return (
     <div className="container page">
-      <Link href={`/collections/${card.collectionId}`} style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-        {t.backToCollection(card.collection.nom)}
-      </Link>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+        <Link href={`/collections/${card.collectionId}`} style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+          {t.backToCollection(card.collection.nom)}
+        </Link>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          {card.prevCardId ? (
+            <Link href={`/cartes/${card.prevCardId}`} className="btn-ghost" style={{ fontSize: "0.78rem" }}>
+              {t.previousCard}
+            </Link>
+          ) : (
+            <span className="btn-ghost" style={{ fontSize: "0.78rem", opacity: 0.35, cursor: "default" }}>
+              {t.previousCard}
+            </span>
+          )}
+          {card.nextCardId ? (
+            <Link href={`/cartes/${card.nextCardId}`} className="btn-ghost" style={{ fontSize: "0.78rem" }}>
+              {t.nextCard}
+            </Link>
+          ) : (
+            <span className="btn-ghost" style={{ fontSize: "0.78rem", opacity: 0.35, cursor: "default" }}>
+              {t.nextCard}
+            </span>
+          )}
+        </div>
+      </div>
       <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginTop: "1.25rem" }}>
         <div style={{ width: 280, maxWidth: "100%" }}>
           <HoloCard style={{ width: "100%", aspectRatio: "240 / 336", border: "1px solid var(--line)" }}>

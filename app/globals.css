@@ -62,7 +62,7 @@ a { color: inherit; text-decoration: none; }
 }
 .top-bar-inner {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-  gap: 0.9rem; padding: 1rem 0;
+  gap: 0.9rem; padding: 1rem 0 0.5rem;
 }
 .top-bar .logo-img { height: 68px; width: auto; display: block; }
 .top-bar .brand-sub { color: var(--accent); font-weight: 500; font-size: 0.72rem; margin-top: 0.3rem; white-space: nowrap; }
@@ -100,12 +100,23 @@ a { color: inherit; text-decoration: none; }
 .nav-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 
 .nav-account {
-  display: flex; align-items: center; gap: 0.4rem;
-  font-size: 0.82rem; color: var(--text); text-decoration: none;
-  border: 1px solid var(--line); border-radius: 999px; padding: 0.25rem 0.7rem 0.25rem 0.25rem;
+  display: flex; align-items: center; gap: 0.45rem;
+  font-size: 0.82rem; color: var(--header-text); text-decoration: none;
+  border: 1px solid var(--header-line); border-radius: 999px; padding: 0.25rem 0.8rem 0.25rem 0.25rem;
+  transition: border-color 0.15s ease;
 }
-.nav-account:hover { border-color: var(--text-muted); }
+.nav-account:hover { border-color: var(--accent); }
 .nav-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+
+.nav-logout {
+  font-size: 0.76rem; color: var(--header-muted); background: none; border: none;
+  cursor: pointer; font-family: inherit; padding: 0.25rem 0.2rem;
+  text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+.nav-logout:hover { color: var(--header-text); text-decoration-color: var(--header-muted); }
+
+.top-bar-account-row { display: flex; justify-content: flex-end; padding-bottom: 0.9rem; }
 
 .lang-switch { display: flex; gap: 0.4rem; align-items: center; }
 .theme-toggle {
@@ -258,6 +269,35 @@ a { color: inherit; text-decoration: none; }
 }
 .card-status-icon.active { background: var(--accent); color: #1a1208; }
 .card-status-icon:hover { transform: scale(1.1); }
+
+.collection-status-icons {
+  position: absolute;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.4rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.collection-tile:hover .collection-status-icons,
+.collection-status-icons:has(.active) { opacity: 1; }
+.collection-status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(10, 15, 30, 0.55);
+  color: #fff;
+  backdrop-filter: blur(2px);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.collection-status-icon:hover { transform: scale(1.1); }
+.collection-status-icon.active { background: var(--accent); color: #1a1208; opacity: 1; }
 
 /* Effet holo/foil au survol (voir components/HoloCard.js) */
 .holo-card { position: relative; overflow: hidden; }

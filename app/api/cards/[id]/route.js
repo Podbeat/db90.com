@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { translateFreeText } from "@/lib/translate";
 import { cleanupCardFiles } from "@/lib/cardFileCleanup";
+import { naturalSortByNumero } from "@/lib/naturalSort";
 
 const cardInclude = {
   collection: true,
@@ -18,7 +19,19 @@ export async function GET(request, { params }) {
       include: cardInclude,
     });
     if (!card) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
-    return NextResponse.json(card);
+
+    // Carte précédente/suivante dans la même collection (triée naturellement par
+    // référence), pour permettre de naviguer sans repasser par la page de la collection.
+    const siblings = await prisma.card.findMany({
+      where: { collectionId: card.collectionId },
+      select: { id: true, numero: true },
+    });
+    siblings.sort(naturalSortByNumero);
+    const index = siblings.findIndex((c) => c.id === card.id);
+    const prevCardId = index > 0 ? siblings[index - 1].id : null;
+    const nextCardId = index >= 0 && index < siblings.length - 1 ? siblings[index + 1].id : null;
+
+    return NextResponse.json({ ...card, prevCardId, nextCardId });
   } catch (e) {
     console.error("Erreur GET /api/cards/[id] :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });

@@ -3,30 +3,47 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Upload } from "lucide-react";
+import { Upload, ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 
-function MiniPreview({ cards }) {
-  const shown = cards.slice(0, 8);
-  const rest = cards.length - shown.length;
-  if (cards.length === 0) return null;
+// Une ligne par collection avec une fraction (ex. 22/25) plutôt que les vignettes de
+// chaque carte — reste lisible même avec plusieurs centaines de cartes suivies.
+function CollectionProgressList({ items, emptyLabel }) {
+  if (items.length === 0) {
+    return <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>{emptyLabel}</div>;
+  }
   return (
-    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
-      {shown.map((c) => (
-        <Link key={c.id} href={`/cartes/${c.id}`} title={`${c.personnagePrincipal?.name || c.numero} — n°${c.numero}`}>
-          <img
-            src={c.image || ""}
-            alt={c.personnagePrincipal?.name || ""}
-            style={{ width: 32, height: 45, objectFit: "cover", background: "var(--surface-raised)", border: "1px solid var(--line)" }}
-          />
-        </Link>
-      ))}
-      {rest > 0 && (
-        <div style={{ width: 32, height: 45, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", color: "var(--text-muted)", border: "1px solid var(--line)" }}>
-          +{rest}
-        </div>
-      )}
+    <div style={{ marginTop: "0.6rem" }}>
+      {items.map((it) => {
+        const totalKnown = it.total != null;
+        // Total inconnu (collection encore en cours) : on affiche quand même une barre —
+        // en gris, remplie par rapport à ce qui est déjà catalogué — plutôt que de ne rien
+        // afficher, pour éviter que les lignes ne sautent selon qu'un total est défini ou non.
+        const denominator = totalKnown ? it.total : it.catalogued;
+        const pct = denominator ? Math.min(100, Math.round((it.count / denominator) * 100)) : 0;
+        const complete = totalKnown && it.count >= it.total;
+        return (
+          <Link
+            key={it.collectionId}
+            href={`/collections/${it.collectionId}`}
+            style={{ display: "block", padding: "0.5rem 0", borderBottom: "1px solid var(--line)" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
+              <span>{it.nom}</span>
+              <span style={{ color: totalKnown ? (complete ? "#4caf6d" : "var(--accent)") : "var(--text-muted)", fontWeight: 600 }}>
+                {it.count}/{totalKnown ? it.total : "x"}
+              </span>
+            </div>
+            <div className="progress-track">
+              <div
+                className={`progress-fill ${complete ? "progress-complete" : ""}`}
+                style={{ width: `${pct}%`, background: !totalKnown ? "var(--text-muted)" : complete ? undefined : "var(--accent)" }}
+              />
+            </div>
+          </Link>
+        );
+      })}
     </div>
   );
 }
@@ -39,14 +56,16 @@ export default function AccountPage() {
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notAuthed, setNotAuthed] = useState(false);
-  const [owned, setOwned] = useState([]);
-  const [wanted, setWanted] = useState([]);
+  const [ownedByCollection, setOwnedByCollection] = useState([]);
+  const [wantedByCollection, setWantedByCollection] = useState([]);
+  const [participation, setParticipation] = useState(null);
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState(null);
@@ -66,9 +85,14 @@ export default function AccountPage() {
       })
       .finally(() => setLoading(false));
 
-    fetch("/api/users/me/cards")
+    fetch("/api/users/me/collections-summary")
       .then((r) => (r.ok ? r.json() : { owned: [], wanted: [] }))
-      .then((d) => { setOwned(d.owned || []); setWanted(d.wanted || []); })
+      .then((d) => { setOwnedByCollection(d.owned || []); setWantedByCollection(d.wanted || []); })
+      .catch(() => {});
+
+    fetch("/api/users/me/participation")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setParticipation)
       .catch(() => {});
   }, []);
 
@@ -160,7 +184,7 @@ export default function AccountPage() {
       {message && <div className={`toast ${message.type}`}>{message.text}</div>}
 
       <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
-        <form onSubmit={handleSaveProfile} className="form-panel" style={{ flex: 1, minWidth: 280 }}>
+        <form onSubmit={handleSaveProfile} className="form-panel" style={{ flex: 2, minWidth: 280 }}>
           <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.8rem" }}>{t.accountSettings}</div>
           <div className="field">
             <span className="field-label">{t.usernameLabel}</span>
@@ -181,58 +205,74 @@ export default function AccountPage() {
             <textarea rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={280} />
           </div>
           <button className="btn-primary" type="submit">{t.saveChanges}</button>
+
+          <button
+            type="button"
+            onClick={() => setShowPasswordForm((v) => !v)}
+            className="btn-ghost"
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", marginTop: "1rem" }}
+          >
+            {showPasswordForm ? <ChevronUp size={13} /> : <ChevronDown size={13} />} {t.changePasswordToggle}
+          </button>
+          {showPasswordForm && (
+            <div style={{ marginTop: "0.7rem", paddingTop: "0.7rem", borderTop: "1px solid var(--line)" }}>
+              <div className="field">
+                <span className="field-label">{t.currentPasswordLabel}</span>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+              </div>
+              <div className="field">
+                <span className="field-label">{t.newPasswordLabel}</span>
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} required />
+              </div>
+              {passwordMessage && <div className={`toast ${passwordMessage.type}`}>{passwordMessage.text}</div>}
+              <button className="btn-ghost" type="button" onClick={handleChangePassword}>{t.saveChanges}</button>
+            </div>
+          )}
         </form>
 
-        <form onSubmit={handleChangePassword} className="form-panel" style={{ flex: 1, minWidth: 280 }}>
-          <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.8rem" }}>{t.changePassword}</div>
-          <div className="field">
-            <span className="field-label">{t.currentPasswordLabel}</span>
-            <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
+        {participation && (
+          <div className="filter-panel" style={{ flex: 1, minWidth: 240 }}>
+            <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.6rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <Trophy size={16} style={{ color: "var(--gold)" }} /> {t.myParticipationTitle}
+            </div>
+            <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--gold)", marginBottom: "0.6rem" }}>
+              {t.participationPoints(participation.totalPoints)}
+            </div>
+            <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", lineHeight: 1.9 }}>
+              <div>{t.participationOwnedLine(participation.ownedCount, participation.ownedPoints)}</div>
+              <div>{t.participationCompletedLine(participation.completedCollections, participation.completionBonus)}</div>
+              <div>{t.participationContribLine(participation.approvedSubmissions, participation.contributionPoints)}</div>
+            </div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.6rem", fontStyle: "italic" }}>
+              {t.participationNote}
+            </div>
           </div>
-          <div className="field">
-            <span className="field-label">{t.newPasswordLabel}</span>
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={8} required />
-          </div>
-          {passwordMessage && <div className={`toast ${passwordMessage.type}`}>{passwordMessage.text}</div>}
-          <button className="btn-primary" type="submit">{t.saveChanges}</button>
-        </form>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
         <div className="filter-panel" style={{ flex: 1, minWidth: 280 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-            <div className="display-font" style={{ fontSize: "0.95rem" }}>
-              {t.myCollectionTitle} · {t.cardsCount(owned.length)}
-            </div>
-            {owned.length > 0 && (
+            <div className="display-font" style={{ fontSize: "0.95rem" }}>{t.myCollectionTitle}</div>
+            {ownedByCollection.length > 0 && (
               <a href="/api/users/me/owned/pdf" className="btn-ghost" style={{ fontSize: "0.72rem" }}>
                 {t.downloadOwnedPdf}
               </a>
             )}
           </div>
-          {owned.length === 0 ? (
-            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>{t.noCardsOwned}</div>
-          ) : (
-            <MiniPreview cards={owned} />
-          )}
+          <CollectionProgressList items={ownedByCollection} emptyLabel={t.noCardsOwned} />
         </div>
 
         <div className="filter-panel" style={{ flex: 1, minWidth: 280 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-            <div className="display-font" style={{ fontSize: "0.95rem" }}>
-              {t.myWantedTitle} · {t.cardsCount(wanted.length)}
-            </div>
-            {wanted.length > 0 && (
+            <div className="display-font" style={{ fontSize: "0.95rem" }}>{t.myWantedTitle}</div>
+            {wantedByCollection.length > 0 && (
               <a href="/api/users/me/wanted/pdf" className="btn-ghost" style={{ fontSize: "0.72rem" }}>
                 {t.downloadWantedPdf}
               </a>
             )}
           </div>
-          {wanted.length === 0 ? (
-            <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>{t.noCardsWanted}</div>
-          ) : (
-            <MiniPreview cards={wanted} />
-          )}
+          <CollectionProgressList items={wantedByCollection} emptyLabel={t.noCardsWanted} />
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 // Fenêtre de contact réutilisable : utilisée pour contacter un vendeur depuis une fiche
 // carte (avec le contexte de la carte dans le corps de la requête) et pour contacter
 // n'importe quel membre depuis son profil public (endpoint générique, sans contexte).
-export default function ContactUserModal({ title, endpoint, extraBody, onClose }) {
+export default function ContactUserModal({ title, endpoint, extraBody, onClose, messageLabel, submitLabel, successLabel }) {
   const { t } = useLanguage();
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
@@ -40,16 +40,16 @@ export default function ContactUserModal({ title, endpoint, extraBody, onClose }
           <button className="btn-icon" onClick={onClose}><X size={14} /></button>
         </div>
         {sent ? (
-          <div className="toast success">{t.messageSent}</div>
+          <div className="toast success">{successLabel || t.messageSent}</div>
         ) : (
           <>
             <div className="field">
-              <span className="field-label">{t.messageLabel}</span>
+              <span className="field-label">{messageLabel || t.messageLabel}</span>
               <textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={3000} />
             </div>
             {error && <div className="toast error">{error}</div>}
             <button className="btn-primary" onClick={handleSend} disabled={sending || !message.trim()}>
-              {sending ? "…" : t.sendMessage}
+              {sending ? "…" : submitLabel || t.sendMessage}
             </button>
           </>
         )}

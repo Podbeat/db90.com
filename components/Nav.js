@@ -52,6 +52,7 @@ export default function Nav() {
             <div className="nav-links">
               <Link href="/" className={`nav-btn ${isActive("/") ? "active" : ""}`}>{t.navCatalogue}</Link>
               <Link href="/collections" className={`nav-btn ${isActive("/collections") ? "active" : ""}`}>{t.navCollections}</Link>
+              <Link href="/classement" className={`nav-btn ${isActive("/classement") ? "active" : ""}`}>{t.leaderboardTitle}</Link>
               <Link href="/informations" className={`nav-btn ${isActive("/informations") ? "active" : ""}`}>{t.navInfo}</Link>
             </div>
             <button

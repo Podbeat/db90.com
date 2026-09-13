@@ -27,6 +27,7 @@ model Collection {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   cards           Card[]
+  activityEvents  ActivityEvent[]
 }
 
 model Card {
@@ -53,6 +54,7 @@ model Card {
   listings        CardListing[]
   notifications   Notification[]
   priceHistory    PriceHistory[]
+  activityEvents  ActivityEvent[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -101,6 +103,10 @@ model User {
   submissions  CardSubmission[]
   listings     CardListing[]
   notifications Notification[]
+  ratingsGiven    UserRating[] @relation("RatingsGiven")
+  ratingsReceived UserRating[] @relation("RatingsReceived")
+  reportsSent     UserReport[] @relation("UserReportsSent")
+  reportsReceived UserReport[] @relation("UserReportsReceived")
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -183,6 +189,56 @@ model PriceHistory {
   createdAt  DateTime @default(now())
 
   @@index([cardId])
+}
+
+// Avis d'un membre sur un autre après un contact/échange : simple pouce haut/bas avec un
+// commentaire optionnel. Un seul avis par (auteur, cible) — le refaire remplace le
+// précédent plutôt que d'en cumuler plusieurs pour la même relation.
+model UserRating {
+  id        String   @id @default(cuid())
+  raterId   String
+  rater     User     @relation("RatingsGiven", fields: [raterId], references: [id], onDelete: Cascade)
+  targetId  String
+  target    User     @relation("RatingsReceived", fields: [targetId], references: [id], onDelete: Cascade)
+  positive  Boolean
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([raterId, targetId])
+  @@index([targetId])
+}
+
+// Signalement d'un membre (comportement, arnaque suspectée...) — distinct du signalement
+// d'une carte (voir Report), traité dans son propre onglet admin.
+model UserReport {
+  id             String   @id @default(cuid())
+  reportedUserId String
+  reportedUser   User     @relation("UserReportsReceived", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  reporterUserId String?
+  reporterUser   User?    @relation("UserReportsSent", fields: [reporterUserId], references: [id], onDelete: SetNull)
+  message        String
+  status         String   @default("nouveau") // nouveau | traite | ignore
+  createdAt      DateTime @default(now())
+
+  @@index([reportedUserId])
+  @@index([status])
+}
+
+// Événement affiché dans le fil d'activité public de la page d'accueil : un scan validé,
+// une collection complétée, une nouvelle mise en vente. Alimenté au moment de l'action
+// (voir les routes correspondantes), pas recalculé après coup.
+model ActivityEvent {
+  id           String      @id @default(cuid())
+  type         String // "scan_approved" | "collection_completed" | "card_for_sale"
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cardId       String?
+  card         Card?       @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+
+  @@index([createdAt])
 }
 
 // Scan proposé par un utilisateur pour une carte (typiquement une carte "recherchée", sans

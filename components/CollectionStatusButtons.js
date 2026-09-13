@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Search } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
@@ -11,9 +11,16 @@ import { useLanguage } from "@/components/LanguageProvider";
 //
 // Le changement de couleur est immédiat au clic (avant même la réponse du serveur) pour
 // que la prise en compte soit visible tout de suite, sans attendre l'actualisation.
-export default function CollectionStatusButtons({ collectionId }) {
+export default function CollectionStatusButtons({ collectionId, initialStatus = null }) {
   const { t } = useLanguage();
-  const [applied, setApplied] = useState(null);
+  const [applied, setApplied] = useState(initialStatus);
+
+  // initialStatus arrive d'un second appel réseau (résumé des cartes de l'utilisateur),
+  // qui se termine après le premier rendu : on synchronise dès qu'il change pour que la
+  // pré-validation (collection déjà complète/entièrement recherchée) s'affiche bien.
+  useEffect(() => {
+    setApplied(initialStatus);
+  }, [initialStatus]);
 
   async function setStatus(e, status) {
     e.preventDefault();

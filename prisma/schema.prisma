@@ -50,6 +50,7 @@ model Card {
   reports         Report[]
   userCards       UserCard[]
   submissions     CardSubmission[]
+  listings        CardListing[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -96,6 +97,7 @@ model User {
   createdAt    DateTime   @default(now())
   cards        UserCard[]
   submissions  CardSubmission[]
+  listings     CardListing[]
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -125,6 +127,28 @@ model BannedEmail {
   email     String   @unique
   reason    String?
   createdAt DateTime @default(now())
+}
+
+// Annonce achat/vente d'un membre pour une carte précise : soit il la recherche à
+// l'achat ("buyer"), soit il en propose une à la vente ("seller", avec état et prix). Une
+// seule annonce par (carte, utilisateur) — en changer remplace la précédente plutôt que
+// d'en cumuler plusieurs, comme pour UserCard.
+model CardListing {
+  id        String   @id @default(cuid())
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // "buyer" | "seller"
+  condition String? // uniquement pour "seller" : Satisfaisant | Bon etat | Tres bon etat | Neuve
+  price     Float? // uniquement pour "seller"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cardId, userId])
+  @@index([cardId])
+  @@index([userId])
+  @@index([type])
 }
 
 // Scan proposé par un utilisateur pour une carte (typiquement une carte "recherchée", sans

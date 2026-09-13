@@ -13,7 +13,6 @@ export default function CardStatusToggle({ cardId }) {
   const { t } = useLanguage();
   const [status, setStatus] = useState(null);
   const [loggedIn, setLoggedIn] = useState(null);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     fetch(`/api/users/me/cards?cardId=${cardId}`)
@@ -27,18 +26,13 @@ export default function CardStatusToggle({ cardId }) {
   }, [cardId]);
 
   async function setCardStatus(next) {
-    setBusy(true);
     const newStatus = status === next ? null : next;
-    try {
-      await fetch("/api/users/me/cards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId, status: newStatus }),
-      });
-      setStatus(newStatus);
-    } finally {
-      setBusy(false);
-    }
+    setStatus(newStatus); // mise à jour immédiate : l'icône change de couleur sans attendre le serveur
+    await fetch("/api/users/me/cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cardId, status: newStatus }),
+    });
   }
 
   if (loggedIn === null) return null;
@@ -55,7 +49,6 @@ export default function CardStatusToggle({ cardId }) {
     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
       <button
         type="button"
-        disabled={busy}
         onClick={() => setCardStatus("owned")}
         className={status === "owned" ? "btn-primary" : "btn-ghost"}
         style={{ fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
@@ -64,7 +57,6 @@ export default function CardStatusToggle({ cardId }) {
       </button>
       <button
         type="button"
-        disabled={busy}
         onClick={() => setCardStatus("wanted")}
         className={status === "wanted" ? "btn-primary" : "btn-ghost"}
         style={{ fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}

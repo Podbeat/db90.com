@@ -8,6 +8,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { useTheme } from "@/components/ThemeProvider";
 import { LANGUAGES } from "@/lib/translations";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function Nav() {
   const pathname = usePathname();
@@ -80,6 +81,7 @@ export default function Nav() {
           <div className="top-bar-account-row">
             {me ? (
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <NotificationBell />
                 <Link href="/compte" className="nav-account" title={t.myAccount}>
                   {me.avatar ? (
                     <img src={me.avatar} alt="" className="nav-avatar" />

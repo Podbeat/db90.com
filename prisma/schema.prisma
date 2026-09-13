@@ -51,6 +51,7 @@ model Card {
   userCards       UserCard[]
   submissions     CardSubmission[]
   listings        CardListing[]
+  notifications   Notification[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -98,6 +99,7 @@ model User {
   cards        UserCard[]
   submissions  CardSubmission[]
   listings     CardListing[]
+  notifications Notification[]
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -149,6 +151,23 @@ model CardListing {
   @@index([cardId])
   @@index([userId])
   @@index([type])
+}
+
+// Notification en site pour un utilisateur — pour l'instant un seul type : une carte qu'il
+// recherche vient d'être mise en vente par quelqu'un d'autre (voir POST .../listings).
+// Pensé pour accueillir d'autres types plus tard sans changer la structure.
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // "card_for_sale"
+  cardId    String?
+  card      Card?    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
 }
 
 // Scan proposé par un utilisateur pour une carte (typiquement une carte "recherchée", sans

@@ -6,13 +6,13 @@ import { Upload, ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import { computeBadges } from "@/lib/badges";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 export default function AccountProfilePage() {
   const { t } = useLanguage();
   const fileRef = useRef(null);
+  const { me, refetch } = useCurrentUser();
 
-  const [me, setMe] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [participation, setParticipation] = useState(null);
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
@@ -26,17 +26,13 @@ export default function AccountProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState(null);
 
   useEffect(() => {
-    fetch("/api/users/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!data) return;
-        setMe(data);
-        setBio(data.bio || "");
-        setEmail(data.email || "");
-        setUsername(data.username || "");
-      })
-      .finally(() => setLoading(false));
+    if (!me) return;
+    setBio(me.bio || "");
+    setEmail(me.email || "");
+    setUsername(me.username || "");
+  }, [me]);
 
+  useEffect(() => {
     fetch("/api/users/me/participation")
       .then((r) => (r.ok ? r.json() : null))
       .then(setParticipation)
@@ -52,7 +48,7 @@ export default function AccountProfilePage() {
       fd.append("file", file);
       const res = await fetch("/api/users/me/avatar", { method: "POST", body: fd });
       const data = await res.json();
-      if (res.ok) setMe((prev) => ({ ...prev, avatar: data.avatar }));
+      if (res.ok) await refetch();
       else setMessage({ type: "error", text: data.error });
     } finally {
       setUploadingAvatar(false);
@@ -68,7 +64,7 @@ export default function AccountProfilePage() {
     });
     const data = await res.json();
     if (res.ok) {
-      setMe((prev) => ({ ...prev, username: data.username, email: data.email, bio: data.bio }));
+      await refetch();
       setMessage({ type: "success", text: "Profil mis à jour." });
     } else {
       setMessage({ type: "error", text: data.error });
@@ -93,7 +89,6 @@ export default function AccountProfilePage() {
     }
   }
 
-  if (loading) return <div className="empty-state">{t.loading}</div>;
   if (!me) return null;
 
   return (

@@ -4,10 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 export default function LoginPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const { refetch } = useCurrentUser();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,8 +30,8 @@ export default function LoginPage() {
         setError(data.error || "Connexion impossible.");
         return;
       }
+      await refetch();
       router.push("/compte");
-      router.refresh();
     } catch (e) {
       setError("Erreur réseau, réessayez.");
     } finally {

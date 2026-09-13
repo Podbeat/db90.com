@@ -4,10 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 export default function SignupPage() {
   const { t } = useLanguage();
   const router = useRouter();
+  const { refetch } = useCurrentUser();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,8 +38,8 @@ export default function SignupPage() {
         setError(data.error || "Inscription impossible.");
         return;
       }
+      await refetch();
       router.push("/compte");
-      router.refresh();
     } catch (e) {
       setError("Erreur réseau, réessayez.");
     } finally {

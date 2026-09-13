@@ -9,6 +9,7 @@ import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import ContactUserModal from "@/components/ContactUserModal";
 import { computeBadges } from "@/lib/badges";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 function MiniGrid({ cards, t, emptyLabel }) {
   if (cards.length === 0) {
@@ -164,11 +165,11 @@ function ParticipationPanel({ participation, t }) {
 
 export default function UserProfileClient({ username }) {
   const { t } = useLanguage();
+  const { me } = useCurrentUser();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState("participation");
-  const [me, setMe] = useState(null);
   const [showContact, setShowContact] = useState(false);
   const [ratings, setRatings] = useState(null);
   const [showReport, setShowReport] = useState(false);
@@ -190,11 +191,6 @@ export default function UserProfileClient({ username }) {
       .finally(() => setLoading(false));
 
     loadRatings();
-
-    fetch("/api/users/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setMe)
-      .catch(() => {});
   }, [username]);
 
   if (loading) return <div className="container page"><div className="empty-state">Chargement…</div></div>;

@@ -7,12 +7,13 @@ import { ImageOff } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getFlagSvg } from "@/lib/countryFlags";
 import CollectionStatusButtons from "@/components/CollectionStatusButtons";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 export default function CollectionsPage() {
   const { t } = useLanguage();
+  const { loggedIn } = useCurrentUser();
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loggedIn, setLoggedIn] = useState(false);
   const [ownedByCollection, setOwnedByCollection] = useState({});
   const [wantedByCollection, setWantedByCollection] = useState({});
 
@@ -21,9 +22,10 @@ export default function CollectionsPage() {
       .then((r) => r.json())
       .then(setCollections)
       .finally(() => setLoading(false));
-    fetch("/api/users/me")
-      .then((r) => setLoggedIn(r.ok))
-      .catch(() => setLoggedIn(false));
+  }, []);
+
+  useEffect(() => {
+    if (!loggedIn) return;
     fetch("/api/users/me/collections-summary")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -32,7 +34,7 @@ export default function CollectionsPage() {
         setWantedByCollection(Object.fromEntries(d.wanted.map((i) => [i.collectionId, i.count])));
       })
       .catch(() => {});
-  }, []);
+  }, [loggedIn]);
 
   return (
     <div className="container page">

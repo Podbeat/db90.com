@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 // Layout partagé de tout l'espace /compte : vérifie la connexion une seule fois (plutôt
 // que sur chaque page), et affiche la navigation par onglets entre les différentes
@@ -12,28 +13,20 @@ export default function CompteLayout({ children }) {
   const { t } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
-  const [checked, setChecked] = useState(false);
+  const { me, loading } = useCurrentUser();
 
   // Les pages de connexion/inscription vivent sous /compte mais ne doivent ni exiger
   // d'être déjà connecté, ni afficher la navigation par onglets réservée à l'espace membre.
   const isAuthPage = pathname === "/compte/connexion" || pathname === "/compte/inscription";
 
   useEffect(() => {
-    if (isAuthPage) return;
-    fetch("/api/users/me")
-      .then((r) => {
-        if (!r.ok) {
-          router.push("/compte/connexion");
-          return;
-        }
-        setChecked(true);
-      })
-      .catch(() => router.push("/compte/connexion"));
-  }, [isAuthPage, router]);
+    if (isAuthPage || loading) return;
+    if (!me) router.push("/compte/connexion");
+  }, [isAuthPage, loading, me, router]);
 
   if (isAuthPage) return children;
 
-  if (!checked) {
+  if (loading || !me) {
     return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   }
 

@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import Analytics from "@/components/Analytics";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { CurrentUserProvider } from "@/components/CurrentUserProvider";
 
 export const metadata = {
   title: "DB Non-Off 90's — Archive de référence des cartes Dragon Ball non-officielles",
@@ -17,12 +18,14 @@ export default function RootLayout({ children }) {
       <body style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
         <ThemeProvider>
           <LanguageProvider>
-            <Analytics />
-            <Nav />
-            <div className="glossy-divider" />
-            <div style={{ flex: 1 }}>{children}</div>
-            <div className="glossy-divider" />
-            <Footer />
+            <CurrentUserProvider>
+              <Analytics />
+              <Nav />
+              <div className="glossy-divider" />
+              <div style={{ flex: 1 }}>{children}</div>
+              <div className="glossy-divider" />
+              <Footer />
+            </CurrentUserProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

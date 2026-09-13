@@ -28,7 +28,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 60000); // rafraîchi toutes les minutes
+    const interval = setInterval(load, 120000); // rafraîchi toutes les 2 minutes
     return () => clearInterval(interval);
   }, []);
 

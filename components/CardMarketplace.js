@@ -6,7 +6,6 @@ import { Tag, ShoppingCart, Mail, X, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
-import ContactUserModal from "@/components/ContactUserModal";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 const CONDITIONS = ["Satisfaisant", "Bon état", "Très bon état", "Neuve"];
@@ -20,8 +19,8 @@ export default function CardMarketplace({ cardId }) {
   const [myListing, setMyListing] = useState(null);
   const [condition, setCondition] = useState(CONDITIONS[0]);
   const [price, setPrice] = useState("");
-  const [contactTarget, setContactTarget] = useState(null);
   const [cote, setCote] = useState(null);
+  const [listingError, setListingError] = useState("");
 
   function load() {
     fetch(`/api/cards/${cardId}/listings`)
@@ -50,11 +49,17 @@ export default function CardMarketplace({ cardId }) {
   }, [me, sellers, buyers]);
 
   async function setListing(type) {
-    await fetch(`/api/cards/${cardId}/listings`, {
+    setListingError("");
+    const res = await fetch(`/api/cards/${cardId}/listings`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, condition, price }),
     });
+    if (!res.ok) {
+      const data = await res.json();
+      setListingError(data.error || "Échec de l'enregistrement.");
+      return;
+    }
     load();
   }
 
@@ -122,6 +127,7 @@ export default function CardMarketplace({ cardId }) {
               </div>
             </div>
           )}
+          {listingError && <div className="toast error" style={{ marginTop: "0.5rem", fontSize: "0.78rem" }}>{listingError}</div>}
         </div>
       )}
 
@@ -139,9 +145,9 @@ export default function CardMarketplace({ cardId }) {
                   <span style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{s.condition}</span>
                   {s.price != null && <span style={{ fontSize: "0.8rem", color: "var(--gold)", fontWeight: 600 }}>{s.price} €</span>}
                   {me && me.id !== s.userId && (
-                    <button className="btn-icon" onClick={() => setContactTarget(s.user)} title={t.contactSeller}>
+                    <Link href={`/compte/messages/${s.user.username}`} className="btn-icon" title={t.contactSeller}>
                       <Mail size={13} />
-                    </button>
+                    </Link>
                   )}
                 </div>
               ))
@@ -201,15 +207,6 @@ export default function CardMarketplace({ cardId }) {
           )}
         </div>
       </div>
-
-      {contactTarget && (
-        <ContactUserModal
-          title={t.contactSellerTitle(contactTarget.username)}
-          endpoint={`/api/cards/${cardId}/contact-seller`}
-          extraBody={{ sellerUserId: contactTarget.id }}
-          onClose={() => setContactTarget(null)}
-        />
-      )}
     </div>
   );
 }

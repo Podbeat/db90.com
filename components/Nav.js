@@ -10,6 +10,7 @@ import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { LANGUAGES } from "@/lib/translations";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import NotificationBell from "@/components/NotificationBell";
+import MessagesLink from "@/components/MessagesLink";
 import MemberSearch from "@/components/MemberSearch";
 
 export default function Nav() {
@@ -78,6 +79,7 @@ export default function Nav() {
             {me ? (
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                 <NotificationBell />
+                <MessagesLink />
                 <Link href="/compte" className="nav-account" title={t.myAccount}>
                   {me.avatar ? (
                     <img src={me.avatar} alt="" className="nav-avatar" />

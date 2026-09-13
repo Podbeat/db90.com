@@ -8,6 +8,32 @@ import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import { computeBadges } from "@/lib/badges";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 
+function EmailVerificationBanner({ t }) {
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  async function handleResend() {
+    setSending(true);
+    try {
+      await fetch("/api/users/resend-verification", { method: "POST" });
+      setSent(true);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="toast" style={{ background: "var(--surface-raised)", border: "1px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.8rem", flexWrap: "wrap" }}>
+      <span style={{ fontSize: "0.8rem" }}>{sent ? t.verificationEmailResent : t.emailNotVerified}</span>
+      {!sent && (
+        <button className="btn-ghost" onClick={handleResend} disabled={sending} style={{ fontSize: "0.75rem" }}>
+          {sending ? "…" : t.resendVerificationEmail}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function AccountProfilePage() {
   const { t } = useLanguage();
   const fileRef = useRef(null);
@@ -120,6 +146,7 @@ export default function AccountProfilePage() {
       </div>
 
       {message && <div className={`toast ${message.type}`}>{message.text}</div>}
+      {me.emailVerified === false && <EmailVerificationBanner t={t} />}
 
       <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
         <form onSubmit={handleSaveProfile} className="form-panel" style={{ flex: 2, minWidth: 280 }}>

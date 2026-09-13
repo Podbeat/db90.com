@@ -51,6 +51,9 @@ export default function LoginPage() {
           <span className="field-label">{t.passwordLabel}</span>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </div>
+        <div style={{ textAlign: "right", marginBottom: "0.9rem" }}>
+          <Link href="/compte/mot-de-passe-oublie" style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>{t.forgotPasswordLink}</Link>
+        </div>
         {error && <div className="toast error">{error}</div>}
         <button className="btn-primary" type="submit" disabled={loading} style={{ width: "100%" }}>
           {loading ? "…" : t.loginCta}

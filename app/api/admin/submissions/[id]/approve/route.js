@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { checkAndAwardBadges } from "@/lib/badgeNotifications";
 
 // Valider une proposition applique son image sur la carte concernée (recto uniquement —
 // le scan proposé remplace le visuel "recherchée"), crédite le contributeur, et marque la
@@ -35,6 +36,8 @@ export async function POST(request, { params }) {
     await prisma.activityEvent.create({
       data: { type: "scan_approved", userId: submission.userId, cardId: submission.cardId },
     });
+
+    await checkAndAwardBadges(submission.userId);
 
     return NextResponse.json({ ok: true });
   } catch (e) {

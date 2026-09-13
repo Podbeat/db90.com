@@ -17,7 +17,14 @@ export default function CompteLayout({ children }) {
 
   // Les pages de connexion/inscription vivent sous /compte mais ne doivent ni exiger
   // d'être déjà connecté, ni afficher la navigation par onglets réservée à l'espace membre.
-  const isAuthPage = pathname === "/compte/connexion" || pathname === "/compte/inscription";
+  const AUTH_PAGES = [
+    "/compte/connexion",
+    "/compte/inscription",
+    "/compte/mot-de-passe-oublie",
+    "/compte/reinitialiser-mot-de-passe",
+    "/compte/verifier-email",
+  ];
+  const isAuthPage = AUTH_PAGES.includes(pathname);
 
   useEffect(() => {
     if (isAuthPage || loading) return;
@@ -32,6 +39,7 @@ export default function CompteLayout({ children }) {
 
   const tabs = [
     { href: "/compte", label: t.navMyProfile },
+    { href: "/compte/messages", label: t.messagesTitle },
     { href: "/compte/collection", label: t.myCollectionTitle },
     { href: "/compte/recherchees", label: t.myWantedTitle },
     { href: "/compte/ventes", label: t.navMySales },
@@ -42,7 +50,11 @@ export default function CompteLayout({ children }) {
     <div className="container page">
       <div className="nav-links" style={{ marginBottom: "1.5rem", paddingBottom: "0.6rem", borderBottom: "1px solid var(--line)" }}>
         {tabs.map((tab) => (
-          <Link key={tab.href} href={tab.href} className={`nav-btn ${pathname === tab.href ? "active" : ""}`}>
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`nav-btn ${(tab.href === "/compte" ? pathname === tab.href : pathname.startsWith(tab.href)) ? "active" : ""}`}
+          >
             {tab.label}
           </Link>
         ))}

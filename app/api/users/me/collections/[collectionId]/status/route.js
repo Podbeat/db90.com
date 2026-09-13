@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
+import { checkAndAwardBadges } from "@/lib/badgeNotifications";
 
 // Applique un statut ("owned" ou "wanted") à TOUTES les cartes d'une collection d'un coup
 // pour l'utilisateur connecté, pour éviter d'avoir à le faire carte par carte. status: null
@@ -45,6 +46,7 @@ export async function POST(request, { params }) {
           data: { type: "collection_completed", userId: session.sub, collectionId },
         });
       }
+      await checkAndAwardBadges(session.sub);
     }
 
     return NextResponse.json({ ok: true, count: cardIds.length, status });

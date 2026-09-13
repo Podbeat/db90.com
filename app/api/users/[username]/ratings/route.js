@@ -40,11 +40,40 @@ export async function POST(request, { params }) {
     const { positive, comment } = await request.json();
     if (typeof positive !== "boolean") return NextResponse.json({ error: "Avis invalide." }, { status: 400 });
 
+    // Empêche les faux avis (positifs pour se mettre en valeur, négatifs pour nuire) en
+    // exigeant qu'il y ait eu au moins un message échangé avec ce membre au préalable.
+    const priorContact = await prisma.message.findFirst({
+      where: {
+        OR: [
+          { senderId: session.sub, recipientId: target.id },
+          { senderId: target.id, recipientId: session.sub },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!priorContact) {
+      return NextResponse.json(
+        { error: "Vous devez avoir échangé au moins un message avec ce membre avant de pouvoir le noter." },
+        { status: 403 }
+      );
+    }
+
+    const isNewRating = !(await prisma.userRating.findUnique({
+      where: { raterId_targetId: { raterId: session.sub, targetId: target.id } },
+      select: { id: true },
+    }));
+
     const rating = await prisma.userRating.upsert({
       where: { raterId_targetId: { raterId: session.sub, targetId: target.id } },
       update: { positive, comment: comment || null },
       create: { raterId: session.sub, targetId: target.id, positive, comment: comment || null },
     });
+
+    if (isNewRating) {
+      await prisma.notification.create({
+        data: { userId: target.id, type: "rating_received" },
+      });
+    }
 
     return NextResponse.json(rating);
   } catch (e) {

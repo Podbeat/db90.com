@@ -52,7 +52,17 @@ export default function NotificationBell() {
     if (n.type === "card_for_sale" && n.card) {
       return t.notifCardForSale(n.card.personnagePrincipal?.name || n.card.numero);
     }
+    if (n.type === "trade_match") return t.notifTradeMatch;
+    if (n.type === "rating_received") return t.notifRatingReceived;
+    if (n.type === "badge_earned") return t.notifBadgeEarned;
     return "";
+  }
+
+  function notificationHref(n) {
+    if (n.card) return `/cartes/${n.card.id}`;
+    if (n.type === "trade_match") return "/compte/echanges";
+    if (n.type === "rating_received" || n.type === "badge_earned") return "/compte";
+    return "#";
   }
 
   return (
@@ -76,7 +86,7 @@ export default function NotificationBell() {
             notifications.map((n) => (
               <Link
                 key={n.id}
-                href={n.card ? `/cartes/${n.card.id}` : "#"}
+                href={notificationHref(n)}
                 className="notif-item"
                 onClick={() => setOpen(false)}
               >

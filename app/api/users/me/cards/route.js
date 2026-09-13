@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { naturalSortByNumero } from "@/lib/naturalSort";
+import { checkAndAwardBadges } from "@/lib/badgeNotifications";
 
 // Liste les cartes suivies par l'utilisateur connecté, groupées par statut, avec les infos
 // nécessaires pour les afficher (image, collection...) — utilisé par la page "Mon compte".
@@ -60,6 +61,7 @@ export async function POST(request) {
       select: { status: true },
     });
     const wasAlreadyOwned = existing?.status === "owned";
+    const statusChanged = existing?.status !== status;
 
     const entry = await prisma.userCard.upsert({
       where: { userId_cardId: { userId: session.sub, cardId } },
@@ -84,6 +86,37 @@ export async function POST(request) {
         }
       }
     }
+
+    // Prévient les deux membres dès qu'un échange gagnant-gagnant vient d'apparaître grâce
+    // à ce changement précis : quelqu'un qui a ce que je viens d'indiquer chercher, et qui
+    // cherche justement quelque chose que je possède (ou l'inverse). Portée volontairement
+    // limitée aux membres concernés par CETTE carte, pour rester rapide.
+    if (statusChanged && (status === "wanted" || status === "owned")) {
+      const oppositeStatus = status === "wanted" ? "owned" : "wanted";
+      const candidates = await prisma.userCard.findMany({
+        where: { cardId, status: oppositeStatus, userId: { not: session.sub } },
+        select: { userId: true },
+      });
+
+      for (const candidate of candidates) {
+        const [myWanted, theirOwned] = await Promise.all([
+          prisma.userCard.findMany({ where: { userId: session.sub, status: "wanted" }, select: { cardId: true } }),
+          prisma.userCard.findMany({ where: { userId: candidate.userId, status: "owned" }, select: { cardId: true } }),
+        ]);
+        const theirOwnedIds = new Set(theirOwned.map((c) => c.cardId));
+        const hasReverseMatch = myWanted.some((w) => theirOwnedIds.has(w.cardId));
+        if (hasReverseMatch) {
+          await prisma.notification.createMany({
+            data: [
+              { userId: session.sub, type: "trade_match" },
+              { userId: candidate.userId, type: "trade_match" },
+            ],
+          });
+        }
+      }
+    }
+
+    if (status === "owned") await checkAndAwardBadges(session.sub);
 
     return NextResponse.json({ ok: true, status: entry.status });
   } catch (e) {

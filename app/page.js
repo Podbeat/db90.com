@@ -21,6 +21,7 @@ export default function CataloguePage() {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [highlights, setHighlights] = useState(null);
   const [seenIds, setSeenIds] = useState([]);
   const [shuffling, setShuffling] = useState(false);
@@ -69,7 +70,11 @@ export default function CataloguePage() {
       q: query,
     });
     fetch(`/api/cards?${params.toString()}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Réponse serveur invalide");
+        setLoadError(false);
+        return r.json();
+      })
       .then((data) => {
         const newCards = data.cards || [];
         setCards(newCards);
@@ -84,6 +89,7 @@ export default function CataloguePage() {
       .catch(() => {
         setCards([]);
         setTotal(0);
+        setLoadError(true);
       })
       .finally(() => setLoading(false));
   }
@@ -143,7 +149,11 @@ export default function CataloguePage() {
       q: query,
     });
     fetch(`/api/cards?${params.toString()}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error("Réponse serveur invalide");
+        setLoadError(false);
+        return r.json();
+      })
       .then((data) => {
         setCards(data.cards || []);
         setTotal(data.total || 0);
@@ -152,6 +162,7 @@ export default function CataloguePage() {
       .catch(() => {
         setCards([]);
         setTotal(0);
+        setLoadError(true);
       })
       .finally(() => setLoading(false));
   }, [page, filterCollection, filterRarete, filterPersonnage, filterPays, query]);
@@ -275,6 +286,8 @@ export default function CataloguePage() {
           )}
           {loading ? (
             <div className="empty-state">{t.loading}</div>
+          ) : loadError ? (
+            <div className="empty-state" style={{ color: "var(--accent)" }}>{t.loadErrorMessage}</div>
           ) : cards.length === 0 ? (
             <div className="empty-state">{t.noResults}</div>
           ) : (

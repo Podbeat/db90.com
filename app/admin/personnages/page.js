@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Merge } from "lucide-react";
 
 export default function AdminCharactersPage() {
   const [characters, setCharacters] = useState([]);
@@ -11,6 +11,8 @@ export default function AdminCharactersPage() {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [mergeSource, setMergeSource] = useState(null);
+  const [mergeTargetId, setMergeTargetId] = useState("");
 
   async function load() {
     setLoading(true);
@@ -67,6 +69,23 @@ export default function AdminCharactersPage() {
     load();
   }
 
+  async function handleMerge() {
+    if (!mergeTargetId) return;
+    const res = await fetch(`/api/admin/characters/${mergeSource.id}/merge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetId: mergeTargetId }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setMergeSource(null);
+      setMergeTargetId("");
+      load();
+    } else {
+      setMessage({ type: "error", text: data.error });
+    }
+  }
+
   return (
     <div>
       <h1 className="display-font" style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Personnages</h1>
@@ -121,6 +140,7 @@ export default function AdminCharactersPage() {
                     ) : (
                       <>
                         <button className="btn-icon" onClick={() => startEdit(ch)}><Pencil size={13} /></button>
+                        <button className="btn-icon" onClick={() => setMergeSource(ch)} title="Fusionner dans un autre personnage"><Merge size={13} /></button>
                         <button className="btn-icon" onClick={() => setConfirmDelete(ch)}><Trash2 size={13} /></button>
                       </>
                     )}
@@ -144,6 +164,29 @@ export default function AdminCharactersPage() {
             <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
               <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>Annuler</button>
               <button className="btn-danger" onClick={() => handleDelete(confirmDelete.id)}>Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {mergeSource && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(10,8,5,0.78)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }} onClick={() => setMergeSource(null)}>
+          <div className="form-panel" style={{ maxWidth: 400 }} onClick={(e) => e.stopPropagation()}>
+            <p style={{ fontSize: "0.9rem", marginTop: 0 }}>
+              Fusionner « {mergeSource.name} » dans un autre personnage — toutes ses cartes (principal et secondaire)
+              basculent sur la cible, puis « {mergeSource.name} » est supprimé. Utile pour corriger un doublon créé par une faute de frappe.
+            </p>
+            <div className="field">
+              <span className="field-label">Fusionner vers</span>
+              <select value={mergeTargetId} onChange={(e) => setMergeTargetId(e.target.value)}>
+                <option value="">— Choisir —</option>
+                {characters.filter((c) => c.id !== mergeSource.id).map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+              <button className="btn-ghost" onClick={() => setMergeSource(null)}>Annuler</button>
+              <button className="btn-primary" onClick={handleMerge} disabled={!mergeTargetId}>Fusionner</button>
             </div>
           </div>
         </div>

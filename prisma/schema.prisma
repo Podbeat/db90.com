@@ -95,6 +95,7 @@ model User {
   id           String     @id @default(cuid())
   username     String     @unique
   email        String     @unique
+  emailVerified Boolean   @default(false)
   passwordHash String
   avatar       String?
   bio          String?
@@ -108,6 +109,9 @@ model User {
   reportsSent     UserReport[] @relation("UserReportsSent")
   reportsReceived UserReport[] @relation("UserReportsReceived")
   activityEvents  ActivityEvent[]
+  messagesSent     Message[] @relation("MessagesSent")
+  messagesReceived Message[] @relation("MessagesReceived")
+  badges           UserBadge[]
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -302,4 +306,37 @@ model AnalyticsEvent {
   @@index([type])
   @@index([createdAt])
   @@index([country])
+}
+
+// Messagerie interne entre membres. Pas de notion de "conversation" séparée : un fil entre
+// deux membres est simplement l'ensemble de leurs messages dans les deux sens, trié par
+// date — plus simple à requêter qu'une table de conversations pour du 1-à-1.
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  sender      User     @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User     @relation("MessagesReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+  body        String
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([recipientId, read])
+}
+
+// Trace les badges déjà obtenus par un membre (voir lib/badges.js), pour pouvoir détecter
+// le moment précis où un NOUVEAU badge est débloqué et en notifier la personne — les
+// badges eux-mêmes restent calculés à la volée, cette table ne sert qu'à savoir lesquels
+// ont déjà été vus.
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId  String
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@index([userId])
 }

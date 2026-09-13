@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 import { prisma } from "@/lib/db";
-import { signUserSession, COOKIE_NAME } from "@/lib/userAuth";
+import { signUserSession, signActionToken, COOKIE_NAME } from "@/lib/userAuth";
 
 const USERNAME_RE = /^[a-z0-9_-]{3,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,6 +45,26 @@ export async function POST(request) {
     const user = await prisma.user.create({
       data: { username, email, passwordHash },
     });
+
+    const gmailUser = process.env.CONTACT_EMAIL_USER;
+    const appPassword = process.env.CONTACT_EMAIL_APP_PASSWORD;
+    if (gmailUser && appPassword) {
+      try {
+        const verifyToken = await signActionToken({ sub: user.id }, "email-verify", "7d");
+        const link = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/compte/verifier-email?token=${verifyToken}`;
+        const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: appPassword } });
+        await transporter.sendMail({
+          from: `"DB Non-Off 90's" <${gmailUser}>`,
+          to: email,
+          subject: "[DB Non-Off 90's] Confirmez votre adresse e-mail",
+          text: `Bienvenue ${username} !\n\nConfirmez votre adresse e-mail en cliquant sur ce lien :\n${link}\n\nSans cette confirmation, vous pourriez ne jamais recevoir les messages d'autres membres ou un e-mail de récupération de mot de passe.`,
+        });
+      } catch (mailError) {
+        // L'inscription reste valide même si l'e-mail de vérification échoue à partir —
+        // le membre pourra toujours en redemander un depuis son compte.
+        console.error("Erreur d'envoi de l'e-mail de vérification :", mailError);
+      }
+    }
 
     const token = await signUserSession({ sub: user.id, username: user.username });
     const response = NextResponse.json({ ok: true, username: user.username });

@@ -78,15 +78,22 @@ function RatingsBox({ username, ratings, me, t, onRated }) {
   const [positive, setPositive] = useState(true);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   async function submit() {
     setSaving(true);
+    setError("");
     try {
-      await fetch(`/api/users/${username}/ratings`, {
+      const res = await fetch(`/api/users/${username}/ratings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ positive, comment }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Échec de l'envoi.");
+        return;
+      }
       setShowForm(false);
       setComment("");
       onRated();
@@ -128,6 +135,7 @@ function RatingsBox({ username, ratings, me, t, onRated }) {
             <textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} />
           </div>
           <button className="btn-primary" onClick={submit} disabled={saving}>{saving ? "…" : t.submitRating}</button>
+          {error && <div className="toast error" style={{ marginTop: "0.5rem" }}>{error}</div>}
         </div>
       )}
     </div>
@@ -170,7 +178,6 @@ export default function UserProfileClient({ username }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState("participation");
-  const [showContact, setShowContact] = useState(false);
   const [ratings, setRatings] = useState(null);
   const [showReport, setShowReport] = useState(false);
 
@@ -219,13 +226,13 @@ export default function UserProfileClient({ username }) {
         </div>
         {me && me.username !== profile.username && (
           <div style={{ display: "flex", gap: "0.5rem", marginLeft: "auto" }}>
-            <button
-              onClick={() => setShowContact(true)}
+            <Link
+              href={`/compte/messages/${profile.username}`}
               className="btn-ghost"
               style={{ fontSize: "0.78rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
             >
               <Mail size={13} /> {t.contactSeller}
-            </button>
+            </Link>
             <button
               onClick={() => setShowReport(true)}
               className="btn-icon"
@@ -256,13 +263,6 @@ export default function UserProfileClient({ username }) {
       {tab === "wanted" && <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />}
       {tab === "sales" && <SalesList listings={profile.selling} t={t} />}
 
-      {showContact && (
-        <ContactUserModal
-          title={t.contactSellerTitle(profile.username)}
-          endpoint={`/api/users/${profile.username}/contact`}
-          onClose={() => setShowContact(false)}
-        />
-      )}
       {showReport && (
         <ContactUserModal
           title={t.reportUserTitle}

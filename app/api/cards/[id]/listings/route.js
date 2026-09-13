@@ -44,6 +44,17 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "État invalide." }, { status: 400 });
     }
 
+    // Le prix reste libre (l'utilisateur fixe ce qu'il veut), mais doit rester un nombre
+    // positif et raisonnable — sans quoi il fausserait aussi le calcul de la côte.
+    let parsedPrice = null;
+    if (type === "seller" && price !== undefined && price !== null && price !== "") {
+      parsedPrice = parseFloat(price);
+      if (!Number.isFinite(parsedPrice) || parsedPrice <= 0 || parsedPrice > 100000) {
+        return NextResponse.json({ error: "Le prix doit être un nombre positif raisonnable (jusqu'à 100 000)." }, { status: 400 });
+      }
+      parsedPrice = Math.round(parsedPrice * 100) / 100;
+    }
+
     const existing = await prisma.cardListing.findUnique({
       where: { cardId_userId: { cardId, userId: session.sub } },
     });
@@ -54,14 +65,14 @@ export async function POST(request, { params }) {
       update: {
         type,
         condition: type === "seller" ? condition || null : null,
-        price: type === "seller" && price ? parseFloat(price) : null,
+        price: parsedPrice,
       },
       create: {
         cardId,
         userId: session.sub,
         type,
         condition: type === "seller" ? condition || null : null,
-        price: type === "seller" && price ? parseFloat(price) : null,
+        price: parsedPrice,
       },
     });
 

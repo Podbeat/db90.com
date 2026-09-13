@@ -107,6 +107,7 @@ model User {
   ratingsReceived UserRating[] @relation("RatingsReceived")
   reportsSent     UserReport[] @relation("UserReportsSent")
   reportsReceived UserReport[] @relation("UserReportsReceived")
+  activityEvents  ActivityEvent[]
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou

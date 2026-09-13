@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail } from "lucide-react";
+import { Mail, Trophy } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
@@ -39,12 +39,63 @@ function MiniGrid({ cards, t, emptyLabel }) {
   );
 }
 
+function SalesList({ listings, t }) {
+  if (listings.length === 0) {
+    return <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{t.noSalesListed}</div>;
+  }
+  return (
+    <div>
+      {listings.map((l) => (
+        <Link
+          key={l.id}
+          href={`/cartes/${l.card.id}`}
+          style={{ display: "flex", alignItems: "center", gap: "0.7rem", padding: "0.5rem 0", borderBottom: "1px solid var(--line)" }}
+        >
+          <img
+            src={l.card.image || ""}
+            alt={l.card.personnagePrincipal?.name || ""}
+            style={{ width: 40, height: 56, objectFit: "cover", background: "var(--surface-raised)", flexShrink: 0 }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: "0.85rem" }}>{l.card.personnagePrincipal?.name || t.noCharacterAssigned}</div>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
+              {l.card.collection?.nom} — n°{l.card.numero} · {l.condition}
+            </div>
+          </div>
+          <span style={{ fontSize: "0.85rem", color: "var(--gold)", fontWeight: 600 }}>
+            {l.price != null ? `${l.price} €` : t.priceNotSet}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function ParticipationPanel({ participation, t }) {
+  if (!participation) return null;
+  return (
+    <div className="filter-panel" style={{ maxWidth: 360 }}>
+      <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.6rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+        <Trophy size={16} style={{ color: "var(--gold)" }} /> {t.myParticipationTitle}
+      </div>
+      <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--gold)", marginBottom: "0.6rem" }}>
+        {t.participationPoints(participation.totalPoints)}
+      </div>
+      <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", lineHeight: 1.9 }}>
+        <div>{t.participationOwnedLine(participation.ownedCount, participation.ownedPoints)}</div>
+        <div>{t.participationCompletedLine(participation.completedCollections, participation.completionBonus)}</div>
+        <div>{t.participationContribLine(participation.approvedSubmissions, participation.contributionPoints)}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function UserProfileClient({ username }) {
   const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState("owned");
+  const [tab, setTab] = useState("participation");
   const [me, setMe] = useState(null);
   const [showContact, setShowContact] = useState(false);
 
@@ -67,6 +118,13 @@ export default function UserProfileClient({ username }) {
   if (notFound || !profile) return <div className="container page"><div className="empty-state">{t.profileNotFound}</div></div>;
 
   const memberDate = new Date(profile.memberSince).toLocaleDateString();
+
+  const tabs = [
+    { key: "participation", label: t.profileTabParticipation },
+    { key: "collection", label: `${t.profileTabCollection} · ${t.cardsCount(profile.owned.length)}` },
+    { key: "wanted", label: `${t.profileTabWanted} · ${t.cardsCount(profile.wanted.length)}` },
+    { key: "sales", label: `${t.profileTabSales} · ${t.cardsCount(profile.selling.length)}` },
+  ];
 
   return (
     <div className="container page">
@@ -92,20 +150,18 @@ export default function UserProfileClient({ username }) {
       </div>
       {profile.bio && <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: 560, marginBottom: "1.5rem" }}>{profile.bio}</p>}
 
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem" }}>
-        <button onClick={() => setTab("owned")} className={tab === "owned" ? "btn-primary" : "btn-ghost"} style={{ fontSize: "0.8rem" }}>
-          {t.myCollectionTitle} · {t.cardsCount(profile.owned.length)}
-        </button>
-        <button onClick={() => setTab("wanted")} className={tab === "wanted" ? "btn-primary" : "btn-ghost"} style={{ fontSize: "0.8rem" }}>
-          {t.myWantedTitle} · {t.cardsCount(profile.wanted.length)}
-        </button>
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
+        {tabs.map((tb) => (
+          <button key={tb.key} onClick={() => setTab(tb.key)} className={tab === tb.key ? "btn-primary" : "btn-ghost"} style={{ fontSize: "0.8rem" }}>
+            {tb.label}
+          </button>
+        ))}
       </div>
 
-      {tab === "owned" ? (
-        <MiniGrid cards={profile.owned} t={t} emptyLabel={t.noCardsOwned} />
-      ) : (
-        <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />
-      )}
+      {tab === "participation" && <ParticipationPanel participation={profile.participation} t={t} />}
+      {tab === "collection" && <MiniGrid cards={profile.owned} t={t} emptyLabel={t.noCardsOwned} />}
+      {tab === "wanted" && <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />}
+      {tab === "sales" && <SalesList listings={profile.selling} t={t} />}
 
       {showContact && (
         <ContactUserModal

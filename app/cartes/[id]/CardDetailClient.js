@@ -10,7 +10,6 @@ import HoloCard from "@/components/HoloCard";
 import CardStatusToggle from "@/components/CardStatusToggle";
 import CardScanUpload from "@/components/CardScanUpload";
 import CardMarketplace from "@/components/CardMarketplace";
-import CardCoteChart from "@/components/CardCoteChart";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
@@ -144,7 +143,6 @@ export default function CardDetailClient({ id }) {
         </div>
       </div>
       <CardMarketplace cardId={card.id} />
-      <CardCoteChart cardId={card.id} />
     </div>
   );
 }

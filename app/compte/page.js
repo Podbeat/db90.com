@@ -2,62 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Upload, ChevronDown, ChevronUp, Trophy } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 
-// Une ligne par collection avec une fraction (ex. 22/25) plutôt que les vignettes de
-// chaque carte — reste lisible même avec plusieurs centaines de cartes suivies.
-function CollectionProgressList({ items, emptyLabel }) {
-  if (items.length === 0) {
-    return <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>{emptyLabel}</div>;
-  }
-  return (
-    <div style={{ marginTop: "0.6rem" }}>
-      {items.map((it) => {
-        const totalKnown = it.total != null;
-        // Total inconnu (collection encore en cours) : on affiche quand même une barre —
-        // en gris, remplie par rapport à ce qui est déjà catalogué — plutôt que de ne rien
-        // afficher, pour éviter que les lignes ne sautent selon qu'un total est défini ou non.
-        const denominator = totalKnown ? it.total : it.catalogued;
-        const pct = denominator ? Math.min(100, Math.round((it.count / denominator) * 100)) : 0;
-        const complete = totalKnown && it.count >= it.total;
-        return (
-          <Link
-            key={it.collectionId}
-            href={`/collections/${it.collectionId}`}
-            style={{ display: "block", padding: "0.5rem 0", borderBottom: "1px solid var(--line)" }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem" }}>
-              <span>{it.nom}</span>
-              <span style={{ color: totalKnown ? (complete ? "#4caf6d" : "var(--accent)") : "var(--text-muted)", fontWeight: 600 }}>
-                {it.count}/{totalKnown ? it.total : "x"}
-              </span>
-            </div>
-            <div className="progress-track">
-              <div
-                className={`progress-fill ${complete ? "progress-complete" : ""}`}
-                style={{ width: `${pct}%`, background: !totalKnown ? "var(--text-muted)" : complete ? undefined : "var(--accent)" }}
-              />
-            </div>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-export default function AccountPage() {
+export default function AccountProfilePage() {
   const { t } = useLanguage();
-  const router = useRouter();
   const fileRef = useRef(null);
 
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [notAuthed, setNotAuthed] = useState(false);
-  const [ownedByCollection, setOwnedByCollection] = useState([]);
-  const [wantedByCollection, setWantedByCollection] = useState([]);
   const [participation, setParticipation] = useState(null);
   const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
@@ -72,10 +26,7 @@ export default function AccountPage() {
 
   useEffect(() => {
     fetch("/api/users/me")
-      .then((r) => {
-        if (r.status === 401) { setNotAuthed(true); return null; }
-        return r.json();
-      })
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data) return;
         setMe(data);
@@ -85,20 +36,11 @@ export default function AccountPage() {
       })
       .finally(() => setLoading(false));
 
-    fetch("/api/users/me/collections-summary")
-      .then((r) => (r.ok ? r.json() : { owned: [], wanted: [] }))
-      .then((d) => { setOwnedByCollection(d.owned || []); setWantedByCollection(d.wanted || []); })
-      .catch(() => {});
-
     fetch("/api/users/me/participation")
       .then((r) => (r.ok ? r.json() : null))
       .then(setParticipation)
       .catch(() => {});
   }, []);
-
-  useEffect(() => {
-    if (notAuthed) router.push("/compte/connexion");
-  }, [notAuthed, router]);
 
   async function handleAvatarChange(e) {
     const file = e.target.files?.[0];
@@ -150,11 +92,11 @@ export default function AccountPage() {
     }
   }
 
-  if (loading) return <div className="container page"><div className="empty-state">Chargement…</div></div>;
+  if (loading) return <div className="empty-state">{t.loading}</div>;
   if (!me) return null;
 
   return (
-    <div className="container page">
+    <div>
       <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <div style={{ position: "relative" }}>
           <img
@@ -183,7 +125,7 @@ export default function AccountPage() {
 
       {message && <div className={`toast ${message.type}`}>{message.text}</div>}
 
-      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
+      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
         <form onSubmit={handleSaveProfile} className="form-panel" style={{ flex: 2, minWidth: 280 }}>
           <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.8rem" }}>{t.accountSettings}</div>
           <div className="field">
@@ -248,32 +190,6 @@ export default function AccountPage() {
             </div>
           </div>
         )}
-      </div>
-
-      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
-        <div className="filter-panel" style={{ flex: 1, minWidth: 280 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-            <div className="display-font" style={{ fontSize: "0.95rem" }}>{t.myCollectionTitle}</div>
-            {ownedByCollection.length > 0 && (
-              <a href="/api/users/me/owned/pdf" className="btn-ghost" style={{ fontSize: "0.72rem" }}>
-                {t.downloadOwnedPdf}
-              </a>
-            )}
-          </div>
-          <CollectionProgressList items={ownedByCollection} emptyLabel={t.noCardsOwned} />
-        </div>
-
-        <div className="filter-panel" style={{ flex: 1, minWidth: 280 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-            <div className="display-font" style={{ fontSize: "0.95rem" }}>{t.myWantedTitle}</div>
-            {wantedByCollection.length > 0 && (
-              <a href="/api/users/me/wanted/pdf" className="btn-ghost" style={{ fontSize: "0.72rem" }}>
-                {t.downloadWantedPdf}
-              </a>
-            )}
-          </div>
-          <CollectionProgressList items={wantedByCollection} emptyLabel={t.noCardsWanted} />
-        </div>
       </div>
     </div>
   );

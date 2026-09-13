@@ -43,6 +43,11 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "État invalide." }, { status: 400 });
     }
 
+    const existing = await prisma.cardListing.findUnique({
+      where: { cardId_userId: { cardId, userId: session.sub } },
+    });
+    const becomesNewSaleListing = type === "seller" && existing?.type !== "seller";
+
     const listing = await prisma.cardListing.upsert({
       where: { cardId_userId: { cardId, userId: session.sub } },
       update: {
@@ -58,6 +63,20 @@ export async function POST(request, { params }) {
         price: type === "seller" && price ? parseFloat(price) : null,
       },
     });
+
+    // Prévient les membres qui recherchent cette carte, mais seulement au moment où elle
+    // passe réellement en vente (pas à chaque modification du prix/état ensuite).
+    if (becomesNewSaleListing) {
+      const interested = await prisma.userCard.findMany({
+        where: { cardId, status: "wanted", userId: { not: session.sub } },
+        select: { userId: true },
+      });
+      if (interested.length > 0) {
+        await prisma.notification.createMany({
+          data: interested.map((i) => ({ userId: i.userId, type: "card_for_sale", cardId })),
+        });
+      }
+    }
 
     return NextResponse.json(listing);
   } catch (e) {

@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Mail } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
+import ContactUserModal from "@/components/ContactUserModal";
 
 function MiniGrid({ cards, t, emptyLabel }) {
   if (cards.length === 0) {
@@ -43,6 +45,8 @@ export default function UserProfileClient({ username }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState("owned");
+  const [me, setMe] = useState(null);
+  const [showContact, setShowContact] = useState(false);
 
   useEffect(() => {
     fetch(`/api/users/${username}`)
@@ -52,6 +56,11 @@ export default function UserProfileClient({ username }) {
       })
       .then((data) => { if (data) setProfile(data); })
       .finally(() => setLoading(false));
+
+    fetch("/api/users/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setMe)
+      .catch(() => {});
   }, [username]);
 
   if (loading) return <div className="container page"><div className="empty-state">Chargement…</div></div>;
@@ -71,6 +80,15 @@ export default function UserProfileClient({ username }) {
           <h1 className="display-font" style={{ fontSize: "1.3rem" }}>{profile.username}</h1>
           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{t.memberSince} {memberDate}</div>
         </div>
+        {me && me.username !== profile.username && (
+          <button
+            onClick={() => setShowContact(true)}
+            className="btn-ghost"
+            style={{ fontSize: "0.78rem", display: "inline-flex", alignItems: "center", gap: "0.35rem", marginLeft: "auto" }}
+          >
+            <Mail size={13} /> {t.contactSeller}
+          </button>
+        )}
       </div>
       {profile.bio && <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: 560, marginBottom: "1.5rem" }}>{profile.bio}</p>}
 
@@ -87,6 +105,14 @@ export default function UserProfileClient({ username }) {
         <MiniGrid cards={profile.owned} t={t} emptyLabel={t.noCardsOwned} />
       ) : (
         <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />
+      )}
+
+      {showContact && (
+        <ContactUserModal
+          title={t.contactSellerTitle(profile.username)}
+          endpoint={`/api/users/${profile.username}/contact`}
+          onClose={() => setShowContact(false)}
+        />
       )}
     </div>
   );

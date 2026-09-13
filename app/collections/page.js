@@ -13,6 +13,8 @@ export default function CollectionsPage() {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [ownedByCollection, setOwnedByCollection] = useState({});
+  const [wantedByCollection, setWantedByCollection] = useState({});
 
   useEffect(() => {
     fetch("/api/collections")
@@ -22,6 +24,14 @@ export default function CollectionsPage() {
     fetch("/api/users/me")
       .then((r) => setLoggedIn(r.ok))
       .catch(() => setLoggedIn(false));
+    fetch("/api/users/me/collections-summary")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        setOwnedByCollection(Object.fromEntries(d.owned.map((i) => [i.collectionId, i.count])));
+        setWantedByCollection(Object.fromEntries(d.wanted.map((i) => [i.collectionId, i.count])));
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -49,7 +59,18 @@ export default function CollectionsPage() {
                   ) : (
                     <div className="collection-thumb-empty"><ImageOff size={22} /></div>
                   )}
-                  {loggedIn && <CollectionStatusButtons collectionId={col.id} />}
+                  {loggedIn && (
+                    <CollectionStatusButtons
+                      collectionId={col.id}
+                      initialStatus={
+                        col.total && (ownedByCollection[col.id] || 0) >= col.total
+                          ? "owned"
+                          : col.total && (wantedByCollection[col.id] || 0) >= col.total
+                          ? "wanted"
+                          : null
+                      }
+                    />
+                  )}
                 </div>
                 <div className="collection-tile-body">
                   <div className="display-font" style={{ fontSize: "0.95rem" }}>{col.nom}</div>

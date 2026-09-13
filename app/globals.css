@@ -62,7 +62,7 @@ a { color: inherit; text-decoration: none; }
 }
 .top-bar-inner {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
-  gap: 0.9rem; padding: 1rem 0 0.5rem;
+  gap: 0.9rem; padding: 0.85rem 0 0.15rem;
 }
 .top-bar .logo-img { height: 68px; width: auto; display: block; }
 .top-bar .brand-sub { color: var(--accent); font-weight: 500; font-size: 0.72rem; margin-top: 0.3rem; white-space: nowrap; }
@@ -116,7 +116,7 @@ a { color: inherit; text-decoration: none; }
 }
 .nav-logout:hover { color: var(--header-text); text-decoration-color: var(--header-muted); }
 
-.top-bar-account-row { display: flex; justify-content: flex-end; padding-bottom: 0.9rem; }
+.top-bar-account-row { display: flex; justify-content: flex-end; padding-bottom: 0.7rem; }
 
 .lang-switch { display: flex; gap: 0.4rem; align-items: center; }
 .theme-toggle {
@@ -277,11 +277,7 @@ a { color: inherit; text-decoration: none; }
   z-index: 2;
   display: flex;
   gap: 0.4rem;
-  opacity: 0;
-  transition: opacity 0.15s ease;
 }
-.collection-tile:hover .collection-status-icons,
-.collection-status-icons:has(.active) { opacity: 1; }
 .collection-status-icon {
   display: flex;
   align-items: center;
@@ -470,7 +466,7 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
   .top-bar .brand-sub { white-space: normal; font-size: 0.66rem; max-width: 200px; line-height: 1.3; }
   .footer-brand { white-space: normal; max-width: 220px; }
   .top-bar .logo-img { height: 46px; }
-  .top-bar-inner { gap: 0.6rem; padding: 0.7rem 0; }
+  .top-bar-inner { gap: 0.6rem; padding: 0.7rem 0 0.1rem; }
   .nav-links { gap: 0.9rem; }
   .admin-grid-3, .admin-grid-2 { grid-template-columns: 1fr !important; }
 }

@@ -9,6 +9,7 @@ import ShareButton from "@/components/ShareButton";
 import HoloCard from "@/components/HoloCard";
 import CardStatusToggle from "@/components/CardStatusToggle";
 import CardScanUpload from "@/components/CardScanUpload";
+import CardMarketplace from "@/components/CardMarketplace";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
@@ -141,6 +142,7 @@ export default function CardDetailClient({ id }) {
           <ReportError cardId={card.id} />
         </div>
       </div>
+      <CardMarketplace cardId={card.id} />
     </div>
   );
 }

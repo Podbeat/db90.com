@@ -1,0 +1,5 @@
+# Normalise les fins de ligne à LF pour tous les fichiers texte, quel que soit le
+# système d'exploitation utilisé pour cloner/committer — évite que Git ne signale des
+# milliers de lignes "changées" à cause d'une simple différence LF/CRLF entre Linux
+# (où ces fichiers sont générés) et Windows.
+* text=auto eol=lf

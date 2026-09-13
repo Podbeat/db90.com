@@ -7,14 +7,14 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "rec
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import ContactUserModal from "@/components/ContactUserModal";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 const CONDITIONS = ["Satisfaisant", "Bon état", "Très bon état", "Neuve"];
 const CONDITIONS_ORDER = ["Neuve", "Très bon état", "Bon état", "Satisfaisant"];
 
 export default function CardMarketplace({ cardId }) {
   const { t } = useLanguage();
-  const [me, setMe] = useState(null);
-  const [loggedIn, setLoggedIn] = useState(null);
+  const { me, loading: userLoading, loggedIn } = useCurrentUser();
   const [sellers, setSellers] = useState([]);
   const [buyers, setBuyers] = useState([]);
   const [myListing, setMyListing] = useState(null);
@@ -39,13 +39,6 @@ export default function CardMarketplace({ cardId }) {
 
   useEffect(() => {
     load();
-    fetch("/api/users/me")
-      .then((r) => {
-        setLoggedIn(r.ok);
-        return r.ok ? r.json() : null;
-      })
-      .then(setMe)
-      .catch(() => setLoggedIn(false));
   }, [cardId]);
 
   useEffect(() => {
@@ -71,7 +64,7 @@ export default function CardMarketplace({ cardId }) {
     load();
   }
 
-  if (loggedIn === null) return null;
+  if (userLoading) return null;
 
   const chartData = (cote?.history || []).map((h) => ({
     date: new Date(h.createdAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
@@ -84,7 +77,7 @@ export default function CardMarketplace({ cardId }) {
         <Tag size={15} /> {t.marketplaceTitle}
       </div>
 
-      {loggedIn === false ? (
+      {!loggedIn ? (
         <Link href="/compte/connexion" className="btn-ghost" style={{ fontSize: "0.78rem" }}>{t.loginToTrade}</Link>
       ) : (
         <div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid var(--line)" }}>

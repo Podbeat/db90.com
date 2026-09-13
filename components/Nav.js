@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useTheme } from "@/components/ThemeProvider";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { LANGUAGES } from "@/lib/translations";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import NotificationBell from "@/components/NotificationBell";
@@ -17,20 +18,12 @@ export default function Nav() {
   const { lang, setLang, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const [pulsing, setPulsing] = useState(null);
-  const [me, setMe] = useState(null);
-  const [meLoaded, setMeLoaded] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/users/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setMe)
-      .catch(() => setMe(null))
-      .finally(() => setMeLoaded(true));
-  }, [pathname]);
+  const { me, loading, refetch } = useCurrentUser();
+  const meLoaded = !loading;
 
   async function handleLogout() {
     await fetch("/api/users/logout", { method: "POST" });
-    setMe(null);
+    await refetch();
     window.location.href = "/";
   }
 

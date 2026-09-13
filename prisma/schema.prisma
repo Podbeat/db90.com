@@ -52,6 +52,7 @@ model Card {
   submissions     CardSubmission[]
   listings        CardListing[]
   notifications   Notification[]
+  priceHistory    PriceHistory[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -168,6 +169,20 @@ model Notification {
 
   @@index([userId])
   @@index([read])
+}
+
+// Historique de la côte "neuve" calculée d'une carte (voir lib/cote.js) : un point ajouté
+// à chaque fois qu'une annonce en Très bon état ou Neuve change et fait varier la côte —
+// alimente le graphique d'évolution du prix sur la fiche carte.
+model PriceHistory {
+  id         String   @id @default(cuid())
+  cardId     String
+  card       Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  cote       Float
+  sampleSize Int
+  createdAt  DateTime @default(now())
+
+  @@index([cardId])
 }
 
 // Scan proposé par un utilisateur pour une carte (typiquement une carte "recherchée", sans

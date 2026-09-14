@@ -157,6 +157,7 @@ function ParticipationPanel({ participation, t }) {
         <div>{t.participationOwnedLine(participation.ownedCount, participation.ownedPoints)}</div>
         <div>{t.participationCompletedLine(participation.completedCollections, participation.completionBonus)}</div>
         <div>{t.participationContribLine(participation.approvedSubmissions, participation.contributionPoints)}</div>
+        <div>{t.participationCollectionProposalLine(participation.approvedCollectionProposals, participation.collectionProposalPoints)}</div>
       </div>
       {badges.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.7rem" }}>

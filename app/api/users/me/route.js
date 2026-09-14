@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import nodemailer from "nodemailer";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
+import { signActionToken } from "@/lib/userAuth";
 
 const USERNAME_RE = /^[a-z0-9_-]{3,20}$/;
 
@@ -51,6 +53,7 @@ export async function PUT(request) {
       data.username = username;
     }
 
+    let emailChanged = false;
     if (body.email !== undefined) {
       const email = body.email.trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -58,15 +61,41 @@ export async function PUT(request) {
       }
       const existing = await prisma.user.findFirst({ where: { email, NOT: { id: session.sub } } });
       if (existing) return NextResponse.json({ error: "Cette adresse e-mail est déjà utilisée." }, { status: 409 });
+
+      const current = await prisma.user.findUnique({ where: { id: session.sub }, select: { email: true, username: true } });
+      emailChanged = current.email !== email;
       data.email = email;
+      // Une nouvelle adresse doit être reconfirmée avant qu'on lui fasse à nouveau
+      // confiance — sans ça, une faute de frappe resterait invisible jusqu'au premier
+      // e-mail qui échoue réellement (voir l'incident avec un domaine inexistant).
+      if (emailChanged) {
+        data.emailVerified = false;
+        const gmailUser = process.env.CONTACT_EMAIL_USER;
+        const appPassword = process.env.CONTACT_EMAIL_APP_PASSWORD;
+        if (gmailUser && appPassword) {
+          try {
+            const verifyToken = await signActionToken({ sub: session.sub }, "email-verify", "7d");
+            const link = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/compte/verifier-email?token=${verifyToken}`;
+            const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: appPassword } });
+            await transporter.sendMail({
+              from: `"DB Non-Off 90's" <${gmailUser}>`,
+              to: email,
+              subject: "[DB Non-Off 90's] Confirmez votre nouvelle adresse e-mail",
+              text: `Bonjour ${current.username},\n\nConfirmez votre nouvelle adresse e-mail en cliquant sur ce lien :\n${link}`,
+            });
+          } catch (mailError) {
+            console.error("Erreur d'envoi de l'e-mail de vérification :", mailError);
+          }
+        }
+      }
     }
 
     const user = await prisma.user.update({
       where: { id: session.sub },
       data,
-      select: { id: true, username: true, email: true, avatar: true, bio: true },
+      select: { id: true, username: true, email: true, avatar: true, bio: true, emailVerified: true },
     });
-    return NextResponse.json(user);
+    return NextResponse.json({ ...user, verificationResent: emailChanged });
   } catch (e) {
     console.error("Erreur PUT /api/users/me :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });

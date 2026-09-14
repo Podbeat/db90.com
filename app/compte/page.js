@@ -91,7 +91,11 @@ export default function AccountProfilePage() {
     const data = await res.json();
     if (res.ok) {
       await refetch();
-      setMessage({ type: "success", text: "Profil mis à jour." });
+      setMessage(
+        data.verificationResent
+          ? { type: "success", text: t.emailChangedVerify }
+          : { type: "success", text: "Profil mis à jour." }
+      );
     } else {
       setMessage({ type: "error", text: data.error });
     }
@@ -207,6 +211,7 @@ export default function AccountProfilePage() {
               <div>{t.participationOwnedLine(participation.ownedCount, participation.ownedPoints)}</div>
               <div>{t.participationCompletedLine(participation.completedCollections, participation.completionBonus)}</div>
               <div>{t.participationContribLine(participation.approvedSubmissions, participation.contributionPoints)}</div>
+              <div>{t.participationCollectionProposalLine(participation.approvedCollectionProposals, participation.collectionProposalPoints)}</div>
             </div>
             <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.6rem", fontStyle: "italic" }}>
               {t.participationNote}

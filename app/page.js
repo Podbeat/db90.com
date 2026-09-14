@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Shuffle } from "lucide-react";
+import { Shuffle } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import HoloCard from "@/components/HoloCard";
+import MemberSearch from "@/components/MemberSearch";
 import ShareIconButton from "@/components/ShareIconButton";
 import { playShuffleSound } from "@/lib/playShuffleSound";
 
@@ -26,14 +27,13 @@ export default function CataloguePage() {
   const [seenIds, setSeenIds] = useState([]);
   const [shuffling, setShuffling] = useState(false);
 
-  const [query, setQuery] = useState("");
   const [filterCollection, setFilterCollection] = useState("all");
   const [filterRarete, setFilterRarete] = useState("all");
   const [filterPersonnage, setFilterPersonnage] = useState("all");
   const [filterPays, setFilterPays] = useState("all");
 
   const hasActiveFilters =
-    query || filterCollection !== "all" || filterPersonnage !== "all" || filterRarete !== "all" || filterPays !== "all";
+    filterCollection !== "all" || filterPersonnage !== "all" || filterRarete !== "all" || filterPays !== "all";
 
   // En mode découverte (aucun filtre actif), "Mélanger" ne réordonne pas les mêmes cartes :
   // il va chercher un nouveau lot aléatoire, en excluant celles déjà vues, jusqu'à épuiser
@@ -67,7 +67,6 @@ export default function CataloguePage() {
       rarete: filterRarete,
       personnage: filterPersonnage,
       pays: filterPays,
-      q: query,
     });
     fetch(`/api/cards?${params.toString()}`)
       .then((r) => {
@@ -107,7 +106,6 @@ export default function CataloguePage() {
       rarete: filterRarete,
       personnage: filterPersonnage,
       pays: filterPays,
-      q: query,
     });
     fetch(`/api/facets?${params.toString()}`)
       .then((r) => r.json())
@@ -130,7 +128,7 @@ export default function CataloguePage() {
         if (filterCollection !== "all" && !newCollections.some((c) => c.id === filterCollection)) setFilterCollection("all");
       })
       .catch(() => {});
-  }, [filterCollection, filterRarete, filterPersonnage, filterPays, query]);
+  }, [filterCollection, filterRarete, filterPersonnage, filterPays]);
 
   useEffect(() => {
     if (!hasActiveFilters) {
@@ -146,7 +144,6 @@ export default function CataloguePage() {
       rarete: filterRarete,
       personnage: filterPersonnage,
       pays: filterPays,
-      q: query,
     });
     fetch(`/api/cards?${params.toString()}`)
       .then((r) => {
@@ -165,9 +162,9 @@ export default function CataloguePage() {
         setLoadError(true);
       })
       .finally(() => setLoading(false));
-  }, [page, filterCollection, filterRarete, filterPersonnage, filterPays, query]);
+  }, [page, filterCollection, filterRarete, filterPersonnage, filterPays]);
 
-  useEffect(() => setPage(1), [filterCollection, filterRarete, filterPersonnage, filterPays, query]);
+  useEffect(() => setPage(1), [filterCollection, filterRarete, filterPersonnage, filterPays]);
 
   return (
     <div className="container page">
@@ -175,14 +172,7 @@ export default function CataloguePage() {
         <aside className="filter-panel sidebar">
           <div className="field">
             <span className="field-label">{t.search}</span>
-            <div className="search-wrap">
-              <Search size={14} className="search-icon" />
-              <input
-                placeholder={t.searchPlaceholder}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </div>
+            <MemberSearch variant="sidebar" />
           </div>
           <div className="field">
             <span className="field-label">{t.collection}</span>

@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const events = await prisma.activityEvent.findMany({
       orderBy: { createdAt: "desc" },
-      take: 15,
+      take: 10,
       include: {
         user: { select: { username: true, avatar: true } },
         card: { select: { id: true, personnagePrincipal: { select: { name: true } } } },

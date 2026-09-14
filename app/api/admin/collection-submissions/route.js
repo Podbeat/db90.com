@@ -11,19 +11,18 @@ export async function GET(request) {
     const status = searchParams.get("status") || "pending";
     const where = status === "all" ? {} : { status };
 
-    const submissions = await prisma.cardSubmission.findMany({
+    const submissions = await prisma.collectionSubmission.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" },
       include: {
-        card: { select: { id: true, numero: true, image: true, personnagePrincipal: { select: { name: true } }, collection: { select: { nom: true } } } },
-        collection: { select: { nom: true } },
         user: { select: { username: true, avatar: true } },
+        _count: { select: { cards: true } },
       },
     });
 
     return NextResponse.json(submissions);
   } catch (e) {
-    console.error("Erreur GET /api/admin/submissions :", e);
+    console.error("Erreur GET /api/admin/collection-submissions :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
   }
 }

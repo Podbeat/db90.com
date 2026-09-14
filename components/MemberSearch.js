@@ -6,9 +6,12 @@ import { Search } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 
-// Petite zone de recherche de membres dans l'en-tête : tape un pseudo, choisis dans la
-// liste, direction son profil public. Recherche à la volée avec un léger anti-rebond.
-export default function MemberSearch() {
+// Recherche de membres : cliquer dans le champ affiche d'emblée une liste de membres à
+// parcourir (les plus récents), pratique pour quelqu'un qui ne connaît encore aucun pseudo
+// précis ; taper filtre cette liste dès la première lettre. Deux présentations : "header"
+// (compacte, thème sombre de l'en-tête) et "sidebar" (pleine largeur, thème normal de la
+// page, utilisée dans le panneau de filtres du catalogue).
+export default function MemberSearch({ variant = "header" }) {
   const { t } = useLanguage();
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -17,19 +20,12 @@ export default function MemberSearch() {
   const boxRef = useRef(null);
 
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setResults([]);
-      return;
-    }
     const timer = setTimeout(() => {
       fetch(`/api/users/search?q=${encodeURIComponent(query.trim())}`)
         .then((r) => (r.ok ? r.json() : []))
-        .then((d) => {
-          setResults(d);
-          setOpen(true);
-        })
+        .then(setResults)
         .catch(() => {});
-    }, 250);
+    }, 200);
     return () => clearTimeout(timer);
   }, [query]);
 
@@ -47,20 +43,26 @@ export default function MemberSearch() {
     router.push(`/u/${username}`);
   }
 
+  const isSidebar = variant === "sidebar";
+
   return (
     <div style={{ position: "relative" }} ref={boxRef}>
-      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-        <Search size={13} style={{ position: "absolute", left: "0.5rem", color: "var(--header-muted)", pointerEvents: "none" }} />
+      <div className={isSidebar ? "search-wrap" : undefined} style={isSidebar ? undefined : { position: "relative", display: "flex", alignItems: "center" }}>
+        <Search
+          size={14}
+          className={isSidebar ? "search-icon" : undefined}
+          style={isSidebar ? undefined : { position: "absolute", left: "0.5rem", color: "var(--header-muted)", pointerEvents: "none" }}
+        />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => setOpen(true)}
           placeholder={t.searchMemberPlaceholder}
-          className="member-search-input"
+          className={isSidebar ? undefined : "member-search-input"}
         />
       </div>
       {open && results.length > 0 && (
-        <div className="notif-panel" style={{ width: 220 }}>
+        <div className="notif-panel" style={{ width: isSidebar ? "100%" : 220 }}>
           {results.map((u) => (
             <button key={u.username} className="notif-item" style={{ width: "100%", border: "none", background: "none", cursor: "pointer", textAlign: "left" }} onClick={() => goToProfile(u.username)}>
               <img src={u.avatar || avatarPlaceholder(u.username)} alt="" style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover" }} />

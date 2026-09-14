@@ -9,6 +9,7 @@ import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import HoloCard from "@/components/HoloCard";
 import ShareIconButton from "@/components/ShareIconButton";
 import CardStatusIcons from "@/components/CardStatusIcons";
+import CollectionNewCardUpload from "@/components/CollectionNewCardUpload";
 
 export default function CollectionDetailClient({ id }) {
   const { t, lang } = useLanguage();
@@ -138,7 +139,7 @@ export default function CollectionDetailClient({ id }) {
         );
       })()}
 
-      {collection.cards.length === 0 ? (
+      {collection.cards.length === 0 && collection.total ? (
         <div className="empty-state">{t.noResults}</div>
       ) : (
         <div className="card-grid">
@@ -175,6 +176,7 @@ export default function CollectionDetailClient({ id }) {
               </div>
             </Link>
           ))}
+          {!collection.total && <CollectionNewCardUpload collectionId={collection.id} />}
         </div>
       )}
     </div>

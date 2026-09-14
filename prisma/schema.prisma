@@ -27,6 +27,7 @@ model Collection {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   cards           Card[]
+  submissions     CardSubmission[]
   activityEvents  ActivityEvent[]
 }
 
@@ -75,6 +76,8 @@ model Character {
 
   primaryCards   Card[]          @relation("PrincipalCharacter")
   secondaryCards CardCharacter[]
+  submissionCards CollectionSubmissionCard[]
+  cardSubmissions CardSubmission[]
 }
 
 model CardCharacter {
@@ -112,6 +115,7 @@ model User {
   messagesSent     Message[] @relation("MessagesSent")
   messagesReceived Message[] @relation("MessagesReceived")
   badges           UserBadge[]
+  collectionSubmissions CollectionSubmission[]
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -251,20 +255,31 @@ model ActivityEvent {
 // fonction que l'admin), mais reste en attente ("pending") tant qu'un admin ne l'a pas
 // validé — voir /admin/scans. Une seule ligne par (carte, utilisateur) : un nouvel envoi
 // remplace le précédent tant qu'il n'a pas encore été traité.
+// Scan proposé par un utilisateur : soit pour une carte EXISTANTE sans visuel (cardId
+// renseigné, flux d'origine), soit pour proposer un tout NOUVEL effet/prisme qui n'existe
+// pas encore pour ce numéro (cardId vide, collectionId/numero/rarete renseignés à la
+// place — la validation créera alors une nouvelle carte plutôt que de compléter celle-ci).
 model CardSubmission {
-  id         String    @id @default(cuid())
-  cardId     String
-  card       Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  image      String
-  imageHD    String?
-  status     String    @default("pending") // pending | approved | rejected
-  createdAt  DateTime  @default(now())
-  reviewedAt DateTime?
+  id                    String      @id @default(cuid())
+  cardId                String?
+  card                  Card?       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  collectionId          String?
+  collection            Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  numero                String?
+  rarete                String?
+  personnagePrincipalId String?
+  personnagePrincipal   Character?  @relation(fields: [personnagePrincipalId], references: [id], onDelete: SetNull)
+  userId                String
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  image                 String
+  imageHD               String?
+  status                String      @default("pending") // pending | approved | rejected
+  createdAt             DateTime    @default(now())
+  reviewedAt            DateTime?
 
   @@unique([cardId, userId])
   @@index([cardId])
+  @@index([collectionId])
   @@index([userId])
   @@index([status])
 }
@@ -339,4 +354,45 @@ model UserBadge {
 
   @@unique([userId, badgeId])
   @@index([userId])
+}
+
+// Proposition d'une collection COMPLÈTE par un membre : il saisit les infos de la
+// collection puis ajoute ses cartes une par une (voir CollectionSubmissionCard), dans le
+// même esprit que le formulaire admin. Reste modifiable par son auteur tant qu'elle n'a
+// pas été traitée par un admin (draft = en cours de constitution, pending = soumise pour
+// relecture mais encore modifiable, approved/rejected = traitée, plus modifiable).
+// L'acceptation crée une vraie Collection + ses Card, et vaut 100 points de participation.
+model CollectionSubmission {
+  id          String                     @id @default(cuid())
+  userId      String
+  user        User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nom         String
+  annee       String?
+  editeur     String?
+  pays        String?
+  total       Int?
+  description String?
+  status      String                     @default("draft") // draft | pending | approved | rejected
+  createdAt   DateTime                   @default(now())
+  updatedAt   DateTime                   @updatedAt
+  reviewedAt  DateTime?
+  resultingCollectionId String?
+  cards       CollectionSubmissionCard[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model CollectionSubmissionCard {
+  id                    String               @id @default(cuid())
+  submissionId          String
+  submission            CollectionSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  numero                String
+  personnagePrincipalId String?
+  personnagePrincipal   Character?           @relation(fields: [personnagePrincipalId], references: [id], onDelete: SetNull)
+  rarete                String               @default("Commune")
+  image                 String
+  createdAt             DateTime             @default(now())
+
+  @@index([submissionId])
 }

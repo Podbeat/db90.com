@@ -54,10 +54,18 @@ export default function AdminScansPage() {
               <img src={s.image} alt="" style={{ width: 70, height: 98, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ fontSize: "0.85rem" }}>
-                  <strong>{s.card.numero}</strong> — {s.card.personnagePrincipal?.name || "?"} · {s.card.collection?.nom}
-                  <Link href={`/cartes/${s.card.id}`} target="_blank" style={{ marginLeft: "0.6rem", color: "var(--gold)", fontSize: "0.78rem" }}>
-                    Voir la fiche ↗
-                  </Link>
+                  {s.card ? (
+                    <>
+                      <strong>{s.card.numero}</strong> — {s.card.personnagePrincipal?.name || "?"} · {s.card.collection?.nom}
+                      <Link href={`/cartes/${s.card.id}`} target="_blank" style={{ marginLeft: "0.6rem", color: "var(--gold)", fontSize: "0.78rem" }}>
+                        Voir la fiche ↗
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <strong>{s.numero}</strong> — nouvel effet « {s.rarete} » · {s.collection?.nom}
+                    </>
+                  )}
                 </div>
                 <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
                   Proposé par <strong>{s.user.username}</strong>
@@ -66,9 +74,14 @@ export default function AdminScansPage() {
                   {" · "}
                   {s.status === "pending" ? "En attente" : s.status === "approved" ? "Accepté" : "Refusé"}
                 </div>
-                {s.card.image && (
+                {s.card?.image && (
                   <div style={{ fontSize: "0.75rem", color: "var(--accent)", marginTop: "0.3rem" }}>
                     ⚠ Cette carte a déjà un visuel — l'accepter le remplacera.
+                  </div>
+                )}
+                {!s.card && (
+                  <div style={{ fontSize: "0.75rem", color: "var(--gold)", marginTop: "0.3rem" }}>
+                    ✦ Accepter créera une toute nouvelle carte (même numéro, personnage repris d'une carte sœur).
                   </div>
                 )}
                 {s.status === "pending" && (

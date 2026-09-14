@@ -31,7 +31,15 @@ export async function GET(request, { params }) {
     const prevCardId = index > 0 ? siblings[index - 1].id : null;
     const nextCardId = index >= 0 && index < siblings.length - 1 ? siblings[index + 1].id : null;
 
-    return NextResponse.json({ ...card, prevCardId, nextCardId });
+    // Autres effets/prismes existant déjà pour ce même numéro (même collection) — alimente
+    // le menu déroulant "Effet / Prisme" sur la fiche carte.
+    const variants = await prisma.card.findMany({
+      where: { collectionId: card.collectionId, numero: card.numero },
+      select: { id: true, rarete: true },
+      orderBy: { rarete: "asc" },
+    });
+
+    return NextResponse.json({ ...card, prevCardId, nextCardId, variants });
   } catch (e) {
     console.error("Erreur GET /api/cards/[id] :", e);
     return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });

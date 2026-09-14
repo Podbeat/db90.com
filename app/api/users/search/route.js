@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-// Recherche de membres par pseudo, pour la zone de recherche de l'en-tête. Publique (pas
-// besoin d'être connecté pour trouver un profil), résultats limités et légers.
+// Recherche de membres par pseudo, utilisée pour la recherche de membres sur la page
+// d'accueil. Publique (pas besoin d'être connecté pour trouver un profil). Sans texte
+// saisi, renvoie une liste par défaut à parcourir (les membres les plus récents) — pratique
+// pour quelqu'un qui arrive sur le site et ne connaît encore aucun pseudo précis.
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
-    if (!q || q.length < 2) return NextResponse.json([]);
 
     const users = await prisma.user.findMany({
-      where: { username: { contains: q, mode: "insensitive" } },
+      where: q ? { username: { contains: q, mode: "insensitive" } } : {},
       select: { username: true, avatar: true },
-      take: 8,
-      orderBy: { username: "asc" },
+      take: 15,
+      orderBy: q ? { username: "asc" } : { createdAt: "desc" },
     });
 
     return NextResponse.json(users);

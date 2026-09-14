@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ImageOff } from "lucide-react";
+import { ImageOff, Sparkles } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getFlagSvg } from "@/lib/countryFlags";
 import CollectionStatusButtons from "@/components/CollectionStatusButtons";
@@ -38,7 +38,14 @@ export default function CollectionsPage() {
 
   return (
     <div className="container page">
-      <h1 className="display-font" style={{ fontSize: "1.4rem", marginBottom: "1.25rem" }}>{t.collectionsTitle}</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.25rem" }}>
+        <h1 className="display-font" style={{ fontSize: "1.4rem", margin: 0 }}>{t.collectionsTitle}</h1>
+        {loggedIn && (
+          <Link href="/compte/proposer-collection" className="btn-ghost" style={{ fontSize: "0.8rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+            <Sparkles size={14} /> {t.proposeCollectionCta}
+          </Link>
+        )}
+      </div>
       {loading ? (
         <div className="empty-state">{t.loading}</div>
       ) : collections.length === 0 ? (
@@ -47,7 +54,9 @@ export default function CollectionsPage() {
         <div className="collection-grid">
           {collections.map((col, i) => {
             const archived = col.withImagesCount ?? 0;
-            const pct = col.total ? Math.min(100, Math.round((archived / col.total) * 100)) : 0;
+            const totalKnown = col.total != null;
+            const denominator = totalKnown ? col.total : col._count?.cards || 0;
+            const pct = denominator ? Math.min(100, Math.round((archived / denominator) * 100)) : 0;
             return (
               <Link
                 key={col.id}
@@ -84,11 +93,12 @@ export default function CollectionsPage() {
                   <div style={{ fontSize: "0.75rem", marginTop: "0.7rem" }}>
                     {t.archivedOf(archived, col.total)}
                   </div>
-                  {col.total && (
-                    <div className="progress-track">
-                      <div className={`progress-fill ${pct >= 100 ? "progress-complete" : ""}`} style={{ width: `${pct}%` }} />
-                    </div>
-                  )}
+                  <div className="progress-track">
+                    <div
+                      className={`progress-fill ${pct >= 100 && totalKnown ? "progress-complete" : ""}`}
+                      style={{ width: `${pct}%`, background: !totalKnown ? "var(--text-muted)" : undefined }}
+                    />
+                  </div>
                 </div>
               </Link>
             );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -9,12 +10,14 @@ import ShareButton from "@/components/ShareButton";
 import HoloCard from "@/components/HoloCard";
 import CardStatusToggle from "@/components/CardStatusToggle";
 import CardScanUpload from "@/components/CardScanUpload";
+import CardVariantUpload from "@/components/CardVariantUpload";
 import CardMarketplace from "@/components/CardMarketplace";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 
 export default function CardDetailClient({ id }) {
   const { t, lang } = useLanguage();
+  const router = useRouter();
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -91,6 +94,7 @@ export default function CardDetailClient({ id }) {
             </a>
           )}
           {!card.image && <CardScanUpload cardId={card.id} />}
+          <CardVariantUpload cardId={card.id} existingRaretes={card.variants?.map((v) => v.rarete)} />
         </div>
         {(card.dos || card.collection.dos) && (
           <div style={{ width: 280, maxWidth: "100%" }}>
@@ -129,7 +133,22 @@ export default function CardDetailClient({ id }) {
           </div>
           <div className="data-row"><span className="data-label">{t.collection}</span><span>{card.collection.nom}</span></div>
           <div className="data-row"><span className="data-label">{t.reference}</span><span>{card.numero}</span></div>
-          <div className="data-row"><span className="data-label">{t.variant}</span><span>{card.rarete}</span></div>
+          <div className="data-row">
+            <span className="data-label">{t.variant}</span>
+            {card.variants?.length > 1 ? (
+              <select
+                value={card.id}
+                onChange={(e) => router.push(`/cartes/${e.target.value}`)}
+                style={{ width: "auto", display: "inline-block", padding: "0.15rem 0.4rem" }}
+              >
+                {card.variants.map((v) => (
+                  <option key={v.id} value={v.id}>{v.rarete}</option>
+                ))}
+              </select>
+            ) : (
+              <span>{card.rarete}</span>
+            )}
+          </div>
           <div className="data-row"><span className="data-label">{t.editor}</span><span>{card.collection.editeur || "—"}</span></div>
           <div className="data-row"><span className="data-label">{t.origin}</span><span>{card.collection.pays || "—"}</span></div>
           <div className="data-row"><span className="data-label">{t.year}</span><span>{card.collection.annee || "—"}</span></div>

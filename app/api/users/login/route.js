@@ -2,9 +2,16 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { signUserSession, COOKIE_NAME } from "@/lib/userAuth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(request) {
   try {
+    const allowed = await checkRateLimit(request, "user-login", {
+      maxAttempts: 10,
+      windowMs: 15 * 60 * 1000,
+    });
+    if (!allowed) return rateLimitResponse(NextResponse);
+
     const { identifier, password } = await request.json();
     if (!identifier || !password) {
       return NextResponse.json({ error: "Identifiants manquants." }, { status: 400 });
@@ -40,6 +47,6 @@ export async function POST(request) {
     return response;
   } catch (e) {
     console.error("Erreur POST /api/users/login :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

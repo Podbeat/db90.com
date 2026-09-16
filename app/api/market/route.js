@@ -114,6 +114,6 @@ export async function GET(request) {
     });
   } catch (e) {
     console.error("Erreur GET /api/market :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

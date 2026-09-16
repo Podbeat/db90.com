@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
@@ -13,6 +13,16 @@ export default function ContactUserModal({ title, endpoint, extraBody, onClose, 
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+
+  // Permet de fermer la fenêtre au clavier (utilisateurs qui n'utilisent pas la souris) —
+  // en plus du clic sur le fond ou du bouton de fermeture déjà présents.
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   async function handleSend() {
     if (!message.trim()) return;

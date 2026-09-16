@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 import { uploadCardImage } from "@/lib/clientUpload";
 
@@ -16,7 +16,16 @@ export default function AdminCollectionsPage() {
   const [message, setMessage] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [applyWatermark, setApplyWatermark] = useState(false);
-  const fileRef = useRef(null);
+
+  // Ferme la confirmation de suppression au clavier, en plus du clic sur le fond.
+  useEffect(() => {
+    if (!confirmDelete) return;
+    function handleKeyDown(e) {
+      if (e.key === "Escape") setConfirmDelete(null);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [confirmDelete]);
 
   async function load() {
     setLoading(true);
@@ -137,11 +146,11 @@ export default function AdminCollectionsPage() {
               />
               Ajouter le filigrane "DB Non-Off 90's" (à décocher si le logo est déjà sur le scan)
             </label>
-            <div className="upload-zone" onClick={() => fileRef.current?.click()}>
+            <label className="upload-zone">
               <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
               {uploading ? "Envoi en cours…" : form.dos ? "Remplacer le visuel du dos" : "Cliquer pour importer le scan du dos"}
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleDosFile} style={{ display: "none" }} />
-            </div>
+              <input type="file" accept="image/*" onChange={handleDosFile} className="visually-hidden" />
+            </label>
             {form.dos && <img src={form.dos} alt="" style={{ width: 90, marginTop: "0.6rem" }} />}
           </div>
 

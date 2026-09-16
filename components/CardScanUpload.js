@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Upload, Clock, RotateCcw } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -12,7 +12,6 @@ import { submitCardScan } from "@/lib/clientUpload";
 // réellement sur la carte.
 export default function CardScanUpload({ cardId }) {
   const { t } = useLanguage();
-  const fileRef = useRef(null);
   const [loggedIn, setLoggedIn] = useState(null);
   const [status, setStatus] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -71,11 +70,11 @@ export default function CardScanUpload({ cardId }) {
       <div style={{ fontSize: "0.8rem", marginBottom: "0.6rem" }}>
         {status === "rejected" ? t.scanRejectedRetry : t.proposeScanTitle}
       </div>
-      <div className="upload-zone" onClick={() => !uploading && fileRef.current?.click()}>
+      <label className="upload-zone" style={{ cursor: uploading ? "default" : "pointer" }}>
         {status === "rejected" ? <RotateCcw size={16} style={{ margin: "0 auto 0.3rem" }} /> : <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />}
         {uploading ? "Envoi en cours…" : t.proposeScanCta}
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
-      </div>
+        <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="visually-hidden" />
+      </label>
       {error && <div className="toast error" style={{ marginTop: "0.5rem" }}>{error}</div>}
     </div>
   );

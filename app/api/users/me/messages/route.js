@@ -40,6 +40,6 @@ export async function GET(request) {
     return NextResponse.json([...threads.values()].sort((a, b) => new Date(b.lastAt) - new Date(a.lastAt)));
   } catch (e) {
     console.error("Erreur GET /api/users/me/messages :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

@@ -11,7 +11,7 @@ export async function GET(request) {
     return NextResponse.json(banned);
   } catch (e) {
     console.error("Erreur GET /api/admin/banned-emails :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -38,6 +38,6 @@ export async function POST(request) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Erreur POST /api/admin/banned-emails :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

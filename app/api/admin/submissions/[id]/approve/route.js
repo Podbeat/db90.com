@@ -69,6 +69,6 @@ export async function POST(request, { params }) {
     return NextResponse.json({ ok: true, cardId: resultingCardId });
   } catch (e) {
     console.error("Erreur POST /api/admin/submissions/[id]/approve :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

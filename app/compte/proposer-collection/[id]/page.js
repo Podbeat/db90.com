@@ -213,7 +213,7 @@ export default function ProposeCollectionBuilderPage() {
               </select>
               <label className="upload-zone" style={{ display: "block", cursor: uploading ? "default" : "pointer" }}>
                 {uploading ? "Envoi en cours…" : t.addCardUploadCta}
-                <input type="file" accept="image/*" onChange={handleAddCard} disabled={uploading} style={{ display: "none" }} />
+                <input type="file" accept="image/*" onChange={handleAddCard} disabled={uploading} className="visually-hidden" />
               </label>
             </div>
           )}

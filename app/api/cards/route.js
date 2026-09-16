@@ -83,7 +83,7 @@ export async function GET(request) {
     return NextResponse.json({ cards, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
   } catch (e) {
     console.error("Erreur GET /api/cards :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -124,7 +124,7 @@ export async function POST(request) {
     return NextResponse.json(card, { status: 201 });
   } catch (e) {
     console.error("Erreur POST /api/cards :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -153,6 +153,6 @@ export async function DELETE(request) {
     return NextResponse.json({ ok: true, count: result.count });
   } catch (e) {
     console.error("Erreur DELETE /api/cards :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

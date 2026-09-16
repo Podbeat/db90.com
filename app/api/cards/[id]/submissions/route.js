@@ -34,7 +34,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ ok: true, status: submission.status });
   } catch (e) {
     console.error("Erreur POST /api/cards/[id]/submissions :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -54,6 +54,6 @@ export async function GET(request, { params }) {
     return NextResponse.json({ status: submission?.status || null });
   } catch (e) {
     console.error("Erreur GET /api/cards/[id]/submissions :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

@@ -19,6 +19,6 @@ export async function GET() {
     return NextResponse.json(events.filter((e) => e.user));
   } catch (e) {
     console.error("Erreur GET /api/activity :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

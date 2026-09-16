@@ -40,12 +40,12 @@ export async function POST(request) {
       if (!valid) return NextResponse.json({ error: "Mot de passe actuel incorrect." }, { status: 401 });
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
 
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Erreur POST /api/users/me/password :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

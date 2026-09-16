@@ -29,7 +29,7 @@ export async function GET() {
     return NextResponse.json(withPreview);
   } catch (e) {
     console.error("Erreur GET /api/collections :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -64,6 +64,6 @@ export async function POST(request) {
     return NextResponse.json(collection, { status: 201 });
   } catch (e) {
     console.error("Erreur POST /api/collections :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

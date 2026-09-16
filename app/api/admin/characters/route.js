@@ -16,7 +16,7 @@ export async function GET(request) {
     return NextResponse.json(characters);
   } catch (e) {
     console.error("Erreur GET /api/admin/characters :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -36,6 +36,6 @@ export async function POST(request) {
     return NextResponse.json(character, { status: 201 });
   } catch (e) {
     console.error("Erreur POST /api/admin/characters :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

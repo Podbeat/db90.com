@@ -396,3 +396,16 @@ model CollectionSubmissionCard {
 
   @@index([submissionId])
 }
+
+// Limitation de débit anti-brute-force (login admin/membre, inscription, mot de passe
+// oublié, formulaire de contact). "key" est un hachage (route + IP), jamais l'IP en clair
+// — même principe que AnalyticsEvent, qui ne stocke déjà que le pays et pas l'IP. Les lignes
+// expirées sont supprimées à la volée par lib/rateLimit.js à chaque vérification : la table
+// reste petite, pas besoin de tâche de nettoyage séparée.
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}

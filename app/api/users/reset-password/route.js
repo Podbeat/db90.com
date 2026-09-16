@@ -16,12 +16,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "Ce lien a expiré ou n'est plus valide. Refaites une demande." }, { status: 400 });
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({ where: { id: payload.sub }, data: { passwordHash } });
 
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Erreur POST /api/users/reset-password :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

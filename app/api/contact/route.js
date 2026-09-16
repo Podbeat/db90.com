@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 // Envoie un e-mail via le compte Gmail configuré côté serveur (jamais exposé au client).
 // Variables requises dans .env : CONTACT_EMAIL_USER, CONTACT_EMAIL_APP_PASSWORD
 // (un "mot de passe d'application" Gmail, pas le mot de passe habituel du compte).
 
 export async function POST(request) {
+  const allowed = await checkRateLimit(request, "contact", {
+    maxAttempts: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!allowed) return rateLimitResponse(NextResponse);
+
   const { subject, message, replyTo } = await request.json();
 
   if (!message || !message.trim()) {

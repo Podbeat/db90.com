@@ -25,6 +25,6 @@ export async function GET(request) {
     return NextResponse.json({ selling, buying });
   } catch (e) {
     console.error("Erreur GET /api/users/me/listings :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

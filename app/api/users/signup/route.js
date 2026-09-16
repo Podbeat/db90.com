@@ -3,12 +3,19 @@ import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/db";
 import { signUserSession, signActionToken, COOKIE_NAME } from "@/lib/userAuth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 const USERNAME_RE = /^[a-z0-9_-]{3,20}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request) {
   try {
+    const allowed = await checkRateLimit(request, "signup", {
+      maxAttempts: 5,
+      windowMs: 60 * 60 * 1000,
+    });
+    if (!allowed) return rateLimitResponse(NextResponse);
+
     const body = await request.json();
     const username = (body.username || "").trim().toLowerCase();
     const email = (body.email || "").trim().toLowerCase();
@@ -41,7 +48,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Cette adresse e-mail ne peut pas être utilisée." }, { status: 403 });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
       data: { username, email, passwordHash },
     });
@@ -78,6 +85,6 @@ export async function POST(request) {
     return response;
   } catch (e) {
     console.error("Erreur POST /api/users/signup :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

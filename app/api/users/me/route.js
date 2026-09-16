@@ -25,7 +25,7 @@ export async function GET(request) {
     return NextResponse.json({ ...user, ownedCount, wantedCount });
   } catch (e) {
     console.error("Erreur GET /api/users/me :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -98,6 +98,6 @@ export async function PUT(request) {
     return NextResponse.json({ ...user, verificationResent: emailChanged });
   } catch (e) {
     console.error("Erreur PUT /api/users/me :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

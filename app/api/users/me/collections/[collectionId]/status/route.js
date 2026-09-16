@@ -52,6 +52,6 @@ export async function POST(request, { params }) {
     return NextResponse.json({ ok: true, count: cardIds.length, status });
   } catch (e) {
     console.error("Erreur POST /api/users/me/collections/[collectionId]/status :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Sparkles, Upload } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -14,7 +14,6 @@ import { submitCardVariant } from "@/lib/clientUpload";
 export default function CardVariantUpload({ cardId, existingRaretes }) {
   const { t } = useLanguage();
   const { loggedIn, loading } = useCurrentUser();
-  const fileRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [rarete, setRarete] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -81,11 +80,11 @@ export default function CardVariantUpload({ cardId, existingRaretes }) {
         <span className="field-label">{t.newVariantNameLabel}</span>
         <input value={rarete} onChange={(e) => setRarete(e.target.value)} placeholder={t.newVariantNamePlaceholder} />
       </div>
-      <div className="upload-zone" onClick={() => !uploading && fileRef.current?.click()}>
+      <label className="upload-zone" style={{ cursor: uploading ? "default" : "pointer" }}>
         <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
         {uploading ? "Envoi en cours…" : t.proposeScanCta}
-        <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
-      </div>
+        <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="visually-hidden" />
+      </label>
       {error && <div className="toast error" style={{ marginTop: "0.5rem" }}>{error}</div>}
     </div>
   );

@@ -13,6 +13,6 @@ export async function PUT(request, { params }) {
     return NextResponse.json(report);
   } catch (e) {
     console.error("Erreur PUT /api/admin/user-reports/[id] :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

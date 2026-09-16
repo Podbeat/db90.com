@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Upload, Copy } from "lucide-react";
 import { uploadCardImage } from "@/lib/clientUpload";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
@@ -39,8 +39,6 @@ export default function AdminCardsPage() {
   const [applyWatermark, setApplyWatermark] = useState(false);
   const [applySharpen, setApplySharpen] = useState(false);
   const [applyWatermarkDos, setApplyWatermarkDos] = useState(false);
-  const fileRef = useRef(null);
-  const dosFileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingDos, setUploadingDos] = useState(false);
 
@@ -49,6 +47,18 @@ export default function AdminCardsPage() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Ferme la modale de confirmation ouverte au clavier, en plus du clic sur le fond.
+  useEffect(() => {
+    if (!confirmDelete && !confirmBulkDelete) return;
+    function handleKeyDown(e) {
+      if (e.key !== "Escape") return;
+      if (confirmDelete) setConfirmDelete(null);
+      else if (!bulkDeleting) setConfirmBulkDelete(false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [confirmDelete, confirmBulkDelete, bulkDeleting]);
 
   // Liste maîtresse des personnages (menu déroulant + sélection multiple des secondaires)
   const [characters, setCharacters] = useState([]);
@@ -378,11 +388,11 @@ export default function AdminCardsPage() {
                 <input type="checkbox" checked={applySharpen} onChange={(e) => setApplySharpen(e.target.checked)} style={{ width: "auto" }} />
                 Renforcer la netteté (utile pour un scan ancien flou)
               </label>
-              <div className="upload-zone" onClick={() => fileRef.current?.click()}>
+              <label className="upload-zone">
                 <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
                 {uploading ? "Envoi en cours…" : form.image ? "Remplacer l'image" : "Cliquer pour importer le scan"}
-                <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
-              </div>
+                <input type="file" accept="image/*" onChange={handleFile} className="visually-hidden" />
+              </label>
               {form.image && <img src={form.image} alt="" style={{ width: 90, marginTop: "0.6rem" }} />}
             </div>
             <div className="field">
@@ -391,11 +401,11 @@ export default function AdminCardsPage() {
                 <input type="checkbox" checked={applyWatermarkDos} onChange={(e) => setApplyWatermarkDos(e.target.checked)} style={{ width: "auto" }} />
                 Ajouter le filigrane
               </label>
-              <div className="upload-zone" onClick={() => dosFileRef.current?.click()}>
+              <label className="upload-zone">
                 <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
                 {uploadingDos ? "Envoi en cours…" : form.dos ? "Remplacer le dos" : "Cliquer si le dos diffère de la série"}
-                <input ref={dosFileRef} type="file" accept="image/*" onChange={handleDosFile} style={{ display: "none" }} />
-              </div>
+                <input type="file" accept="image/*" onChange={handleDosFile} className="visually-hidden" />
+              </label>
               {form.dos && <img src={form.dos} alt="" style={{ width: 90, marginTop: "0.6rem" }} />}
               <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
                 Laissez vide pour utiliser le dos partagé de la collection.

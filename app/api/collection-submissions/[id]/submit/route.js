@@ -32,6 +32,6 @@ export async function POST(request, { params }) {
     return NextResponse.json(updated);
   } catch (e) {
     console.error("Erreur POST /api/collection-submissions/[id]/submit :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

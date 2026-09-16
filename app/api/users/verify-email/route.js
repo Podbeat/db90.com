@@ -16,6 +16,6 @@ export async function POST(request) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Erreur POST /api/users/verify-email :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

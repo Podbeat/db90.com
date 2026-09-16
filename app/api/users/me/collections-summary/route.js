@@ -48,6 +48,6 @@ export async function GET(request) {
     return NextResponse.json({ owned: summarize("owned"), wanted: summarize("wanted") });
   } catch (e) {
     console.error("Erreur GET /api/users/me/collections-summary :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

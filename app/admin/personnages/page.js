@@ -14,6 +14,18 @@ export default function AdminCharactersPage() {
   const [mergeSource, setMergeSource] = useState(null);
   const [mergeTargetId, setMergeTargetId] = useState("");
 
+  // Ferme la modale de confirmation ouverte au clavier, en plus du clic sur le fond.
+  useEffect(() => {
+    if (!confirmDelete && !mergeSource) return;
+    function handleKeyDown(e) {
+      if (e.key !== "Escape") return;
+      if (confirmDelete) setConfirmDelete(null);
+      else setMergeSource(null);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [confirmDelete, mergeSource]);
+
   async function load() {
     setLoading(true);
     const res = await fetch("/api/admin/characters");

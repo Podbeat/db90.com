@@ -22,6 +22,6 @@ export async function POST(request) {
     return NextResponse.json({ avatar: avatarUrl });
   } catch (e) {
     console.error("Erreur POST /api/users/me/avatar :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

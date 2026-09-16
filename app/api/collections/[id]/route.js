@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
     return NextResponse.json(collection);
   } catch (e) {
     console.error("Erreur GET /api/collections/[id] :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -60,7 +60,7 @@ export async function PUT(request, { params }) {
     return NextResponse.json(collection);
   } catch (e) {
     console.error("Erreur PUT /api/collections/[id] :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }
 
@@ -74,6 +74,6 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("Erreur DELETE /api/collections/[id] :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

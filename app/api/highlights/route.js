@@ -29,6 +29,6 @@ export async function GET() {
     return NextResponse.json({ lastCard, lastCollection: lastCollectionWithPreview });
   } catch (e) {
     console.error("Erreur GET /api/highlights :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

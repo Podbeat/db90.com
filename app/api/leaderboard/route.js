@@ -39,6 +39,6 @@ export async function GET() {
     });
   } catch (e) {
     console.error("Erreur GET /api/leaderboard :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

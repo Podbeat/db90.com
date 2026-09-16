@@ -31,6 +31,6 @@ export async function GET(request, { params }) {
     });
   } catch (e) {
     console.error("Erreur GET /api/cards/[id]/cote :", e);
-    return NextResponse.json({ error: `Erreur serveur : ${e.message}` }, { status: 500 });
+    return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
 }

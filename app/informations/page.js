@@ -31,6 +31,24 @@ export default function InformationsPage() {
           </a>
         </div>
 
+        <div className="info-block">
+          <div className="info-block-header">
+            <div className="info-block-icon icon-contribute"><ScanLine size={16} /></div>
+            <div className="info-block-title">{t.infoContributeTitle}</div>
+          </div>
+          {t.infoContributeText.map((p, i) => <p key={i} className="info-block-text" style={{ marginBottom: "0.9rem" }}>{p}</p>)}
+        </div>
+
+        <div className="info-block info-block-donate">
+          <div className="info-block-header">
+            <div className="info-block-title">{t.donateTitle}</div>
+          </div>
+          {t.donateText.map((p, i) => <p key={i} className="info-block-text" style={{ marginBottom: "0.9rem" }}>{p}</p>)}
+          <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="paypal-donate-btn">
+            {t.donateButton}
+          </a>
+        </div>
+
         <div className="info-block info-block-features">
           <div className="info-block-header">
             <div className="info-block-icon" style={{ background: "rgba(224, 176, 74, 0.12)", color: "var(--gold)" }}><Sparkles size={16} /></div>
@@ -62,24 +80,6 @@ export default function InformationsPage() {
               <ul className="feat-list">{t.infoFeaturesAccountItems.map((it, i) => <li key={i}>{it}</li>)}</ul>
             </div>
           </div>
-        </div>
-
-        <div className="info-block">
-          <div className="info-block-header">
-            <div className="info-block-icon icon-contribute"><ScanLine size={16} /></div>
-            <div className="info-block-title">{t.infoContributeTitle}</div>
-          </div>
-          {t.infoContributeText.map((p, i) => <p key={i} className="info-block-text" style={{ marginBottom: "0.9rem" }}>{p}</p>)}
-        </div>
-
-        <div className="info-block info-block-donate">
-          <div className="info-block-header">
-            <div className="info-block-title">{t.donateTitle}</div>
-          </div>
-          {t.donateText.map((p, i) => <p key={i} className="info-block-text" style={{ marginBottom: "0.9rem" }}>{p}</p>)}
-          <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="paypal-donate-btn">
-            {t.donateButton}
-          </a>
         </div>
 
         <div className="info-block info-block-contact">

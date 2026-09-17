@@ -463,9 +463,30 @@ a { color: inherit; text-decoration: none; }
 .collection-tile-body { padding: 0.9rem 1rem 1rem; }
 .collection-meta { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; }
 .collection-editor { font-size: 0.68rem; color: var(--text-muted); opacity: 0.65; margin-top: 0.15rem; }
-.progress-track { height: 4px; background: var(--line); margin-top: 0.6rem; }
-.progress-fill { height: 4px; background: var(--gold); }
+.progress-track { height: 5px; background: var(--line); margin-top: 0.5rem; border-radius: 999px; overflow: hidden; }
+.progress-fill { height: 5px; background: var(--gold); border-radius: 999px; transition: width 0.5s ease; }
 .progress-complete { background: #4caf6d; }
+
+/* Lignes de "Ma collection" / "Cartes recherchées" (voir CollectionProgressList) : vignette
+   de couverture + halo léger au survol, plutôt que du texte brut séparé par des traits. */
+.collection-progress-row {
+  display: flex; align-items: center; gap: 0.8rem; padding: 0.5rem 0.6rem; margin: 0 -0.6rem;
+  border-radius: var(--radius); transition: background 0.15s ease;
+}
+.collection-progress-row:hover { background: var(--surface-raised); }
+.collection-progress-row:hover .collection-progress-name { color: var(--accent); }
+.collection-progress-cover-wrap { position: relative; flex-shrink: 0; }
+.collection-progress-cover { width: 52px; height: 52px; border-radius: var(--radius-sm); object-fit: cover; display: block; background: var(--surface-raised); }
+.collection-progress-cover-placeholder { display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+.collection-progress-badge {
+  position: absolute; bottom: -3px; right: -3px; width: 18px; height: 18px; border-radius: 50%;
+  background: #4caf6d; color: #0d1526; display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--surface);
+}
+.collection-progress-body { flex: 1; min-width: 0; }
+.collection-progress-top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.6rem; font-size: 0.85rem; }
+.collection-progress-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.15s ease; }
+.collection-progress-frac { font-weight: 600; font-size: 0.82rem; flex-shrink: 0; }
 
 /* Data sheet (card detail) */
 .data-row { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px solid var(--line); font-size: 0.9rem; }

@@ -19,7 +19,7 @@ export async function GET(request) {
     const collections = collectionIds.length
       ? await prisma.collection.findMany({
           where: { id: { in: collectionIds } },
-          select: { id: true, nom: true, total: true, _count: { select: { cards: true } } },
+          select: { id: true, nom: true, total: true, cover: true, _count: { select: { cards: true } } },
         })
       : [];
     const collectionById = new Map(collections.map((c) => [c.id, c]));
@@ -37,6 +37,7 @@ export async function GET(request) {
           return {
             collectionId,
             nom: col?.nom || "",
+            cover: col?.cover || null,
             count,
             total: col?.total || null,
             catalogued: col?._count.cards || count,

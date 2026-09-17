@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, Trophy, ThumbsUp, ThumbsDown, Flag } from "lucide-react";
+import { Mail, Trophy, ThumbsUp, ThumbsDown, Flag, Ban } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
@@ -150,12 +150,18 @@ export default function UserProfileClient({ username }) {
   const [tab, setTab] = useState("participation");
   const [ratings, setRatings] = useState(null);
   const [showReport, setShowReport] = useState(false);
+  const [blockInfo, setBlockInfo] = useState({ blockedByMe: false, hasBlockedMe: false });
 
   function loadRatings() {
     fetch(`/api/users/${username}/ratings`)
       .then((r) => (r.ok ? r.json() : null))
       .then(setRatings)
       .catch(() => {});
+  }
+
+  async function handleToggleBlock() {
+    await fetch(`/api/users/${username}/block`, { method: blockInfo.blockedByMe ? "DELETE" : "POST" });
+    setBlockInfo((b) => ({ ...b, blockedByMe: !b.blockedByMe }));
   }
 
   useEffect(() => {
@@ -166,6 +172,10 @@ export default function UserProfileClient({ username }) {
       })
       .then((data) => { if (data) setProfile(data); })
       .finally(() => setLoading(false));
+
+    fetch(`/api/users/${username}/block`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setBlockInfo(data); });
 
     loadRatings();
   }, [username]);
@@ -203,6 +213,14 @@ export default function UserProfileClient({ username }) {
             >
               <Mail size={13} /> {t.contactSeller}
             </Link>
+            <button
+              onClick={handleToggleBlock}
+              className="btn-icon"
+              title={blockInfo.blockedByMe ? t.unblockMember : t.blockMember}
+              style={blockInfo.blockedByMe ? { color: "var(--accent)", borderColor: "var(--accent)" } : undefined}
+            >
+              <Ban size={13} />
+            </button>
             <button
               onClick={() => setShowReport(true)}
               className="btn-icon"

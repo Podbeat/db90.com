@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -14,7 +14,6 @@ import { submitNewCardForCollection } from "@/lib/clientUpload";
 export default function CollectionNewCardUpload({ collectionId }) {
   const { t } = useLanguage();
   const { loggedIn, loading } = useCurrentUser();
-  const fileRef = useRef(null);
   const [characters, setCharacters] = useState([]);
   const [open, setOpen] = useState(false);
   const [numero, setNumero] = useState("");
@@ -55,41 +54,49 @@ export default function CollectionNewCardUpload({ collectionId }) {
   }
 
   return (
-    <div className="card-tile" style={{ cursor: "default" }}>
-      <div className="card-tile-media" style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "var(--surface-raised)" }}>
-        <Upload size={28} style={{ color: "var(--text-muted)" }} />
-      </div>
-      <div className="meta">
-        <div className="card-nom">{t.missingCardSlotTitle}</div>
-        {!loggedIn ? (
-          <Link href="/compte/connexion" style={{ fontSize: "0.72rem", color: "var(--accent)" }}>{t.loginToProposeScan}</Link>
-        ) : !open ? (
-          <button className="btn-ghost" style={{ fontSize: "0.72rem", marginTop: "0.3rem" }} onClick={() => setOpen(true)}>
-            {t.proposeScanCta}
+    <div className="card-tile new-card-tile" style={{ cursor: "default" }}>
+      {!open ? (
+        loggedIn ? (
+          <button type="button" className="new-card-trigger" onClick={() => setOpen(true)}>
+            <span className="new-card-icon"><Upload size={22} /></span>
+            <span className="card-nom">{t.missingCardSlotTitle}</span>
+            <span className="new-card-hint">{t.proposeScanCta}</span>
           </button>
-        ) : justSent ? (
-          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>{t.scanPending}</div>
         ) : (
-          <div style={{ marginTop: "0.4rem" }}>
-            <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder={t.cardNumberPlaceholder} style={{ fontSize: "0.72rem", marginBottom: "0.3rem" }} />
-            <input value={rarete} onChange={(e) => setRarete(e.target.value)} placeholder={t.effectPlaceholder} style={{ fontSize: "0.72rem", marginBottom: "0.3rem" }} />
-            <select value={personnage} onChange={(e) => setPersonnage(e.target.value)} style={{ fontSize: "0.72rem", marginBottom: "0.3rem" }}>
-              <option value="">{t.noCharacterAssigned}</option>
-              {characters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <button
-              className="btn-ghost"
-              style={{ fontSize: "0.72rem", width: "100%" }}
-              onClick={() => !uploading && fileRef.current?.click()}
-              disabled={uploading}
-            >
-              {uploading ? "…" : t.addCardUploadCta}
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
-            {error && <div style={{ fontSize: "0.68rem", color: "var(--accent)", marginTop: "0.3rem" }}>{error}</div>}
-          </div>
-        )}
-      </div>
+          <Link href="/compte/connexion" className="new-card-trigger">
+            <span className="new-card-icon"><Upload size={22} /></span>
+            <span className="card-nom">{t.missingCardSlotTitle}</span>
+            <span className="new-card-hint">{t.loginToProposeScan}</span>
+          </Link>
+        )
+      ) : (
+        <div className="meta">
+          <div className="card-nom" style={{ marginBottom: "0.5rem" }}>{t.missingCardSlotTitle}</div>
+          {justSent ? (
+            <div style={{ fontSize: "0.75rem", color: "var(--turquoise)" }}>{t.scanPending}</div>
+          ) : (
+            <>
+              <div className="field" style={{ margin: "0 0 0.4rem" }}>
+                <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder={t.cardNumberPlaceholder} style={{ fontSize: "0.78rem", padding: "0.4rem 0.55rem" }} />
+              </div>
+              <div className="field" style={{ margin: "0 0 0.4rem" }}>
+                <input value={rarete} onChange={(e) => setRarete(e.target.value)} placeholder={t.effectPlaceholder} style={{ fontSize: "0.78rem", padding: "0.4rem 0.55rem" }} />
+              </div>
+              <div className="field" style={{ margin: "0 0 0.5rem" }}>
+                <select value={personnage} onChange={(e) => setPersonnage(e.target.value)} style={{ fontSize: "0.78rem", padding: "0.4rem 0.55rem" }}>
+                  <option value="">{t.noCharacterAssigned}</option>
+                  {characters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <label className="upload-zone" style={{ display: "block", fontSize: "0.75rem", padding: "0.5rem", cursor: uploading ? "default" : "pointer" }}>
+                {uploading ? "…" : t.addCardUploadCta}
+                <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="visually-hidden" />
+              </label>
+              {error && <div style={{ fontSize: "0.7rem", color: "var(--accent)", marginTop: "0.4rem" }}>{error}</div>}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

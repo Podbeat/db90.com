@@ -116,6 +116,10 @@ model User {
   messagesReceived Message[] @relation("MessagesReceived")
   badges           UserBadge[]
   collectionSubmissions CollectionSubmission[]
+  hiddenThreads      HiddenThread[] @relation("HiddenThreadsOwned")
+  hiddenThreadsWith  HiddenThread[] @relation("HiddenThreadsWithOther")
+  blocksMade         BlockedUser[] @relation("BlocksMade")
+  blocksReceived     BlockedUser[] @relation("BlocksReceived")
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -408,4 +412,37 @@ model RateLimitHit {
   createdAt DateTime @default(now())
 
   @@index([key, createdAt])
+}
+
+// Masquage d'un fil de discussion pour UN SEUL des deux membres (jamais une suppression
+// réelle : les messages restent en base pour l'autre personne, et pour la vérification
+// "message échangé au préalable" exigée par UserRating). Le fil réapparaît naturellement
+// dans la messagerie directe dès qu'un nouveau message est plus récent que hiddenAt — pas
+// besoin de supprimer cette ligne à ce moment-là, la comparaison de dates suffit (voir
+// GET /api/users/me/messages).
+model HiddenThread {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation("HiddenThreadsOwned", fields: [userId], references: [id], onDelete: Cascade)
+  otherId  String
+  other    User     @relation("HiddenThreadsWithOther", fields: [otherId], references: [id], onDelete: Cascade)
+  hiddenAt DateTime @default(now())
+
+  @@unique([userId, otherId])
+  @@index([userId])
+}
+
+// Blocage d'un membre par un autre : empêche l'envoi de messages dans les deux sens tant
+// que le blocage existe (voir POST /api/users/me/messages/[username]). Ne masque pas les
+// annonces/le catalogue — volontairement limité à la messagerie pour l'instant.
+model BlockedUser {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
 }

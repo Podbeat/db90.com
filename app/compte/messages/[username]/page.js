@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Send, Archive, Ban } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/components/CurrentUserProvider";
 export default function MessageThreadPage() {
   const { t } = useLanguage();
   const { username } = useParams();
+  const router = useRouter();
   const { me } = useCurrentUser();
   const [other, setOther] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -18,6 +19,7 @@ export default function MessageThreadPage() {
   const [notFound, setNotFound] = useState(false);
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+  const [blockInfo, setBlockInfo] = useState({ blockedByMe: false, hasBlockedMe: false });
   const bottomRef = useRef(null);
 
   function load() {
@@ -32,6 +34,10 @@ export default function MessageThreadPage() {
         setMessages(data.messages);
       })
       .finally(() => setLoading(false));
+
+    fetch(`/api/users/${username}/block`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setBlockInfo(data); });
   }
 
   useEffect(() => { load(); }, [username]);
@@ -59,15 +65,37 @@ export default function MessageThreadPage() {
     }
   }
 
+  async function handleHide() {
+    await fetch(`/api/users/me/messages/${username}/hide`, { method: "POST" });
+    router.push("/compte/messages");
+  }
+
+  async function handleToggleBlock() {
+    await fetch(`/api/users/${username}/block`, { method: blockInfo.blockedByMe ? "DELETE" : "POST" });
+    setBlockInfo((b) => ({ ...b, blockedByMe: !b.blockedByMe }));
+  }
+
   if (loading) return <div className="empty-state">{t.loading}</div>;
   if (notFound || !other) return <div className="empty-state">{t.profileNotFound}</div>;
+
+  const canSend = !blockInfo.blockedByMe && !blockInfo.hasBlockedMe;
 
   return (
     <div className="filter-panel" style={{ display: "flex", flexDirection: "column", height: "70vh" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", paddingBottom: "0.8rem", borderBottom: "1px solid var(--line)" }}>
         <Link href="/compte/messages" className="btn-icon"><ArrowLeft size={14} /></Link>
         <img src={other.avatar || avatarPlaceholder(other.username)} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
-        <Link href={`/u/${other.username}`} style={{ fontWeight: 600, fontSize: "0.9rem" }}>{other.username}</Link>
+        <Link href={`/u/${other.username}`} style={{ fontWeight: 600, fontSize: "0.9rem", flex: 1 }}>{other.username}</Link>
+        <button className="btn-icon" onClick={handleHide} title={t.hideThread} type="button"><Archive size={14} /></button>
+        <button
+          className="btn-icon"
+          onClick={handleToggleBlock}
+          title={blockInfo.blockedByMe ? t.unblockMember : t.blockMember}
+          type="button"
+          style={blockInfo.blockedByMe ? { color: "var(--accent)", borderColor: "var(--accent)" } : undefined}
+        >
+          <Ban size={14} />
+        </button>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "0.8rem 0", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -99,18 +127,24 @@ export default function MessageThreadPage() {
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} style={{ display: "flex", gap: "0.5rem", paddingTop: "0.6rem", borderTop: "1px solid var(--line)" }}>
-        <input
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder={t.messagePlaceholder}
-          style={{ flex: 1 }}
-          maxLength={3000}
-        />
-        <button className="btn-primary" type="submit" disabled={sending || !body.trim()} style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-          <Send size={14} />
-        </button>
-      </form>
+      {canSend ? (
+        <form onSubmit={handleSend} style={{ display: "flex", gap: "0.5rem", paddingTop: "0.6rem", borderTop: "1px solid var(--line)" }}>
+          <input
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder={t.messagePlaceholder}
+            style={{ flex: 1 }}
+            maxLength={3000}
+          />
+          <button className="btn-primary" type="submit" disabled={sending || !body.trim()} style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+            <Send size={14} />
+          </button>
+        </form>
+      ) : (
+        <div style={{ paddingTop: "0.6rem", borderTop: "1px solid var(--line)", fontSize: "0.78rem", color: "var(--text-muted)" }}>
+          {blockInfo.blockedByMe ? t.cannotSendYouBlocked : t.cannotSendBlockedYou}
+        </div>
+      )}
     </div>
   );
 }

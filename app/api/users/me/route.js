@@ -75,7 +75,7 @@ export async function PUT(request) {
         if (gmailUser && appPassword) {
           try {
             const verifyToken = await signActionToken({ sub: session.sub }, "email-verify", "7d");
-            const link = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/compte/verifier-email?token=${verifyToken}`;
+            const link = `${process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app"}/compte/verifier-email?token=${verifyToken}`;
             const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: appPassword } });
             await transporter.sendMail({
               from: `"DB Non-Off 90's" <${gmailUser}>`,

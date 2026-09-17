@@ -73,7 +73,7 @@ export async function POST(request, { params }) {
           from: `"DB Non-Off 90's" <${user}>`,
           to: recipient.email,
           subject: `[DB Non-Off 90's] Nouveau message de ${sender.username}`,
-          text: `${sender.username} vous a envoyé un message sur DB Non-Off 90's. Connectez-vous pour le lire et y répondre : ${process.env.NEXT_PUBLIC_SITE_URL || ""}/compte/messages/${sender.username}`,
+          text: `${sender.username} vous a envoyé un message sur DB Non-Off 90's. Connectez-vous pour le lire et y répondre : ${process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app"}/compte/messages/${sender.username}`,
         });
       } catch (mailError) {
         // La notification par e-mail est un confort, pas une garantie : le message est déjà

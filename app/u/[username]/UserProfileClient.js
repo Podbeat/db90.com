@@ -8,6 +8,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import ContactUserModal from "@/components/ContactUserModal";
+import ListingCard from "@/components/ListingCard";
 import { computeBadges } from "@/lib/badges";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 
@@ -35,38 +36,6 @@ function MiniGrid({ cards, t, emptyLabel }) {
             <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>
             <div className="card-nom">{c.personnagePrincipal?.name || t.noCharacterAssigned}</div>
           </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function SalesList({ listings, t }) {
-  if (listings.length === 0) {
-    return <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{t.noSalesListed}</div>;
-  }
-  return (
-    <div>
-      {listings.map((l) => (
-        <Link
-          key={l.id}
-          href={`/cartes/${l.card.id}`}
-          style={{ display: "flex", alignItems: "center", gap: "0.7rem", padding: "0.5rem 0", borderBottom: "1px solid var(--line)" }}
-        >
-          <img
-            src={l.card.image || ""}
-            alt={l.card.personnagePrincipal?.name || ""}
-            style={{ width: 40, height: 56, objectFit: "cover", background: "var(--surface-raised)", flexShrink: 0 }}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: "0.85rem" }}>{l.card.personnagePrincipal?.name || t.noCharacterAssigned}</div>
-            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
-              {l.card.collection?.nom} — n°{l.card.numero} · {l.condition}
-            </div>
-          </div>
-          <span style={{ fontSize: "0.85rem", color: "var(--gold)", fontWeight: 600 }}>
-            {l.price != null ? `${l.price} €` : t.priceNotSet}
-          </span>
         </Link>
       ))}
     </div>
@@ -262,7 +231,15 @@ export default function UserProfileClient({ username }) {
       )}
       {tab === "collection" && <MiniGrid cards={profile.owned} t={t} emptyLabel={t.noCardsOwned} />}
       {tab === "wanted" && <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />}
-      {tab === "sales" && <SalesList listings={profile.selling} t={t} />}
+      {tab === "sales" && (
+        profile.selling.length === 0 ? (
+          <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{t.noSalesListed}</div>
+        ) : (
+          <div className="listing-grid">
+            {profile.selling.map((l) => <ListingCard key={l.id} listing={l} showSeller={false} />)}
+          </div>
+        )
+      )}
 
       {showReport && (
         <ContactUserModal

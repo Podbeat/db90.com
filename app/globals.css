@@ -212,6 +212,46 @@ a { color: inherit; text-decoration: none; }
 .sidebar { width: 260px; flex-shrink: 0; }
 .main-col { flex: 1; min-width: 280px; }
 
+/* Listing cards — grille "boutique" partagée entre /marche, la boutique d'un membre
+   (/u/[username]) et la gestion de ses propres annonces (/compte/ventes). */
+.listing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 1rem; }
+.listing-card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; display: flex; flex-direction: column; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.listing-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.listing-link { display: block; color: inherit; }
+.listing-media { position: relative; width: 100%; aspect-ratio: 5 / 7; background: var(--surface-raised); }
+.listing-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.listing-badge { position: absolute; top: 8px; left: 8px; font-size: 0.68rem; font-weight: 600; padding: 3px 8px; border-radius: 999px; }
+.listing-badge.badge-sell { background: var(--gold); color: #1a1208; }
+.listing-badge.badge-buy { background: rgba(13, 21, 38, 0.85); color: var(--turquoise); border: 1px solid var(--turquoise); }
+.listing-remove-btn {
+  position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(13, 21, 38, 0.85); border: 1px solid var(--line); color: var(--text);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.listing-remove-btn:hover { border-color: var(--accent); color: var(--accent); }
+.listing-body { padding: 0.6rem 0.7rem 0.7rem; display: flex; flex-direction: column; gap: 0.2rem; flex: 1; }
+.listing-price { font-family: 'Archivo Black', sans-serif; font-size: 1rem; color: var(--gold); }
+.listing-wanted { font-size: 0.8rem; color: var(--turquoise); font-weight: 600; }
+.listing-name { font-size: 0.875rem; font-weight: 600; color: var(--text); }
+.listing-meta { font-size: 0.72rem; color: var(--text-muted); }
+.condition-pill { display: inline-block; font-size: 0.68rem; color: var(--text-muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; margin-top: 2px; width: fit-content; }
+.listing-seller-row { display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--text-muted); margin-top: auto; padding: 0.5rem 0.7rem; border-top: 1px solid var(--line); }
+.listing-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+
+/* Barre de filtres façon site marchand : puces cliquables au lieu de menus déroulants plats. */
+.chip-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.chip-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-right: 0.2rem; }
+.chip-divider { width: 1px; align-self: stretch; background: var(--line); margin: 0 0.2rem; }
+.filter-select {
+  appearance: none; -webkit-appearance: none;
+  background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%238ea3c4' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border: 1px solid var(--line); border-radius: 999px; color: var(--text);
+  padding: 0.4rem 1.8rem 0.4rem 0.85rem; font-size: 0.8rem; font-family: inherit; cursor: pointer;
+}
+.filter-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(242, 113, 28, 0.22); }
+.sort-chip { font-size: 0.8rem; color: var(--silver); background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 0.4rem 0.85rem; cursor: pointer; font-family: inherit; }
+.sort-chip.active { background: var(--accent); border-color: var(--accent); color: #1a1208; font-weight: 600; }
+
 /* Filters / forms */
 .filter-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 1.1rem; }
 .form-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 1.1rem; }

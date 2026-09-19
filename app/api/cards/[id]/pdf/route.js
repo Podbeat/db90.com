@@ -5,7 +5,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export const runtime = "nodejs";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90.org";
 
 const BODY_BG = rgb(0.961, 0.945, 0.910);
 const HEADER_BG = rgb(0.071, 0.125, 0.227);

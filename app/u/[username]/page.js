@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import UserProfileClient from "./UserProfileClient";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90.org";
 
 export async function generateMetadata({ params }) {
   const { username } = await params;

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90.org";
 
 // Le catalogue change souvent (imports en masse, ajouts) : on génère le sitemap à la
 // demande plutôt qu'une fois pour toutes au moment du build, pour qu'il reste à jour.

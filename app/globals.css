@@ -527,8 +527,7 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
 
 .info-text { font-size: 0.92rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 1.1rem; }
 .info-subtitle { font-family: 'Archivo Black', sans-serif; font-size: 0.95rem; margin: 1.6rem 0 0.8rem; color: var(--gold); }
-.info-list { margin: 0 0 1.1rem; padding-left: 1.2rem; font-size: 0.92rem; line-height: 1.7; color: var(--text-muted); }
-.info-list li { margin-bottom: 0.2rem; }
+
 
 .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.1rem; align-items: stretch; }
 .info-block { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 1.2rem 1.3rem; display: flex; flex-direction: column; }
@@ -546,12 +545,17 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
 .info-block-icon.icon-contact { background: rgba(224, 176, 74, 0.12); color: var(--gold); }
 .info-block-title { font-family: 'Archivo Black', sans-serif; font-size: 0.92rem; color: var(--accent); margin: 0; }
 .info-block-text { font-size: 0.88rem; line-height: 1.6; color: var(--text-muted); margin: 0; }
-.info-fb-link { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #1877F2; margin-top: auto; padding-top: 0.8rem; align-self: flex-end; }
-.info-fb-link:hover { opacity: 0.8; }
+.info-cta {
+  display: block; text-align: center; margin-top: auto; padding: 0.55rem 1rem;
+  border-radius: var(--radius); font-size: 0.8rem; font-weight: 600; transition: filter 0.15s ease;
+}
+.info-cta:hover { filter: brightness(1.15); }
+.info-cta-facebook { background: rgba(24, 119, 242, 0.12); color: #1877F2; }
+.info-cta-catalogue { background: rgba(242, 113, 28, 0.12); color: var(--accent); }
 .paypal-donate-btn {
-  display: inline-block; background: #ffc439; color: #003087; font-weight: 700; font-size: 0.85rem;
+  display: block; text-align: center; background: #ffc439; color: #003087; font-weight: 700; font-size: 0.85rem;
   padding: 0.6rem 1.3rem; border-radius: 24px; transition: filter 0.15s ease;
-  margin-top: auto; align-self: flex-end;
+  margin-top: auto;
 }
 .paypal-donate-btn:hover { filter: brightness(0.95); }
 .info-block-contact { grid-column: 1 / -1; }
@@ -563,9 +567,10 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
 .info-block-features { grid-column: 1 / -1; }
 .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem 1.4rem; }
 .feat-cat-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gold); margin-bottom: 0.35rem; font-weight: 600; }
-.feat-list { margin: 0; padding: 0; list-style: none; font-size: 0.76rem; color: var(--silver); line-height: 1.65; }
-.feat-list li { padding-left: 0.9rem; position: relative; }
-.feat-list li::before { content: "–"; position: absolute; left: 0; color: var(--line); }
+.feat-list, .info-list { margin: 0 0 1rem; padding: 0; list-style: none; font-size: 0.78rem; color: var(--silver); line-height: 1.7; }
+.feat-list li, .info-list li { padding-left: 0.9rem; position: relative; }
+.feat-list li::before, .info-list li::before { content: "–"; position: absolute; left: 0; color: var(--line); }
+.info-list { flex: 1; }
 
 @media (max-width: 900px) { .feat-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .feat-grid { grid-template-columns: 1fr; } }

@@ -28,7 +28,7 @@ export async function POST(request) {
       const appPassword = process.env.CONTACT_EMAIL_APP_PASSWORD;
       if (gmailUser && appPassword) {
         const token = await signActionToken({ sub: user.id }, "password-reset", "30m");
-        const link = `${process.env.NEXT_PUBLIC_SITE_URL || "https://db90-com.vercel.app"}/compte/reinitialiser-mot-de-passe?token=${token}`;
+        const link = `${process.env.NEXT_PUBLIC_SITE_URL || "https://db90.org"}/compte/reinitialiser-mot-de-passe?token=${token}`;
         try {
           const transporter = nodemailer.createTransport({ service: "gmail", auth: { user: gmailUser, pass: appPassword } });
           await transporter.sendMail({

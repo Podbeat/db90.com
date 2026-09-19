@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import ContactForm from "@/components/ContactForm";
-import { Archive, ScanLine, MessageCircle, Facebook, Sparkles } from "lucide-react";
+import { Archive, ScanLine, MessageCircle, Sparkles } from "lucide-react";
 
 // À remplacer par votre vrai lien une fois le compte PayPal du site créé, ex. :
 // "https://www.paypal.com/paypalme/votre-nom" ou "https://www.paypal.com/donate/?hosted_button_id=..."
@@ -26,8 +27,8 @@ export default function InformationsPage() {
           <ul className="info-list">
             {t.infoAboutList.map((g, i) => <li key={i}>{g}</li>)}
           </ul>
-          <a href={FACEBOOK_GROUP_URL} target="_blank" rel="noopener noreferrer" className="info-fb-link">
-            <Facebook size={14} /> {t.footerJoinGroup}
+          <a href={FACEBOOK_GROUP_URL} target="_blank" rel="noopener noreferrer" className="info-cta info-cta-facebook">
+            {t.footerJoinGroup}
           </a>
         </div>
 
@@ -36,14 +37,23 @@ export default function InformationsPage() {
             <div className="info-block-icon icon-contribute"><ScanLine size={16} /></div>
             <div className="info-block-title">{t.infoContributeTitle}</div>
           </div>
-          {t.infoContributeText.map((p, i) => <p key={i} className="info-block-text" style={{ marginBottom: "0.9rem" }}>{p}</p>)}
+          <p className="info-block-text">{t.infoContributeIntro}</p>
+          <ul className="info-list">
+            {t.infoContributeText.map((p, i) => <li key={i}>{p}</li>)}
+          </ul>
+          <Link href="/" className="info-cta info-cta-catalogue">
+            {t.infoContributeCta}
+          </Link>
         </div>
 
         <div className="info-block info-block-donate">
           <div className="info-block-header">
             <div className="info-block-title">{t.donateTitle}</div>
           </div>
-          {t.donateText.map((p, i) => <p key={i} className="info-block-text" style={{ marginBottom: "0.9rem" }}>{p}</p>)}
+          <p className="info-block-text">{t.donateIntro}</p>
+          <ul className="info-list">
+            {t.donateText.map((p, i) => <li key={i}>{p}</li>)}
+          </ul>
           <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="paypal-donate-btn">
             {t.donateButton}
           </a>

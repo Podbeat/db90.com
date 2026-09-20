@@ -29,5 +29,26 @@ export async function generateMetadata({ params }) {
 // que l'id déjà résolu.
 export default async function CollectionDetailPage({ params }) {
   const { id } = await params;
-  return <CollectionDetailClient id={id} />;
+
+  // Fil d'Ariane structuré (schema.org), même principe que sur la fiche carte.
+  const collection = await prisma.collection.findUnique({ where: { id }, select: { nom: true } });
+
+  const breadcrumbJsonLd = collection && {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Collections", item: `${SITE_URL}/collections` },
+      { "@type": "ListItem", position: 3, name: collection.nom },
+    ],
+  };
+
+  return (
+    <>
+      {breadcrumbJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      )}
+      <CollectionDetailClient id={id} />
+    </>
+  );
 }

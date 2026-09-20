@@ -35,5 +35,32 @@ export async function generateMetadata({ params }) {
 // l'id déjà résolu (un client component ne peut pas "await" une prop directement).
 export default async function CardDetailPage({ params }) {
   const { id } = await params;
-  return <CardDetailClient id={id} />;
+
+  // Fil d'Ariane structuré (schema.org) : aide Google à afficher un chemin de
+  // navigation (Accueil > Collection > Carte) dans les résultats de recherche plutôt
+  // que la seule URL brute. Requête légère, séparée de generateMetadata ci-dessus car
+  // Next.js n'en partage pas le résultat entre les deux fonctions.
+  const card = await prisma.card.findUnique({
+    where: { id },
+    select: { numero: true, personnagePrincipal: { select: { name: true } }, collection: { select: { id: true, nom: true } } },
+  });
+
+  const breadcrumbJsonLd = card && {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: card.collection.nom, item: `${SITE_URL}/collections/${card.collection.id}` },
+      { "@type": "ListItem", position: 3, name: card.personnagePrincipal?.name || `Carte n°${card.numero}` },
+    ],
+  };
+
+  return (
+    <>
+      {breadcrumbJsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      )}
+      <CardDetailClient id={id} />
+    </>
+  );
 }

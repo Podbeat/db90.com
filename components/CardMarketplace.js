@@ -83,7 +83,9 @@ export default function CardMarketplace({ cardId }) {
       </div>
 
       {!loggedIn ? (
-        <Link href="/compte/connexion" className="btn-ghost" style={{ fontSize: "0.78rem" }}>{t.loginToTrade}</Link>
+        <div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid var(--line)" }}>
+          <Link href="/compte/connexion" className="btn-ghost" style={{ fontSize: "0.78rem" }}>{t.loginToTrade}</Link>
+        </div>
       ) : (
         <div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid var(--line)" }}>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.6rem" }}>

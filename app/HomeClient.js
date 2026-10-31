@@ -249,7 +249,7 @@ export default function CataloguePage() {
         >
           <div className="sheet-head">
             <span className="sheet-title display-font">{t.filtersButton}</span>
-            <button type="button" className="sheet-close" aria-label={t.menuClose} onClick={() => setFiltersOpen(false)}>
+            <button type="button" className="sheet-close" aria-label={t.filtersClose} onClick={() => setFiltersOpen(false)}>
               <X size={22} aria-hidden="true" />
             </button>
           </div>

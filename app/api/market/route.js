@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { publicCacheHeaders } from "@/lib/httpCache";
 
 const listingInclude = {
   card: {
@@ -111,6 +112,10 @@ export async function GET(request) {
         pays: paysSet,
         personnages: personnages.map((p) => ({ id: p.id, name: p.name })),
       },
+    }, {
+      // Cache plus court que les autres routes : un membre qui vient de publier une
+      // annonce doit la retrouver vite sur le Marché.
+      headers: publicCacheHeaders(request, { sMaxAge: 30, staleWhileRevalidate: 60 }),
     });
   } catch (e) {
     console.error("Erreur GET /api/market :", e);

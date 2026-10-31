@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { publicCacheHeaders } from "@/lib/httpCache";
 
 // Classement public : top collectionneurs (nombre de cartes possédées) et top
 // contributeurs (scans validés). Requêtes groupées pour rester efficace même avec
 // beaucoup de membres, plutôt que de recalculer la participation de chacun un par un.
-export async function GET() {
+export async function GET(request) {
   try {
     const [topOwners, topContributors] = await Promise.all([
       prisma.userCard.groupBy({
@@ -36,7 +37,7 @@ export async function GET() {
       topContributors: topContributors
         .map((c) => ({ user: userById.get(c.userId), count: c._count.userId }))
         .filter((c) => c.user),
-    });
+    }, { headers: publicCacheHeaders(request) });
   } catch (e) {
     console.error("Erreur GET /api/leaderboard :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

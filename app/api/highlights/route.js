@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { publicCacheHeaders } from "@/lib/httpCache";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 
-export async function GET() {
+export async function GET(request) {
   try {
     const [lastCard, lastCollection] = await Promise.all([
       // On ne met en avant que des cartes avec un vrai scan : pas d'intérêt à afficher le
@@ -26,7 +27,7 @@ export async function GET() {
       lastCollectionWithPreview = { ...rest, previewImage: firstWithImage?.image || lastCollection.cover || null };
     }
 
-    return NextResponse.json({ lastCard, lastCollection: lastCollectionWithPreview });
+    return NextResponse.json({ lastCard, lastCollection: lastCollectionWithPreview }, { headers: publicCacheHeaders(request) });
   } catch (e) {
     console.error("Erreur GET /api/highlights :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

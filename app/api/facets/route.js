@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { publicCacheHeaders } from "@/lib/httpCache";
 
 // Renvoie les valeurs disponibles pour peupler les filtres du catalogue (collections,
 // personnages, effets/prismes, pays d'origine), en tenant compte des filtres déjà actifs.
@@ -80,7 +81,7 @@ export async function GET(request) {
       raretes: raretes.map((r) => r.rarete).filter(Boolean),
       pays: paysSet,
       collections,
-    });
+    }, { headers: publicCacheHeaders(request) });
   } catch (e) {
     console.error("Erreur GET /api/facets :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

@@ -89,7 +89,7 @@ export default function AdminCardsPage() {
   }
 
   async function loadCollections() {
-    const res = await fetch("/api/collections");
+    const res = await fetch("/api/collections?fresh=1"); // sans cache CDN
     setCollections(await res.json());
   }
 
@@ -98,7 +98,8 @@ export default function AdminCardsPage() {
     // Quand une collection précise est sélectionnée, on remonte jusqu'à 500 cartes sur une
     // seule page pour permettre de tout sélectionner d'un coup en vue d'une suppression massive.
     const pageSize = filter !== "all" ? 500 : 30;
-    const params = new URLSearchParams({ page: String(p), pageSize: String(pageSize) });
+    // fresh=1 : sans cache CDN, pour voir ses modifications tout de suite (lib/httpCache.js).
+    const params = new URLSearchParams({ page: String(p), pageSize: String(pageSize), fresh: "1" });
     if (filter !== "all") params.set("collectionId", filter);
     const res = await fetch(`/api/cards?${params.toString()}`);
     const data = await res.json();

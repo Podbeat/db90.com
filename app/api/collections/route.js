@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { publicCacheHeaders } from "@/lib/httpCache";
 import { requireAdmin } from "@/lib/auth";
 import { translateCollectionDescription } from "@/lib/translate";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 
-export async function GET() {
+export async function GET(request) {
   try {
     const collections = await prisma.collection.findMany({
       orderBy: { annee: "asc" },
@@ -26,7 +27,7 @@ export async function GET() {
       return { ...rest, previewImage: firstWithImage?.image || col.cover || null, withImagesCount };
     });
 
-    return NextResponse.json(withPreview);
+    return NextResponse.json(withPreview, { headers: publicCacheHeaders(request) });
   } catch (e) {
     console.error("Erreur GET /api/collections :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

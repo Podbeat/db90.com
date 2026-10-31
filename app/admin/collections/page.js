@@ -29,7 +29,7 @@ export default function AdminCollectionsPage() {
 
   async function load() {
     setLoading(true);
-    const res = await fetch("/api/collections");
+    const res = await fetch("/api/collections?fresh=1"); // sans cache CDN : voir ses modifications tout de suite
     setCollections(await res.json());
     setLoading(false);
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { publicCacheHeaders } from "@/lib/httpCache";
 import { requireAdmin } from "@/lib/auth";
 import { translateFreeText } from "@/lib/translate";
 import { naturalSortByNumero } from "@/lib/naturalSort";
@@ -80,7 +81,12 @@ export async function GET(request) {
     const total = allMatching.length;
     const cards = allMatching.slice((page - 1) * pageSize, page * pageSize);
 
-    return NextResponse.json({ cards, total, page, pageSize, totalPages: Math.ceil(total / pageSize) });
+    // Mise en cache CDN du catalogue trié uniquement : le tirage aléatoire ci-dessus reste
+    // recalculé à chaque appel, pour que chaque visite de l'accueil montre d'autres cartes.
+    return NextResponse.json(
+      { cards, total, page, pageSize, totalPages: Math.ceil(total / pageSize) },
+      { headers: publicCacheHeaders(request) }
+    );
   } catch (e) {
     console.error("Erreur GET /api/cards :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

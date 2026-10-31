@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { publicCacheHeaders } from "@/lib/httpCache";
 import { requireAdmin } from "@/lib/auth";
 import { translateCollectionDescription } from "@/lib/translate";
 import { naturalSortByNumero } from "@/lib/naturalSort";
@@ -13,7 +14,7 @@ export async function GET(request, { params }) {
     });
     if (!collection) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
     collection.cards.sort(naturalSortByNumero);
-    return NextResponse.json(collection);
+    return NextResponse.json(collection, { headers: publicCacheHeaders(request) });
   } catch (e) {
     console.error("Erreur GET /api/collections/[id] :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

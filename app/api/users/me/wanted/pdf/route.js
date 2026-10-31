@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { embedCardThumbs } from "@/lib/pdfImages";
 import fs from "fs";
 import path from "path";
 
@@ -22,17 +23,6 @@ function safe(str) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\x00-\x7F]/g, "?");
-}
-
-async function fetchImageBytes(url) {
-  if (!url) return null;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return new Uint8Array(await res.arrayBuffer());
-  } catch (e) {
-    return null;
-  }
 }
 
 export async function GET(request) {
@@ -69,17 +59,13 @@ export async function GET(request) {
     logoImage = null;
   }
 
-  const thumbBytesList = await Promise.all(cards.map((c) => fetchImageBytes(c.image)));
+  // Scans réduits à la taille utile avant insertion (lib/pdfImages.js). Scan absent ou
+  // illisible : cadre vide pour cette carte.
+  const thumbList = await embedCardThumbs(pdfDoc, cards);
   const thumbImages = new Map();
-  for (let i = 0; i < cards.length; i++) {
-    const bytes = thumbBytesList[i];
-    if (!bytes) continue;
-    try {
-      thumbImages.set(cards[i].id, await pdfDoc.embedJpg(bytes));
-    } catch (e) {
-      // scan illisible : on affichera un cadre vide pour cette carte
-    }
-  }
+  cards.forEach((c, i) => {
+    if (thumbList[i]) thumbImages.set(c.id, thumbList[i]);
+  });
 
   const pageWidth = 595.28;
   const pageHeight = 841.89;

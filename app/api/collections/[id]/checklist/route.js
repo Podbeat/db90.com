@@ -3,6 +3,7 @@ import path from "path";
 import { prisma } from "@/lib/db";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { fetchPdfImage, embedCardThumbs, PDF_BACK_WIDTH } from "@/lib/pdfImages";
 
 export const runtime = "nodejs";
 
@@ -21,17 +22,6 @@ function safe(str) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^\x00-\x7F]/g, "?");
-}
-
-async function fetchImageBytes(url) {
-  if (!url) return null;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    return new Uint8Array(await res.arrayBuffer());
-  } catch (e) {
-    return null;
-  }
 }
 
 export async function GET(request, { params }) {
@@ -60,22 +50,15 @@ export async function GET(request, { params }) {
     logoImage = null;
   }
 
-  const dosBytes = await fetchImageBytes(collection.dos);
+  // Scans réduits à la taille utile avant insertion (lib/pdfImages.js) : 19 Mo → ~1 Mo
+  // pour une collection de 60 cartes.
+  const [dosBytes, thumbImages] = await Promise.all([
+    fetchPdfImage(collection.dos, { width: PDF_BACK_WIDTH }),
+    embedCardThumbs(pdfDoc, cards),
+  ]);
   let dosImage = null;
   if (dosBytes) {
     try { dosImage = await pdfDoc.embedJpg(dosBytes); } catch (e) { dosImage = null; }
-  }
-
-  const thumbBytesList = await Promise.all(cards.map((c) => fetchImageBytes(c.image)));
-  const thumbImages = [];
-  for (let i = 0; i < cards.length; i++) {
-    const bytes = thumbBytesList[i];
-    if (!bytes) { thumbImages.push(null); continue; }
-    try {
-      thumbImages.push(await pdfDoc.embedJpg(bytes));
-    } catch (e) {
-      thumbImages.push(null);
-    }
   }
 
   const pageWidth = 595.28;
@@ -182,6 +165,10 @@ export async function GET(request, { params }) {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="checklist-${collection.nom.replace(/[^a-z0-9]+/gi, "-")}.pdf"`,
+      // Même PDF pour tout le monde : gardé 6 h par le CDN de Vercel, puis régénéré en
+      // arrière-plan. Chaque génération télécharge tous les scans depuis Supabase (bande
+      // passante limitée à 5 Go par mois) : inutile de la refaire à chaque clic.
+      "Cache-Control": "public, s-maxage=21600, stale-while-revalidate=86400",
     },
   });
 }

@@ -5,6 +5,10 @@ import { naturalSortByNumero } from "@/lib/naturalSort";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+// Par défaut, ImageResponse demande un cache d'un an (« immutable ») : un scan ajouté plus
+// tard n'apparaîtrait jamais dans les nouveaux partages. Un jour suffit.
+const CACHE_HEADERS = { "cache-control": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800" };
+
 export default async function Image({ params }) {
   const { id } = await params;
   const collection = await prisma.collection.findUnique({
@@ -19,7 +23,7 @@ export default async function Image({ params }) {
           DB Non-Off 90's
         </div>
       ),
-      { ...size }
+      { ...size, headers: CACHE_HEADERS }
     );
   }
 
@@ -54,6 +58,6 @@ export default async function Image({ params }) {
         </div>
       </div>
     ),
-    { ...size }
+    { ...size, headers: CACHE_HEADERS }
   );
 }

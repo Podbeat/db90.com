@@ -4,6 +4,10 @@ import { prisma } from "@/lib/db";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+// Par défaut, ImageResponse demande un cache d'un an (« immutable ») : un scan ajouté plus
+// tard n'apparaîtrait jamais dans les nouveaux partages. Un jour suffit.
+const CACHE_HEADERS = { "cache-control": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800" };
+
 // Convention de fichier Next.js : sa seule présence dans ce dossier de route suffit à
 // générer et référencer automatiquement l'image Open Graph de la fiche carte (pas besoin
 // de la déclarer manuellement dans generateMetadata).
@@ -21,7 +25,7 @@ export default async function Image({ params }) {
           DB Non-Off 90's
         </div>
       ),
-      { ...size }
+      { ...size, headers: CACHE_HEADERS }
     );
   }
 
@@ -53,6 +57,6 @@ export default async function Image({ params }) {
         </div>
       </div>
     ),
-    { ...size }
+    { ...size, headers: CACHE_HEADERS }
   );
 }

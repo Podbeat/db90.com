@@ -8,9 +8,11 @@ import { SHOWCASE_SIZE } from "@/lib/showcase";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "Classeur d'un membre de DB Non-Off 90's";
-// L'image est recalculée au plus une fois par heure : un classeur modifié apparaît dans les
-// nouveaux partages après ce délai (les réseaux sociaux gardent de toute façon leur copie).
-export const revalidate = 3600;
+
+// Par défaut, ImageResponse demande un cache d'un an (« immutable ») : un classeur modifié
+// n'apparaîtrait jamais dans les nouveaux partages. On limite à une heure (navigateurs et
+// CDN) ; les réseaux sociaux gardent de toute façon leur propre copie.
+const CACHE_HEADERS = { "cache-control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400" };
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://db90.org";
 const SITE_HOST = SITE_URL.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/$/, "");
@@ -94,7 +96,7 @@ function BottomBar() {
 export default async function Image({ params }) {
   const { username } = await params;
   const [fonts, logo] = await Promise.all([loadFonts(), loadLogo()]);
-  const options = { ...size, fonts: fonts.length ? fonts : undefined };
+  const options = { ...size, fonts: fonts.length ? fonts : undefined, headers: CACHE_HEADERS };
 
   const user = await prisma.user.findUnique({
     where: { username: String(username).toLowerCase() },

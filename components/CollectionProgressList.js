@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Check, Archive } from "lucide-react";
+import { COLLECTION_COVER_SIZES } from "@/lib/imageSizes";
 
 // Une ligne par collection avec une fraction (ex. 22/25) plutôt que les vignettes de
 // chaque carte — reste lisible même avec plusieurs centaines de cartes suivies. Utilisé à
@@ -22,7 +24,7 @@ export default function CollectionProgressList({ items, emptyLabel, t }) {
           <Link key={it.collectionId} href={`/collections/${it.collectionId}`} className="collection-progress-row">
             <div className="collection-progress-cover-wrap">
               {it.cover ? (
-                <img src={it.cover} alt="" className="collection-progress-cover" />
+                <Image src={it.cover} alt="" width={52} height={52} sizes={COLLECTION_COVER_SIZES} className="collection-progress-cover" />
               ) : (
                 <div className="collection-progress-cover collection-progress-cover-placeholder"><Archive size={18} /></div>
               )}

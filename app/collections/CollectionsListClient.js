@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { COLLECTION_COVER_SIZES } from "@/lib/imageSizes";
 import { ImageOff, Sparkles } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getFlagSvg } from "@/lib/countryFlags";
@@ -66,7 +67,7 @@ export default function CollectionsPage() {
               >
                 <div className="collection-thumb">
                   {col.previewImage ? (
-                    <Image src={col.previewImage} alt={col.nom} fill sizes="(max-width: 640px) 90vw, 300px" style={{ objectFit: "cover", objectPosition: "top center" }} />
+                    <Image src={col.previewImage} alt={col.nom} fill sizes={COLLECTION_COVER_SIZES} style={{ objectFit: "cover", objectPosition: "top center" }} />
                   ) : (
                     <div className="collection-thumb-empty"><ImageOff size={22} /></div>
                   )}

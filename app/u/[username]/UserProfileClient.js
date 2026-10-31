@@ -7,6 +7,7 @@ import { Mail, Trophy, ThumbsUp, ThumbsDown, Flag, Ban } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
+import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 import ContactUserModal from "@/components/ContactUserModal";
 import ListingCard from "@/components/ListingCard";
 import { computeBadges } from "@/lib/badges";
@@ -27,7 +28,7 @@ function MiniGrid({ cards, t, emptyLabel }) {
         >
           <div className="card-tile-media">
             {c.image ? (
-              <Image src={c.image} alt={c.personnagePrincipal?.name || ""} fill sizes="(max-width: 640px) 45vw, 220px" style={{ objectFit: "cover" }} />
+              <Image src={c.image} alt={c.personnagePrincipal?.name || ""} fill sizes={CARD_GRID_SIZES} style={{ objectFit: "cover" }} />
             ) : (
               <img src={missingCardPlaceholder(c, t)} alt={c.personnagePrincipal?.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             )}

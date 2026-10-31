@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { CARD_GRID_SIZES } from "@/lib/imageSizes";
+import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { X } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
@@ -21,7 +24,12 @@ export default function ListingCard({ listing, showSeller = true, onRemove }) {
     <div className="listing-card">
       <Link href={`/cartes/${l.card.id}`} className="listing-link">
         <div className="listing-media">
-          <img src={l.card.image || ""} alt={l.card.personnagePrincipal?.name || ""} />
+          {/* Mêmes largeurs que les grilles de cartes, déjà en cache, au lieu du scan de 900 px. */}
+          {l.card.image ? (
+            <Image src={l.card.image} alt={l.card.personnagePrincipal?.name || ""} fill sizes={CARD_GRID_SIZES} />
+          ) : (
+            <img src={missingCardPlaceholder(l.card, t)} alt={l.card.personnagePrincipal?.name || ""} />
+          )}
           <span className={`listing-badge ${isSelling ? "badge-sell" : "badge-buy"}`}>
             {isSelling ? t.marketTypeSelling : t.marketTypeBuying}
           </span>

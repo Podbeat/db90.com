@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { effectTone } from "@/lib/effectTone";
+import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 import HoloCard from "@/components/HoloCard";
 import ShareIconButton from "@/components/ShareIconButton";
 import CardStatusIcons from "@/components/CardStatusIcons";
@@ -157,7 +158,7 @@ export default function CollectionDetailClient({ id }) {
                     src={c.image}
                     alt={c.personnagePrincipal?.name || ""}
                     fill
-                    sizes="(max-width: 640px) 45vw, 220px"
+                    sizes={CARD_GRID_SIZES}
                     style={{ objectFit: "cover" }}
                   />
                 ) : (

@@ -3,13 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Tag, ShoppingCart, Mail, X, TrendingUp } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import dynamic from "next/dynamic";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 const CONDITIONS = ["Satisfaisant", "Bon état", "Très bon état", "Neuve"];
 const CONDITIONS_ORDER = ["Neuve", "Très bon état", "Bon état", "Satisfaisant"];
+
+// Chargé seulement quand la carte a une cote à afficher : recharts (~100 Ko compressés)
+// n'alourdit plus toutes les fiches.
+const CoteLineChart = dynamic(() => import("@/components/CoteLineChart"), { ssr: false });
 
 export default function CardMarketplace({ cardId }) {
   const { t } = useLanguage();
@@ -187,18 +191,7 @@ export default function CardMarketplace({ cardId }) {
                 </div>
               ))}
               <div style={{ width: "100%", height: 110, marginTop: "0.7rem" }}>
-                <ResponsiveContainer>
-                  <LineChart data={chartData}>
-                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: "var(--text-muted)" }} />
-                    <YAxis tick={{ fontSize: 9, fill: "var(--text-muted)" }} width={32} domain={["auto", "auto"]} />
-                    <Tooltip
-                      contentStyle={{ background: "var(--surface-raised)", border: "1px solid var(--line)", fontSize: "0.75rem" }}
-                      labelStyle={{ color: "var(--text)" }}
-                      formatter={(v) => [`${v} €`, t.coteNeuveLabel]}
-                    />
-                    <Line type="monotone" dataKey="cote" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3, fill: "var(--accent)" }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <CoteLineChart data={chartData} valueLabel={t.coteNeuveLabel} />
               </div>
               {chartData.length <= 1 && (
                 <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontStyle: "italic", marginTop: "0.3rem" }}>

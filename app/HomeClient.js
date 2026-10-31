@@ -8,6 +8,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { effectTone } from "@/lib/effectTone";
+import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 import HoloCard from "@/components/HoloCard";
 import MemberSearch from "@/components/MemberSearch";
 import ShareIconButton from "@/components/ShareIconButton";
@@ -406,7 +407,7 @@ export default function CataloguePage() {
                           src={c.image}
                           alt={c.personnagePrincipal?.name || ""}
                           fill
-                          sizes="(max-width: 640px) 45vw, 220px"
+                          sizes={CARD_GRID_SIZES}
                           style={{ objectFit: "cover" }}
                         />
                       ) : (

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 import { Repeat, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
@@ -9,7 +11,11 @@ import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 function MiniCard({ card, t }) {
   return (
     <Link href={`/cartes/${card.id}`} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-      <img src={card.image || ""} alt="" style={{ width: 28, height: 39, objectFit: "cover", background: "var(--surface-raised)", flexShrink: 0 }} />
+      {card.image ? (
+        <Image src={card.image} alt="" width={28} height={39} sizes={CARD_GRID_SIZES} style={{ objectFit: "cover", background: "var(--surface-raised)", flexShrink: 0 }} />
+      ) : (
+        <span style={{ width: 28, height: 39, background: "var(--surface-raised)", flexShrink: 0 }} />
+      )}
       <span style={{ fontSize: "0.78rem" }}>{card.personnagePrincipal?.name || t.noCharacterAssigned} <span style={{ color: "var(--text-muted)" }}>· {card.collection?.nom}</span></span>
     </Link>
   );

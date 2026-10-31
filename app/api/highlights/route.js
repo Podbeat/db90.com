@@ -10,7 +10,7 @@ export async function GET() {
       prisma.card.findFirst({
         where: { image: { not: null } },
         orderBy: { createdAt: "desc" },
-        include: { collection: { select: { nom: true } } },
+        include: { collection: { select: { nom: true } }, personnagePrincipal: { select: { name: true } } },
       }),
       prisma.collection.findFirst({
         orderBy: { createdAt: "desc" },

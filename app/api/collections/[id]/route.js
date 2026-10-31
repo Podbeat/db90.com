@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
     const { id } = await params;
     const collection = await prisma.collection.findUnique({
       where: { id },
-      include: { cards: true },
+      include: { cards: { include: { personnagePrincipal: { select: { id: true, name: true } } } } },
     });
     if (!collection) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
     collection.cards.sort(naturalSortByNumero);

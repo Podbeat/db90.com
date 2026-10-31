@@ -708,6 +708,10 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
 
   .mobile-only { display: flex; }
 
+  /* « .page » remettait à zéro les marges latérales du conteneur (padding raccourci) :
+     sur téléphone, le contenu collait aux bords de l'écran. */
+  .container.page { padding-left: 1rem; padding-right: 1rem; }
+
   /* Barre d'onglets du bas : la page garde une marge pour ne rien masquer sous elle. */
   body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
   .mobile-tabbar {

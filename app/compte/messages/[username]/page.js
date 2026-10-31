@@ -7,6 +7,7 @@ import { ArrowLeft, Send, Archive, Ban } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { refreshMemberActivity } from "@/lib/useMemberActivity";
 
 export default function MessageThreadPage() {
   const { t } = useLanguage();
@@ -32,6 +33,9 @@ export default function MessageThreadPage() {
         if (!data) return;
         setOther(data.other);
         setMessages(data.messages);
+        // L'ouverture du fil vient de marquer ces messages comme lus : badge de l'en-tête
+        // mis à jour tout de suite plutôt qu'au prochain rafraîchissement.
+        if (data.messages.some((m) => !m.read && m.senderId === data.other.id)) refreshMemberActivity();
       })
       .finally(() => setLoading(false));
 

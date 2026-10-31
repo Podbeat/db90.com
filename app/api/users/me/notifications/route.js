@@ -7,19 +7,24 @@ export async function GET(request) {
     const session = await resolveUserSession(request);
     if (!session) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
 
-    const notifications = await prisma.notification.findMany({
-      where: { userId: session.sub },
-      orderBy: { createdAt: "desc" },
-      take: 30,
-      include: {
-        card: {
-          select: { id: true, numero: true, image: true, personnagePrincipal: { select: { name: true } }, collection: { select: { nom: true } } },
+    // Renvoie aussi le nombre de messages non lus : la cloche et l'icône des messages de
+    // l'en-tête n'ont ainsi besoin que d'un seul appel (lib/useMemberActivity.js).
+    const [notifications, unreadCount, unreadMessages] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId: session.sub },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+        include: {
+          card: {
+            select: { id: true, numero: true, image: true, personnagePrincipal: { select: { name: true } }, collection: { select: { nom: true } } },
+          },
         },
-      },
-    });
-    const unreadCount = await prisma.notification.count({ where: { userId: session.sub, read: false } });
+      }),
+      prisma.notification.count({ where: { userId: session.sub, read: false } }),
+      prisma.message.count({ where: { recipientId: session.sub, read: false } }),
+    ]);
 
-    return NextResponse.json({ notifications, unreadCount });
+    return NextResponse.json({ notifications, unreadCount, unreadMessages });
   } catch (e) {
     console.error("Erreur GET /api/users/me/notifications :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

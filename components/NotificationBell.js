@@ -2,35 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Bell } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useMemberActivity, markNotificationsRead } from "@/lib/useMemberActivity";
+import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 
 // Cloche de notifications dans l'en-tête : pour l'instant, un seul type de notification
 // existe (une carte recherchée vient d'être mise en vente), mais la structure accueille
-// d'autres types plus tard sans changement d'interface.
+// d'autres types plus tard sans changement d'interface. Les données viennent de l'appel
+// partagé avec l'icône des messages (lib/useMemberActivity.js).
 export default function NotificationBell() {
   const { t } = useLanguage();
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { notifications, unreadCount } = useMemberActivity();
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
-
-  function load() {
-    fetch("/api/users/me/notifications")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!d) return;
-        setNotifications(d.notifications);
-        setUnreadCount(d.unreadCount);
-      })
-      .catch(() => {});
-  }
-
-  useEffect(() => {
-    load();
-    const interval = setInterval(load, 120000); // rafraîchi toutes les 2 minutes
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -40,12 +26,10 @@ export default function NotificationBell() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  async function handleOpen() {
-    setOpen((v) => !v);
-    if (!open && unreadCount > 0) {
-      setUnreadCount(0);
-      await fetch("/api/users/me/notifications", { method: "POST" });
-    }
+  function handleOpen() {
+    const opening = !open;
+    setOpen(opening);
+    if (opening) markNotificationsRead();
   }
 
   function notificationText(n) {
@@ -90,7 +74,9 @@ export default function NotificationBell() {
                 className="notif-item"
                 onClick={() => setOpen(false)}
               >
-                {n.card?.image && <img src={n.card.image} alt="" style={{ width: 28, height: 39, objectFit: "cover", flexShrink: 0 }} />}
+                {n.card?.image && (
+                  <Image src={n.card.image} alt="" width={28} height={39} sizes={CARD_GRID_SIZES} style={{ objectFit: "cover", flexShrink: 0 }} />
+                )}
                 <span>{notificationText(n)}</span>
               </Link>
             ))

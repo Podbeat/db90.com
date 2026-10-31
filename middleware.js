@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
 const COOKIE_NAME = "archives_session";
+const PUBLIC_ADMIN_PATHS = ["/admin/login", "/admin/mot-de-passe-oublie", "/admin/reinitialiser-mot-de-passe"];
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/admin/login") {
+  // Pages accessibles sans être connecté : connexion et mot de passe oublié.
+  if (PUBLIC_ADMIN_PATHS.includes(pathname)) {
     return NextResponse.next();
   }
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -50,6 +51,9 @@ export default function AdminLoginPage() {
         <button className="btn-primary" type="submit" disabled={loading} style={{ width: "100%" }}>
           {loading ? "Connexion…" : "Se connecter"}
         </button>
+        <div style={{ fontSize: "0.8rem", marginTop: "0.9rem", textAlign: "center" }}>
+          <Link href="/admin/mot-de-passe-oublie" style={{ color: "var(--accent)" }}>Mot de passe oublié ?</Link>
+        </div>
       </form>
     </div>
   );

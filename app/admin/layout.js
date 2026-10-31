@@ -8,7 +8,7 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  if (pathname === "/admin/login") {
+  if (["/admin/login", "/admin/mot-de-passe-oublie", "/admin/reinitialiser-mot-de-passe"].includes(pathname)) {
     return <>{children}</>;
   }
 

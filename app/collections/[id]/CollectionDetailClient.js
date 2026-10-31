@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useLanguage } from "@/components/LanguageProvider";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
+import { effectTone } from "@/lib/effectTone";
 import HoloCard from "@/components/HoloCard";
 import ShareIconButton from "@/components/ShareIconButton";
 import CardStatusIcons from "@/components/CardStatusIcons";
@@ -172,7 +173,7 @@ export default function CollectionDetailClient({ id }) {
               <div className="meta">
                 <div className="card-num">{c.numero}</div>
                 <div className="card-nom">{c.personnagePrincipal?.name || t.noCharacterAssigned}</div>
-                <span className="rarity-tag">{c.rarete}</span>
+                <span className="rarity-tag" data-tone={effectTone(c.rarete)}>{c.rarete}</span>
               </div>
             </Link>
           ))}

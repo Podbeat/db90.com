@@ -4,13 +4,8 @@ import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import ContactForm from "@/components/ContactForm";
 import { Archive, ScanLine, MessageCircle, Sparkles } from "lucide-react";
-
-// À remplacer par votre vrai lien une fois le compte PayPal du site créé, ex. :
-// "https://www.paypal.com/paypalme/votre-nom" ou "https://www.paypal.com/donate/?hosted_button_id=..."
-const DONATE_URL = "https://www.paypal.com/paypalme/dbnonoff90s";
-
-// Construite en plusieurs morceaux, comme le lien du groupe Facebook dans le footer.
-const FACEBOOK_GROUP_URL = ["https://www.facebook.com", "groups", "928110906379566", ""].join("/");
+// Lien de don et lien du groupe Facebook : un seul endroit à modifier (lib/siteLinks.js).
+import { DONATE_URL, FACEBOOK_GROUP_URL } from "@/lib/siteLinks";
 
 export default function InformationsPage() {
   const { t } = useLanguage();

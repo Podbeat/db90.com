@@ -451,7 +451,20 @@ a { color: inherit; text-decoration: none; }
 .card-num-inline { font-family: 'Archivo Black', sans-serif; color: var(--gold); }
 .card-nom { font-size: 0.875rem; margin-top: 0.15rem; }
 .card-collection { font-size: 0.68rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rarity-tag { display: inline-block; font-size: 0.63rem; color: var(--text-muted); margin-top: 0.3rem; border: 1px solid var(--line); padding: 0.08rem 0.4rem; }
+/* Étiquette d'effet / prisme : pastille colorée, une teinte stable par effet (lib/effectTone.js). */
+.rarity-tag { display: inline-block; font-size: 0.72rem; line-height: 1.35; color: var(--text-muted); background: var(--surface-raised); margin-top: 0.35rem; padding: 0.1rem 0.55rem; border-radius: 999px; }
+.rarity-tag[data-tone="1"] { background: rgba(45, 212, 200, 0.14); color: #7fe7df; }
+.rarity-tag[data-tone="2"] { background: rgba(236, 72, 153, 0.16); color: #f6a8cb; }
+.rarity-tag[data-tone="3"] { background: rgba(224, 176, 74, 0.16); color: #f0cf86; }
+.rarity-tag[data-tone="4"] { background: rgba(185, 164, 224, 0.18); color: #cdbcf0; }
+.rarity-tag[data-tone="5"] { background: rgba(242, 113, 28, 0.16); color: #f9a56b; }
+.rarity-tag[data-tone="6"] { background: rgba(142, 163, 196, 0.18); color: #c7d0dc; }
+html.light .rarity-tag[data-tone="1"] { background: rgba(13, 148, 136, 0.12); color: #0f766e; }
+html.light .rarity-tag[data-tone="2"] { background: rgba(219, 39, 119, 0.10); color: #be185d; }
+html.light .rarity-tag[data-tone="3"] { background: rgba(180, 130, 20, 0.14); color: #8a5a00; }
+html.light .rarity-tag[data-tone="4"] { background: rgba(109, 40, 217, 0.10); color: #6d28d9; }
+html.light .rarity-tag[data-tone="5"] { background: rgba(234, 88, 12, 0.12); color: #c2410c; }
+html.light .rarity-tag[data-tone="6"] { background: rgba(71, 85, 105, 0.12); color: #475569; }
 
 /* Collections */
 .collection-grid { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
@@ -627,3 +640,112 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
   .nav-links { gap: 0.9rem; }
   .admin-grid-3, .admin-grid-2 { grid-template-columns: 1fr !important; }
 }
+
+/* ===== Navigation mobile (≤ 720 px) : en-tête compact, menu plein écran, barre d'onglets,
+   filtres repliés. Sur ordinateur, ces éléments restent masqués et l'en-tête d'origine
+   s'affiche à l'identique. ===== */
+.mobile-header, .mobile-only, .mobile-tabbar, .sheet-overlay, .sheet-head, .sheet-foot { display: none; }
+
+/* Recherche de cartes, au-dessus de la grille du catalogue (toutes tailles d'écran). */
+.catalogue-search { margin-bottom: 1rem; }
+.catalogue-search input {
+  width: 100%; height: 44px; box-sizing: border-box; padding: 0 0.9rem 0 2.6rem;
+  border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  font-family: inherit; font-size: 0.95rem; transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.catalogue-search input:focus { outline: none; border-color: var(--turquoise); box-shadow: 0 0 0 3px rgba(45, 212, 200, 0.28); }
+.catalogue-search .search-icon { left: 0.85rem; top: 13px; }
+
+.mobile-logo { height: 30px; width: auto; display: block; }
+.mobile-menu-btn {
+  width: 44px; height: 44px; padding: 0; border: none; border-radius: var(--radius);
+  background: transparent; color: var(--header-text); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* Menu plein écran (bouton ☰) */
+.mobile-menu { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: var(--surface); overflow-y: auto; overscroll-behavior: contain; }
+.mobile-menu-top { flex-shrink: 0; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 0.6rem 0 1.25rem; background: var(--header-bg); }
+.mobile-menu-body { display: flex; flex-direction: column; padding: 0.5rem 0 calc(1.5rem + env(safe-area-inset-bottom)); }
+.mobile-menu-section { padding: 0.6rem 1.25rem 0.3rem; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.mobile-menu-item { display: flex; align-items: center; gap: 0.9rem; min-height: 48px; padding: 0 1.25rem; color: var(--text); font-size: 0.95rem; }
+.mobile-menu-item > svg:first-child { color: var(--text-muted); flex-shrink: 0; }
+.mobile-menu-item:active { background: var(--surface-raised); }
+.mobile-menu-chevron { margin-left: auto; color: var(--text-muted); }
+.mobile-menu-divider { height: 1px; margin: 0.5rem 1.25rem; background: var(--line); }
+.mobile-menu-langs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; padding: 0.2rem 1.25rem 0; }
+.mobile-menu-lang { height: 44px; border-radius: var(--radius); border: 1px solid var(--line); background: transparent; color: var(--text); font-family: inherit; font-size: 0.9rem; cursor: pointer; }
+.mobile-menu-lang.active { border: 2px solid var(--accent); background: var(--surface-raised); font-weight: 600; }
+.mobile-menu-theme { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.25rem 0; font-size: 0.95rem; }
+.mobile-menu-segment { display: flex; padding: 3px; border-radius: var(--radius); background: var(--bg); border: 1px solid var(--line); }
+.mobile-menu-segment button { height: 38px; padding: 0 0.9rem; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font-family: inherit; font-size: 0.875rem; cursor: pointer; }
+.mobile-menu-segment button.active { background: var(--surface-raised); color: var(--text); font-weight: 600; }
+.mobile-menu-footer { padding: 1.4rem 1.25rem 0; }
+.mobile-menu-footer .btn-ghost, .mobile-menu-footer .btn-primary { width: 100%; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-sizing: border-box; }
+.mobile-menu-auth { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+
+/* Boutons « pilule » de la barre d'outils du catalogue (mobile) */
+.pill-btn {
+  height: 40px; padding: 0 0.9rem; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); font-family: inherit; font-size: 0.875rem; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; white-space: nowrap;
+}
+.pill-count { min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: var(--accent); color: #1a1208; font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+
+@media (max-width: 720px) {
+  .desktop-header { display: none !important; }
+  .mobile-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; height: 56px; }
+  .mobile-header-actions { display: flex; align-items: center; gap: 0.1rem; margin-right: -0.7rem; }
+  .mobile-header .btn-icon {
+    width: 44px; height: 44px; padding: 0; border: none; border-radius: var(--radius);
+    background: transparent; color: var(--header-text);
+  }
+  .mobile-header .btn-icon svg { width: 20px; height: 20px; }
+  .mobile-header .btn-icon:hover { transform: none; box-shadow: none; }
+  .mobile-header .notif-badge { top: 6px; right: 5px; }
+  .mobile-header .notif-panel { position: fixed; top: 62px; left: 0.75rem; right: 0.75rem; width: auto; max-height: 60vh; z-index: 85; }
+  .mobile-login-link { font-size: 0.9rem; font-weight: 600; color: var(--header-text); padding: 0.6rem 0.4rem; }
+
+  .mobile-only { display: flex; }
+
+  /* Barre d'onglets du bas : la page garde une marge pour ne rien masquer sous elle. */
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .mobile-tabbar {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    padding: 0.3rem 0.25rem calc(0.3rem + env(safe-area-inset-bottom));
+    background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.18);
+  }
+  .mobile-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem; min-height: 52px; min-width: 0; font-size: 0.69rem; font-weight: 500; line-height: 1.1; color: var(--text-muted); text-align: center; }
+  .mobile-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-tab.active { color: var(--accent); font-weight: 700; }
+  html.light .mobile-tab.active { color: var(--accent-dark); }
+
+  /* Catalogue : barre d'outils, et filtres repliés dans une feuille qui monte du bas. */
+  .catalogue-toolbar { align-items: center; gap: 0.5rem; margin-bottom: 0.9rem; }
+  .catalogue-count { margin-left: auto; font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
+  .filter-panel.sidebar { display: none; }
+  .filter-panel.sidebar.sheet-open {
+    display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
+    max-height: 86vh; overflow-y: auto; overscroll-behavior: contain;
+    border-radius: 16px 16px 0 0; border-bottom: none; padding: 0.75rem 1rem 0;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
+  }
+  .sheet-overlay { display: block; position: fixed; inset: 0; z-index: 75; background: rgba(5, 9, 18, 0.62); }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
+  .sheet-title { font-size: 1.1rem; }
+  .sheet-close { width: 44px; height: 44px; margin-right: -0.6rem; padding: 0; border: none; background: transparent; color: var(--text); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .sheet-foot { display: block; position: sticky; bottom: 0; margin: 0.9rem -1rem 0; padding: 0.75rem 1rem calc(1rem + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); }
+  .sheet-apply { width: 100%; min-height: 48px; font-size: 1rem; }
+
+  /* Champs à 16 px minimum : en dessous, l'iPhone zoome automatiquement à la saisie. */
+  .field input, .field select, .field textarea, .catalogue-search input { font-size: 16px; }
+}
+
+/* Écrans tactiles : les boutons des vignettes (partage, possédée / recherchée) ne dépendent
+   plus du survol de la souris, et deviennent assez grands pour le doigt. */
+@media (hover: none) {
+  .card-share-btn, .card-status-icon { opacity: 1; transform: none; width: 34px; height: 34px; }
+  .card-status-icon svg { width: 16px; height: 16px; }
+}
+

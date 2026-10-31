@@ -3,15 +3,7 @@
 import Link from "next/link";
 import { ExternalLink, HeartHandshake } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
-
-// Construite en plusieurs morceaux plutôt qu'en une seule chaîne littérale : certains
-// antivirus signalent à tort les liens "facebook.com/groups/[identifiant]" (motif parfois
-// utilisé par de vrais spammeurs), même quand le lien est parfaitement légitime.
-const FACEBOOK_GROUP_URL = ["https://www.facebook.com", "groups", "928110906379566", ""].join("/");
-
-// À remplacer par votre vrai lien une fois le compte PayPal du site créé, ex. :
-// "https://www.paypal.com/paypalme/votre-nom" ou "https://www.paypal.com/donate/?hosted_button_id=..."
-const DONATE_URL = "https://www.paypal.com/paypalme/dbnonoff90s";
+import { FACEBOOK_GROUP_URL, DONATE_URL } from "@/lib/siteLinks";
 
 export default function Footer() {
   const { t } = useLanguage();

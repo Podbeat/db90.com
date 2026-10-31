@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
+import { allowEmail } from "@/lib/emailLimits";
 
 // Fil complet des messages avec un membre donné, dans les deux sens. Marque au passage les
 // messages reçus de cette personne comme lus (on vient de les afficher).
@@ -60,9 +61,11 @@ export async function POST(request, { params }) {
     if (!recipient) return NextResponse.json({ error: "Membre introuvable." }, { status: 404 });
     if (recipient.id === session.sub) return NextResponse.json({ error: "Vous ne pouvez pas vous écrire à vous-même." }, { status: 400 });
 
-    const [iBlockedThem, theyBlockedMe] = await Promise.all([
+    const [iBlockedThem, theyBlockedMe, alreadyUnread] = await Promise.all([
       prisma.blockedUser.findUnique({ where: { blockerId_blockedId: { blockerId: session.sub, blockedId: recipient.id } } }),
       prisma.blockedUser.findUnique({ where: { blockerId_blockedId: { blockerId: recipient.id, blockedId: session.sub } } }),
+      // Messages de cet expéditeur que le destinataire n'a pas encore lus (avant celui-ci).
+      prisma.message.count({ where: { senderId: session.sub, recipientId: recipient.id, read: false } }),
     ]);
     if (iBlockedThem) return NextResponse.json({ error: "Vous avez bloqué ce membre. Débloquez-le pour lui envoyer un message." }, { status: 403 });
     if (theyBlockedMe) return NextResponse.json({ error: "Vous ne pouvez pas envoyer de message à ce membre." }, { status: 403 });
@@ -71,9 +74,13 @@ export async function POST(request, { params }) {
       data: { senderId: session.sub, recipientId: recipient.id, body: body.trim() },
     });
 
+    // E-mail de courtoisie seulement au premier message non lu de la conversation : le
+    // destinataire déjà prévenu n'a pas besoin d'un e-mail par message. Plafond par
+    // expéditeur en plus (lib/emailLimits.js) pour protéger le quota Gmail du site. Le
+    // message lui-même est enregistré dans tous les cas.
     const user = process.env.CONTACT_EMAIL_USER;
     const appPassword = process.env.CONTACT_EMAIL_APP_PASSWORD;
-    if (user && appPassword) {
+    if (user && appPassword && alreadyUnread === 0 && (await allowEmail(session.sub, "messageNotification"))) {
       try {
         const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass: appPassword } });
         await transporter.sendMail({

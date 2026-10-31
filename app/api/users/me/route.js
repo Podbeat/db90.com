@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { signActionToken } from "@/lib/userAuth";
+import { allowEmail, EMAIL_LIMITS } from "@/lib/emailLimits";
 
 const USERNAME_RE = /^[a-z0-9_-]{3,20}$/;
 
@@ -64,6 +65,14 @@ export async function PUT(request) {
 
       const current = await prisma.user.findUnique({ where: { id: session.sub }, select: { email: true, username: true } });
       emailChanged = current.email !== email;
+      // Chaque changement envoie un e-mail à la nouvelle adresse : plafonné par membre
+      // (lib/emailLimits.js), sinon ce formulaire servirait à écrire à n'importe qui.
+      if (emailChanged && !(await allowEmail(session.sub, "emailChange"))) {
+        return NextResponse.json(
+          { error: `Limite de ${EMAIL_LIMITS.emailChange.maxAttempts} changements d'adresse e-mail sur 24 heures atteinte. Réessayez demain.` },
+          { status: 429 }
+        );
+      }
       data.email = email;
       // Une nouvelle adresse doit être reconfirmée avant qu'on lui fasse à nouveau
       // confiance — sans ça, une faute de frappe resterait invisible jusqu'au premier

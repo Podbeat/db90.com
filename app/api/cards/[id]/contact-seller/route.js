@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
+import { allowEmail, EMAIL_LIMITS } from "@/lib/emailLimits";
 
 // Envoie un message à un vendeur par e-mail, sans jamais exposer l'adresse de l'un ou
 // l'autre à l'interface : l'e-mail part du compte Gmail du site, adressé au vendeur, avec
@@ -39,6 +40,15 @@ export async function POST(request, { params }) {
     if (!user || !appPassword) {
       console.error("CONTACT_EMAIL_USER / CONTACT_EMAIL_APP_PASSWORD manquants dans .env");
       return NextResponse.json({ error: "Envoi indisponible pour le moment." }, { status: 500 });
+    }
+
+    // Plafond par membre (lib/emailLimits.js) : chaque contact est un e-mail sur le quota
+    // Gmail du site. Vérifié en dernier pour ne pas décompter une demande invalide.
+    if (!(await allowEmail(session.sub, "memberContact"))) {
+      return NextResponse.json(
+        { error: `Limite de ${EMAIL_LIMITS.memberContact.maxAttempts} contacts par e-mail sur 24 heures atteinte. Utilisez la messagerie du site, ou réessayez demain.` },
+        { status: 429 }
+      );
     }
 
     const cardName = card.personnagePrincipal?.name || card.numero;

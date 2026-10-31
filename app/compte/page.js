@@ -11,20 +11,33 @@ import { useCurrentUser } from "@/components/CurrentUserProvider";
 function EmailVerificationBanner({ t }) {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [failure, setFailure] = useState(null); // "limit" | "error" | null
 
   async function handleResend() {
     setSending(true);
+    setFailure(null);
     try {
-      await fetch("/api/users/resend-verification", { method: "POST" });
-      setSent(true);
+      const res = await fetch("/api/users/resend-verification", { method: "POST" });
+      if (res.ok) setSent(true);
+      else setFailure(res.status === 429 ? "limit" : "error");
+    } catch (e) {
+      setFailure("error");
     } finally {
       setSending(false);
     }
   }
 
+  const text = sent
+    ? t.verificationEmailResent
+    : failure === "limit"
+    ? t.verificationEmailTooSoon
+    : failure === "error"
+    ? t.contactError
+    : t.emailNotVerified;
+
   return (
     <div className="toast" style={{ background: "var(--surface-raised)", border: "1px solid var(--gold)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.8rem", flexWrap: "wrap" }}>
-      <span style={{ fontSize: "0.8rem" }}>{sent ? t.verificationEmailResent : t.emailNotVerified}</span>
+      <span style={{ fontSize: "0.8rem" }}>{text}</span>
       {!sent && (
         <button className="btn-ghost" onClick={handleResend} disabled={sending} style={{ fontSize: "0.75rem" }}>
           {sending ? "…" : t.resendVerificationEmail}

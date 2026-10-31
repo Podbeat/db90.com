@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { signActionToken } from "@/lib/userAuth";
+import { allowEmail, EMAIL_LIMITS } from "@/lib/emailLimits";
 
 export async function POST(request) {
   try {
@@ -17,6 +18,14 @@ export async function POST(request) {
     const appPassword = process.env.CONTACT_EMAIL_APP_PASSWORD;
     if (!gmailUser || !appPassword) {
       return NextResponse.json({ error: "Envoi indisponible pour le moment." }, { status: 500 });
+    }
+
+    // Plafond par membre (lib/emailLimits.js), pour protéger le quota Gmail du site.
+    if (!(await allowEmail(session.sub, "verificationResend"))) {
+      return NextResponse.json(
+        { error: `Limite de ${EMAIL_LIMITS.verificationResend.maxAttempts} envois par heure atteinte. Vérifiez vos courriers indésirables, puis réessayez plus tard.` },
+        { status: 429 }
+      );
     }
 
     const verifyToken = await signActionToken({ sub: session.sub }, "email-verify", "7d");

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
-import { checkAndAwardBadges } from "@/lib/badgeNotifications";
-import { ownedReferencesByCollection } from "@/lib/completion";
+import { applyStatusChanges } from "@/lib/userCardChanges";
 
 const MAX_UPDATES = 500;
 const STATUSES = new Set(["owned", "wanted", null]);
@@ -12,14 +11,12 @@ const STATUSES = new Set(["owned", "wanted", null]);
 // "owned", "wanted" ou null pour retirer la carte du suivi.
 //
 // Seules les cartes dont le statut change réellement sont touchées, et la réponse renvoie
-// leur statut d'avant (`previous`) : renvoyé tel quel, il annule l'action.
-// Mêmes effets que le changement carte par carte : collection complétée dans le fil
-// d'activité, alerte d'échange gagnant-gagnant, badges.
+// leur statut d'avant (`previous`) : renvoyé tel quel, il annule l'action. Mêmes effets que
+// le changement carte par carte (voir lib/userCardChanges.js).
 export async function POST(request) {
   try {
     const session = await resolveUserSession(request);
     if (!session) return NextResponse.json({ error: "Non connecté." }, { status: 401 });
-    const userId = session.sub;
 
     const body = await request.json().catch(() => null);
     const updates = Array.isArray(body?.updates) ? body.updates : null;
@@ -34,37 +31,11 @@ export async function POST(request) {
       }
       wanted.set(u.cardId, u.status ?? null);
     }
-    const cardIds = [...wanted.keys()];
 
-    const [cards, existing] = await Promise.all([
-      prisma.card.findMany({ where: { id: { in: cardIds } }, select: { id: true, collectionId: true } }),
-      prisma.userCard.findMany({ where: { userId, cardId: { in: cardIds } }, select: { cardId: true, status: true } }),
-    ]);
-    if (cards.length !== cardIds.length) return NextResponse.json({ error: "Carte introuvable." }, { status: 404 });
+    const found = await prisma.card.count({ where: { id: { in: [...wanted.keys()] } } });
+    if (found !== wanted.size) return NextResponse.json({ error: "Carte introuvable." }, { status: 404 });
 
-    const before = new Map(existing.map((e) => [e.cardId, e.status]));
-    const changes = cardIds
-      .filter((id) => (before.get(id) ?? null) !== wanted.get(id))
-      .map((id) => ({ cardId: id, status: wanted.get(id), previous: before.get(id) ?? null }));
-    if (changes.length === 0) return NextResponse.json({ ok: true, changed: 0, previous: [] });
-
-    const collectionOf = new Map(cards.map((c) => [c.id, c.collectionId]));
-    const touchedCollections = [...new Set(changes.map((c) => collectionOf.get(c.cardId)))];
-    const ownedBefore = await ownedReferencesByCollection(userId, touchedCollections);
-
-    // Une carte qui change de statut est retirée puis recréée : sa date reflète le moment
-    // où elle a pris son statut actuel (utile au palmarès des collections complètes).
-    await prisma.$transaction([
-      prisma.userCard.deleteMany({ where: { userId, cardId: { in: changes.map((c) => c.cardId) } } }),
-      prisma.userCard.createMany({
-        data: changes.filter((c) => c.status).map((c) => ({ userId, cardId: c.cardId, status: c.status })),
-      }),
-    ]);
-
-    await recordCompletedCollections(userId, touchedCollections, ownedBefore);
-    await notifyNewMutualMatches(userId, changes.filter((c) => c.status));
-    if (changes.some((c) => c.status === "owned")) await checkAndAwardBadges(userId);
-
+    const changes = await applyStatusChanges(session.sub, wanted);
     return NextResponse.json({
       ok: true,
       changed: changes.length,
@@ -73,76 +44,5 @@ export async function POST(request) {
   } catch (e) {
     console.error("Erreur POST /api/users/me/cards/bulk :", e);
     return NextResponse.json({ error: "Erreur serveur." }, { status: 500 });
-  }
-}
-
-// Fil d'activité : une collection n'est annoncée « complétée » qu'au moment où elle le
-// devient (chaque numéro possédé, voir lib/completion.js), comme carte par carte.
-async function recordCompletedCollections(userId, collectionIds, ownedBefore) {
-  try {
-    const [collections, ownedAfter] = await Promise.all([
-      prisma.collection.findMany({ where: { id: { in: collectionIds }, total: { not: null } }, select: { id: true, total: true } }),
-      ownedReferencesByCollection(userId, collectionIds),
-    ]);
-    const completed = collections.filter(
-      (c) => c.total > 0 && (ownedBefore.get(c.id) || 0) < c.total && (ownedAfter.get(c.id) || 0) >= c.total
-    );
-    if (completed.length) {
-      await prisma.activityEvent.createMany({
-        data: completed.map((c) => ({ type: "collection_completed", userId, collectionId: c.id })),
-      });
-    }
-  } catch (e) {
-    console.error("Erreur fil d'activité (cocher en lot) :", e);
-  }
-}
-
-// Alerte d'échange gagnant-gagnant : un membre qui a ce que je viens de chercher (ou
-// cherche ce que je viens de marquer possédé) ET avec qui l'échange marche dans l'autre
-// sens. Une seule alerte par membre concerné, quel que soit le nombre de cartes cochées.
-async function notifyNewMutualMatches(userId, changes) {
-  try {
-    if (changes.length === 0) return;
-    const newWanted = changes.filter((c) => c.status === "wanted").map((c) => c.cardId);
-    const newOwned = changes.filter((c) => c.status === "owned").map((c) => c.cardId);
-
-    const candidates = await prisma.userCard.findMany({
-      where: {
-        userId: { not: userId },
-        OR: [
-          newWanted.length ? { cardId: { in: newWanted }, status: "owned" } : null,
-          newOwned.length ? { cardId: { in: newOwned }, status: "wanted" } : null,
-        ].filter(Boolean),
-      },
-      select: { userId: true },
-      distinct: ["userId"],
-    });
-    if (candidates.length === 0) return;
-
-    const mine = await prisma.userCard.findMany({ where: { userId }, select: { cardId: true, status: true } });
-    const myWanted = new Set(mine.filter((c) => c.status === "wanted").map((c) => c.cardId));
-    const myOwned = new Set(mine.filter((c) => c.status === "owned").map((c) => c.cardId));
-
-    // Une seule requête pour tous les membres concernés, quel que soit leur nombre.
-    const theirs = await prisma.userCard.findMany({
-      where: {
-        userId: { in: candidates.map((c) => c.userId) },
-        OR: [
-          { status: "owned", cardId: { in: [...myWanted] } },
-          { status: "wanted", cardId: { in: [...myOwned] } },
-        ],
-      },
-      select: { userId: true, status: true },
-    });
-    const hasMyWanted = new Set(theirs.filter((c) => c.status === "owned").map((c) => c.userId));
-    const wantsMyOwned = new Set(theirs.filter((c) => c.status === "wanted").map((c) => c.userId));
-    const matched = candidates.map((c) => c.userId).filter((id) => hasMyWanted.has(id) && wantsMyOwned.has(id));
-    if (matched.length === 0) return;
-
-    await prisma.notification.createMany({
-      data: [{ userId, type: "trade_match" }, ...matched.map((id) => ({ userId: id, type: "trade_match" }))],
-    });
-  } catch (e) {
-    console.error("Erreur alertes d'échange (cocher en lot) :", e);
   }
 }

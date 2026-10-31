@@ -12,6 +12,17 @@ import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 // existe (une carte recherchée vient d'être mise en vente), mais la structure accueille
 // d'autres types plus tard sans changement d'interface. Les données viennent de l'appel
 // partagé avec l'icône des messages (lib/useMemberActivity.js).
+// Notifications d'échange suivi : texte selon l'étape, avec le pseudo de l'autre membre.
+const TRADE_NOTIFICATION_KEYS = {
+  trade_proposed: "notifTradeProposed",
+  trade_accepted: "notifTradeAccepted",
+  trade_declined: "notifTradeDeclined",
+  trade_cancelled: "notifTradeCancelled",
+  trade_sent: "notifTradeSent",
+  trade_received: "notifTradeReceived",
+  trade_completed: "notifTradeCompleted",
+};
+
 export default function NotificationBell() {
   const { t } = useLanguage();
   const { notifications, unreadCount } = useMemberActivity();
@@ -39,10 +50,12 @@ export default function NotificationBell() {
     if (n.type === "trade_match") return t.notifTradeMatch;
     if (n.type === "rating_received") return t.notifRatingReceived;
     if (n.type === "badge_earned") return t.notifBadgeEarned;
+    if (n.tradeId && TRADE_NOTIFICATION_KEYS[n.type]) return t[TRADE_NOTIFICATION_KEYS[n.type]](n.actor || "");
     return "";
   }
 
   function notificationHref(n) {
+    if (n.tradeId) return `/compte/echanges/${n.tradeId}`;
     if (n.card) return `/cartes/${n.card.id}`;
     if (n.type === "trade_match") return "/compte/echanges";
     if (n.type === "rating_received" || n.type === "badge_earned") return "/compte";

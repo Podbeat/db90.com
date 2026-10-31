@@ -51,6 +51,7 @@ model Card {
   collection      Collection       @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   reports         Report[]
   userCards       UserCard[]
+  tradeItems      TradeItem[]
   submissions     CardSubmission[]
   listings        CardListing[]
   notifications   Notification[]
@@ -123,6 +124,8 @@ model User {
   hiddenThreadsWith  HiddenThread[] @relation("HiddenThreadsWithOther")
   blocksMade         BlockedUser[] @relation("BlocksMade")
   blocksReceived     BlockedUser[] @relation("BlocksReceived")
+  tradesProposed     Trade[] @relation("TradesProposed")
+  tradesReceived     Trade[] @relation("TradesReceived")
 }
 
 // Une ligne par carte suivie par un utilisateur, avec son statut : "owned" (je l'ai) ou
@@ -186,11 +189,15 @@ model Notification {
   type      String // "card_for_sale"
   cardId    String?
   card      Card?    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  // Échange concerné (types « trade_proposed », « trade_accepted », « trade_sent »…).
+  tradeId   String?
+  trade     Trade?   @relation(fields: [tradeId], references: [id], onDelete: Cascade)
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([read])
+  @@index([tradeId])
 }
 
 // Historique de la côte "neuve" calculée d'une carte (voir lib/cote.js) : un point ajouté
@@ -448,4 +455,45 @@ model BlockedUser {
 
   @@unique([blockerId, blockedId])
   @@index([blockedId])
+}
+
+// Échange suivi entre deux membres, proposé depuis « Échanges possibles » : chacun indique
+// quand il a envoyé ses cartes puis quand il a reçu celles de l'autre (et peut alors mettre
+// à jour sa collection et noter l'autre). Rien ne change dans les collections avant la
+// réception. Statuts : "proposed" → "accepted" → "completed" (les deux ont reçu), ou
+// "declined" (refusé) / "cancelled" (annulé avant tout envoi).
+model Trade {
+  id                  String         @id @default(cuid())
+  proposerId          String
+  proposer            User           @relation("TradesProposed", fields: [proposerId], references: [id], onDelete: Cascade)
+  recipientId         String
+  recipient           User           @relation("TradesReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+  status              String         @default("proposed")
+  message             String?
+  acceptedAt          DateTime?
+  proposerSentAt      DateTime?
+  recipientSentAt     DateTime?
+  proposerReceivedAt  DateTime?
+  recipientReceivedAt DateTime?
+  closedAt            DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  items               TradeItem[]
+  notifications       Notification[]
+
+  @@index([proposerId])
+  @@index([recipientId])
+  @@index([status])
+}
+
+// Une carte de l'échange : donnée par celui qui propose (fromProposer) ou par l'autre.
+model TradeItem {
+  id           String  @id @default(cuid())
+  tradeId      String
+  trade        Trade   @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  cardId       String
+  card         Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  fromProposer Boolean
+
+  @@index([tradeId])
 }

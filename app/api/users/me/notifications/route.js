@@ -18,13 +18,20 @@ export async function GET(request) {
           card: {
             select: { id: true, numero: true, image: true, personnagePrincipal: { select: { name: true } }, collection: { select: { nom: true } } },
           },
+          trade: { select: { proposerId: true, proposer: { select: { username: true } }, recipient: { select: { username: true } } } },
         },
       }),
       prisma.notification.count({ where: { userId: session.sub, read: false } }),
       prisma.message.count({ where: { recipientId: session.sub, read: false } }),
     ]);
 
-    return NextResponse.json({ notifications, unreadCount, unreadMessages });
+    // Notifications d'échange : seul le pseudo de l'autre membre est renvoyé (`actor`).
+    const items = notifications.map(({ trade, ...n }) => ({
+      ...n,
+      actor: trade ? (trade.proposerId === session.sub ? trade.recipient.username : trade.proposer.username) : null,
+    }));
+
+    return NextResponse.json({ notifications: items, unreadCount, unreadMessages });
   } catch (e) {
     console.error("Erreur GET /api/users/me/notifications :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

@@ -4,11 +4,11 @@ import { resolveUserSession } from "@/lib/currentUser";
 import { applyStatusChanges } from "@/lib/userCardChanges";
 
 const MAX_UPDATES = 500;
-const STATUSES = new Set(["owned", "wanted", null]);
+const STATUSES = new Set(["owned", "trade", "wanted", null]);
 
 // Change d'un coup le statut de plusieurs cartes (« Cocher en lot » sur une page de
 // collection, et son annulation). Corps : { updates: [{ cardId, status }] }, status valant
-// "owned", "wanted" ou null pour retirer la carte du suivi.
+// "owned", "trade" (à l'échange), "wanted" ou null pour retirer la carte du suivi.
 //
 // Seules les cartes dont le statut change réellement sont touchées, et la réponse renvoie
 // leur statut d'avant (`previous`) : renvoyé tel quel, il annule l'action. Mêmes effets que

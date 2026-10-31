@@ -197,7 +197,10 @@ export default function TradeDetailPage() {
             {givenNames.length > 0 && (
               <label className="trade-option">
                 <input type="checkbox" checked={removeGiven} onChange={(e) => setRemoveGiven(e.target.checked)} />
-                <span>{t.tradeRemoveGiven(joinNames(givenNames, t))}</span>
+                <span>
+                  {t.tradeRemoveGiven(joinNames(givenNames, t))}
+                  <span className="trade-option-hint">{t.tradeRemoveGivenHint}</span>
+                </span>
               </label>
             )}
           </section>

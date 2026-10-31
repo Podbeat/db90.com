@@ -9,6 +9,7 @@ import ReportError from "@/components/ReportError";
 import ShareButton from "@/components/ShareButton";
 import HoloCard from "@/components/HoloCard";
 import CardStatusToggle from "@/components/CardStatusToggle";
+import { isOwnedStatus } from "@/lib/cardStatus";
 import CardScanUpload from "@/components/CardScanUpload";
 import CardVariantUpload from "@/components/CardVariantUpload";
 import CardMarketplace from "@/components/CardMarketplace";
@@ -38,14 +39,15 @@ export default function CardDetailClient({ id }) {
   // « N membres l'ont · M la recherchent » suit tout de suite le choix du visiteur (les
   // compteurs reçus incluent déjà son statut d'origine, la route n'étant pas mise en cache).
   function handleMyStatusChange(prev, next) {
-    const delta = (value) => (next === value ? 1 : 0) - (prev === value ? 1 : 0);
+    const delta = (test) => (test(next) ? 1 : 0) - (test(prev) ? 1 : 0);
     setCard((c) =>
       c && c.community
         ? {
             ...c,
             community: {
-              owners: Math.max(0, c.community.owners + delta("owned")),
-              seekers: Math.max(0, c.community.seekers + delta("wanted")),
+              owners: Math.max(0, c.community.owners + delta(isOwnedStatus)),
+              traders: Math.max(0, (c.community.traders || 0) + delta((s) => s === "trade")),
+              seekers: Math.max(0, c.community.seekers + delta((s) => s === "wanted")),
             },
           }
         : c
@@ -154,7 +156,10 @@ export default function CardDetailClient({ id }) {
             <section className="community-stats" aria-label={t.communityTitle}>
               <div className="community-stat">
                 <span className="community-stat-icon owned" aria-hidden="true"><Check size={18} strokeWidth={2.4} /></span>
-                <span><strong>{card.community.owners}</strong> {t.ownersLabel(card.community.owners)}</span>
+                <span>
+                  <strong>{card.community.owners}</strong> {t.ownersLabel(card.community.owners)}
+                  {card.community.traders > 0 && <span className="community-traders">{t.communityTraders(card.community.traders)}</span>}
+                </span>
               </div>
               <div className="community-stat">
                 <span className="community-stat-icon wanted" aria-hidden="true"><Search size={18} strokeWidth={2.2} /></span>

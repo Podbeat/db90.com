@@ -37,7 +37,12 @@ function Possible({ data, t }) {
   const nothing = data.mutual.length === 0 && data.theyWantMine.length === 0 && data.theyHaveMine.length === 0;
   return (
     <>
-      <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1.25rem" }}>{t.matchesIntro}</p>
+      <p className="trades-intro">{t.matchesIntro}</p>
+      {data.counts && (
+        <p className={`trades-counts${data.counts.forTrade === 0 ? " warn" : ""}`}>
+          {data.counts.forTrade === 0 ? t.matchesNoForTrade : t.matchesForTradeCount(data.counts.forTrade, data.counts.wanted)}
+        </p>
+      )}
       {nothing && <div className="empty-state">{t.noMatches}</div>}
 
       {data.mutual.length > 0 && (

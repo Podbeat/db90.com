@@ -30,7 +30,12 @@ export async function GET(request, { params }) {
     // Un badge par collection complète (vignette de la série), affiché en tête du profil.
     const completedCollections = await getCompletedCollections(participation.completedCollectionIds);
 
-    const owned = entries.filter((e) => e.status === "owned").map((e) => e.card).sort(naturalSortByNumero);
+    const owned = entries
+      .filter((e) => e.status === "owned")
+      .map((e) => ({ ...e.card, forTrade: e.forTrade }))
+      .sort(naturalSortByNumero);
+    // Cartes « À l'échange » : celles que le membre accepte d'échanger.
+    const forTrade = owned.filter((c) => c.forTrade);
     // Classeur : dans l'ordre choisi, en ne gardant que les cartes toujours possédées.
     const ownedById = new Map(owned.map((c) => [c.id, c]));
     const showcase = (user.showcase || []).map((id) => ownedById.get(id)).filter(Boolean);
@@ -43,6 +48,7 @@ export async function GET(request, { params }) {
       bio: user.bio,
       memberSince: user.createdAt,
       owned,
+      forTrade,
       wanted,
       selling,
       participation,

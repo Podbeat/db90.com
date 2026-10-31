@@ -1274,3 +1274,33 @@ html.light .value-label { color: #8a6416; }
 .value-top-name { font-size: 0.9rem; font-weight: 600; }
 .value-top-meta { font-size: 0.76rem; color: var(--text-muted); }
 .value-top-price { flex-shrink: 0; font-size: 0.95rem; font-weight: 700; }
+
+/* ===== Statut « À l'échange » ===== */
+.status-toggle-wrap { margin-bottom: 1rem; }
+.status-toggle { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.status-toggle-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem; min-height: 40px; padding: 0 0.75rem;
+  border: 1px solid var(--line); border-radius: var(--radius); background: transparent; color: var(--text);
+  font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.status-toggle-btn:hover { border-color: var(--accent); }
+.status-toggle-btn.owned.active, .status-toggle-btn.wanted.active { background: var(--accent); border-color: var(--accent); color: #1a1208; box-shadow: 0 2px 10px rgba(242, 113, 28, 0.35); }
+.status-toggle-btn.trade.active { background: var(--turquoise); border-color: var(--turquoise); color: #072a28; box-shadow: 0 2px 10px rgba(45, 212, 200, 0.3); }
+.status-toggle-btn.trade:hover { border-color: var(--turquoise); }
+.status-toggle-hint { margin: 0.45rem 0 0; max-width: 420px; font-size: 0.78rem; line-height: 1.45; color: var(--text-muted); }
+.card-status-icon.trade.active { background: var(--turquoise); color: #072a28; }
+.status-row-btn.trade.active { border-color: var(--turquoise); background: rgba(45, 212, 200, 0.16); color: var(--turquoise); }
+html.light .status-row-btn.trade.active { color: #0f7f78; }
+html.light .status-toggle-btn.trade.active { color: #04302d; }
+.community-traders { display: block; margin-top: 0.1rem; font-size: 0.75rem; color: var(--turquoise); }
+html.light .community-traders { color: #0f7f78; }
+.trades-intro { margin: 0 0 0.4rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-muted); }
+.trades-counts { margin: 0 0 1.1rem; font-size: 0.82rem; color: var(--text); }
+.trades-counts.warn { padding: 0.6rem 0.75rem; border-radius: var(--radius-lg); border: 1px solid rgba(45, 212, 200, 0.45); background: rgba(45, 212, 200, 0.08); line-height: 1.45; }
+.trade-option-hint { display: block; margin-top: 0.15rem; font-size: 0.76rem; color: var(--text-muted); }
+/* Téléphone tactile : les trois icônes d'une vignette s'empilent à gauche, pour ne jamais
+   chevaucher le bouton de partage sur les petites vignettes. */
+@media (hover: none) and (max-width: 480px) {
+  .card-status-icons { flex-direction: column; }
+}

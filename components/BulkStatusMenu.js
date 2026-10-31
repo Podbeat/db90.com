@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { isOwnedStatus } from "@/lib/cardStatus";
 
 // « Cocher en lot » sur une page de collection : marque d'un coup les cartes manquantes en
 // recherchées, tout en possédé, ou retire tout. Le menu calcule les changements à partir
@@ -32,7 +33,8 @@ export default function BulkStatusMenu({ cards, statusMap, onApply }) {
   }, [open]);
 
   const missing = cards.filter((c) => !statusMap[c.id]);
-  const notOwned = cards.filter((c) => statusMap[c.id] !== "owned");
+  // « Tout marquer possédé » ne touche pas aux cartes déjà « À l'échange » (elles sont possédées).
+  const notOwned = cards.filter((c) => !isOwnedStatus(statusMap[c.id]));
   const tracked = cards.filter((c) => statusMap[c.id]);
 
   function run(updates) {

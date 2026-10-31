@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { checkUserRateLimit } from "@/lib/rateLimit";
 import { allowEmail } from "@/lib/emailLimits";
+import { FOR_TRADE_WHERE } from "@/lib/cardStatus";
 import {
   MAX_TRADE_CARDS,
   OPEN_TRADE_STATUSES,
@@ -54,8 +55,8 @@ function cardIdList(value) {
 }
 
 // Proposer un échange. Corps : { recipient: "pseudo", give: [cardId], receive: [cardId],
-// message? }. Je ne peux donner que des cartes que je possède, et demander que des cartes
-// que l'autre possède ; une seule proposition en attente à la fois entre deux membres.
+// message? }. Seules les cartes mises « À l'échange » comptent, de chaque côté ; une seule
+// proposition en attente à la fois entre deux membres.
 export async function POST(request) {
   try {
     const session = await resolveUserSession(request);
@@ -98,8 +99,8 @@ export async function POST(request) {
     }
 
     const [iOwn, theyOwn] = await Promise.all([
-      prisma.userCard.count({ where: { userId: me, status: "owned", cardId: { in: give } } }),
-      prisma.userCard.count({ where: { userId: recipient.id, status: "owned", cardId: { in: receive } } }),
+      prisma.userCard.count({ where: { userId: me, ...FOR_TRADE_WHERE, cardId: { in: give } } }),
+      prisma.userCard.count({ where: { userId: recipient.id, ...FOR_TRADE_WHERE, cardId: { in: receive } } }),
     ]);
     if (iOwn !== give.length || theyOwn !== receive.length) {
       return NextResponse.json({ error: "Les collections ont changé entre-temps : rechargez la page." }, { status: 409 });

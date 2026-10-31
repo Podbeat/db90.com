@@ -33,7 +33,8 @@ export async function POST(request, { params }) {
       cardIds.map((cardId) =>
         prisma.userCard.upsert({
           where: { userId_cardId: { userId: session.sub, cardId } },
-          update: { status },
+          // « Je l'ai » garde les cartes déjà à l'échange ; « Je la recherche » les en retire.
+          update: status === "wanted" ? { status, forTrade: false } : { status },
           create: { userId: session.sub, cardId, status },
         })
       )

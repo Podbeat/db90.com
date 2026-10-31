@@ -205,6 +205,7 @@ export default function UserProfileClient({ username }) {
   const tabs = [
     { key: "participation", label: t.profileTabParticipation },
     { key: "collection", label: `${t.profileTabCollection} · ${t.cardsCount(profile.owned.length)}` },
+    { key: "trade", label: `${t.profileTabForTrade} · ${t.cardsCount((profile.forTrade || []).length)}` },
     { key: "wanted", label: `${t.profileTabWanted} · ${t.cardsCount(profile.wanted.length)}` },
     { key: "sales", label: `${t.profileTabSales} · ${t.cardsCount(profile.selling.length)}` },
   ];
@@ -275,6 +276,7 @@ export default function UserProfileClient({ username }) {
         </>
       )}
       {tab === "collection" && <MiniGrid cards={profile.owned} t={t} emptyLabel={t.noCardsOwned} />}
+      {tab === "trade" && <MiniGrid cards={profile.forTrade || []} t={t} emptyLabel={t.noCardsForTrade} />}
       {tab === "wanted" && <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />}
       {tab === "sales" && (
         profile.selling.length === 0 ? (

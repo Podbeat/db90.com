@@ -4,11 +4,14 @@ import { resolveUserSession } from "@/lib/currentUser";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 import { checkAndAwardBadges } from "@/lib/badgeNotifications";
 import { ownedReferencesByCollection } from "@/lib/completion";
+import { notifyNewMutualMatches } from "@/lib/userCardChanges";
+import { CARD_STATUSES, displayStatus, isOwnedStatus, storedStatus } from "@/lib/cardStatus";
 
 // Liste les cartes suivies par l'utilisateur connecté, groupées par statut, avec les infos
 // nécessaires pour les afficher (image, collection...) — utilisé par la page "Mon compte".
+// Les cartes possédées portent `forTrade` (true si « À l'échange »).
 // Avec ?cardId=... : renvoie uniquement le statut de cette carte précise (utilisé sur la
-// fiche carte, pour afficher "Je l'ai" / "Je la recherche" sans tout recharger).
+// fiche carte) : "owned", "trade", "wanted" ou null (voir lib/cardStatus.js).
 export async function GET(request) {
   try {
     const session = await resolveUserSession(request);
@@ -19,8 +22,9 @@ export async function GET(request) {
     if (cardId) {
       const entry = await prisma.userCard.findUnique({
         where: { userId_cardId: { userId: session.sub, cardId } },
+        select: { status: true, forTrade: true },
       });
-      return NextResponse.json({ status: entry?.status || null });
+      return NextResponse.json({ status: displayStatus(entry) });
     }
 
     const entries = await prisma.userCard.findMany({
@@ -28,7 +32,10 @@ export async function GET(request) {
       include: { card: { include: { collection: { select: { id: true, nom: true } }, personnagePrincipal: true } } },
     });
 
-    const owned = entries.filter((e) => e.status === "owned").map((e) => e.card).sort(naturalSortByNumero);
+    const owned = entries
+      .filter((e) => e.status === "owned")
+      .map((e) => ({ ...e.card, forTrade: e.forTrade }))
+      .sort(naturalSortByNumero);
     const wanted = entries.filter((e) => e.status === "wanted").map((e) => e.card).sort(naturalSortByNumero);
 
     return NextResponse.json({ owned, wanted });
@@ -38,9 +45,9 @@ export async function GET(request) {
   }
 }
 
-// Définit le statut d'une carte pour l'utilisateur connecté : "owned", "wanted", ou null
-// pour retirer la carte de son suivi. Une carte ne peut avoir qu'un seul statut à la fois
-// (le passer à "owned" alors qu'elle était "wanted" la fait simplement changer de liste).
+// Définit le statut d'une carte pour l'utilisateur connecté : "owned" (je l'ai), "trade"
+// (je l'ai et je peux l'échanger), "wanted" (je la recherche) ou null pour la retirer de son
+// suivi. Une carte n'a qu'un statut à la fois.
 export async function POST(request) {
   try {
     const session = await resolveUserSession(request);
@@ -48,7 +55,7 @@ export async function POST(request) {
 
     const { cardId, status } = await request.json();
     if (!cardId) return NextResponse.json({ error: "Carte manquante." }, { status: 400 });
-    if (status !== null && status !== "owned" && status !== "wanted") {
+    if (status !== null && !CARD_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Statut invalide." }, { status: 400 });
     }
 
@@ -59,23 +66,21 @@ export async function POST(request) {
 
     const existing = await prisma.userCard.findUnique({
       where: { userId_cardId: { userId: session.sub, cardId } },
-      select: { status: true },
+      select: { status: true, forTrade: true },
     });
-    const wasAlreadyOwned = existing?.status === "owned";
-    const statusChanged = existing?.status !== status;
+    const previous = displayStatus(existing);
+    const wasAlreadyOwned = isOwnedStatus(previous);
 
     const entry = await prisma.userCard.upsert({
       where: { userId_cardId: { userId: session.sub, cardId } },
-      update: { status },
-      create: { userId: session.sub, cardId, status },
+      update: storedStatus(status),
+      create: { userId: session.sub, cardId, ...storedStatus(status) },
     });
 
     // Fil d'activité : on ne loggue une "collection complétée" qu'au moment précis où elle
-    // le devient (cette carte manquait juste avant), pas à chaque nouvelle visite d'une
-    // collection déjà complète.
-    // Une collection est complète quand chaque numéro est possédé (voir lib/completion.js) :
-    // une variante d'un numéro déjà possédé ne fait donc rien franchir.
-    if (status === "owned" && !wasAlreadyOwned) {
+    // le devient (chaque numéro possédé, voir lib/completion.js) : une variante d'un numéro
+    // déjà possédé, ou le passage de « Je l'ai » à « À l'échange », ne fait rien franchir.
+    if (isOwnedStatus(status) && !wasAlreadyOwned) {
       const card = await prisma.card.findUnique({
         where: { id: cardId },
         select: { collectionId: true, numero: true, collection: { select: { total: true } } },
@@ -103,38 +108,13 @@ export async function POST(request) {
       }
     }
 
-    // Prévient les deux membres dès qu'un échange gagnant-gagnant vient d'apparaître grâce
-    // à ce changement précis : quelqu'un qui a ce que je viens d'indiquer chercher, et qui
-    // cherche justement quelque chose que je possède (ou l'inverse). Portée volontairement
-    // limitée aux membres concernés par CETTE carte, pour rester rapide.
-    if (statusChanged && (status === "wanted" || status === "owned")) {
-      const oppositeStatus = status === "wanted" ? "owned" : "wanted";
-      const candidates = await prisma.userCard.findMany({
-        where: { cardId, status: oppositeStatus, userId: { not: session.sub } },
-        select: { userId: true },
-      });
+    // Alerte d'échange gagnant-gagnant quand une carte passe « recherchée » ou « à
+    // l'échange » (lib/userCardChanges.js).
+    await notifyNewMutualMatches(session.sub, [{ cardId, status, previous }]);
 
-      for (const candidate of candidates) {
-        const [myWanted, theirOwned] = await Promise.all([
-          prisma.userCard.findMany({ where: { userId: session.sub, status: "wanted" }, select: { cardId: true } }),
-          prisma.userCard.findMany({ where: { userId: candidate.userId, status: "owned" }, select: { cardId: true } }),
-        ]);
-        const theirOwnedIds = new Set(theirOwned.map((c) => c.cardId));
-        const hasReverseMatch = myWanted.some((w) => theirOwnedIds.has(w.cardId));
-        if (hasReverseMatch) {
-          await prisma.notification.createMany({
-            data: [
-              { userId: session.sub, type: "trade_match" },
-              { userId: candidate.userId, type: "trade_match" },
-            ],
-          });
-        }
-      }
-    }
+    if (isOwnedStatus(status) && !wasAlreadyOwned) await checkAndAwardBadges(session.sub);
 
-    if (status === "owned") await checkAndAwardBadges(session.sub);
-
-    return NextResponse.json({ ok: true, status: entry.status });
+    return NextResponse.json({ ok: true, status: displayStatus(entry) });
   } catch (e) {
     console.error("Erreur POST /api/users/me/cards :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

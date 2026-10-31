@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Search } from "lucide-react";
+import { ArrowLeftRight, Check, Search } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 
-// Boutons "Je l'ai" / "Je la recherche" sur la fiche carte, pour les visiteurs connectés à
-// leur compte. Un clic sur le statut déjà actif le retire (bascule). Invite à se connecter
-// si personne n'est identifié — ne fait aucune supposition sur l'état de connexion tant que
-// la vérification initiale n'est pas terminée, pour éviter un flash incorrect.
+// Boutons « Je l'ai » / « À l'échange » / « Je la recherche » sur la fiche carte, pour les
+// visiteurs connectés (voir lib/cardStatus.js). « À l'échange » veut dire : je l'ai et je
+// peux l'échanger ; seules ces cartes servent aux échanges possibles. Un clic sur le statut
+// déjà actif le retire (bascule). Invite à se connecter si personne n'est identifié — ne
+// fait aucune supposition tant que la vérification initiale n'est pas terminée.
 export default function CardStatusToggle({ cardId, onChange }) {
   const { t } = useLanguage();
   const [status, setStatus] = useState(null);
@@ -27,7 +28,7 @@ export default function CardStatusToggle({ cardId, onChange }) {
 
   async function setCardStatus(next) {
     const newStatus = status === next ? null : next;
-    setStatus(newStatus); // mise à jour immédiate : l'icône change de couleur sans attendre le serveur
+    setStatus(newStatus); // mise à jour immédiate : le bouton change de couleur sans attendre le serveur
     onChange?.(status, newStatus);
     await fetch("/api/users/me/cards", {
       method: "POST",
@@ -46,24 +47,29 @@ export default function CardStatusToggle({ cardId, onChange }) {
     );
   }
 
+  const options = [
+    { key: "owned", Icon: Check, label: t.iOwnCard },
+    { key: "trade", Icon: ArrowLeftRight, label: t.iTradeCard },
+    { key: "wanted", Icon: Search, label: t.iWantCard },
+  ];
+  const hint = { owned: t.statusHintOwned, trade: t.statusHintTrade, wanted: t.statusHintWanted }[status];
+
   return (
-    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-      <button
-        type="button"
-        onClick={() => setCardStatus("owned")}
-        className={status === "owned" ? "btn-primary" : "btn-ghost"}
-        style={{ fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
-      >
-        <Check size={13} /> {t.iOwnCard}
-      </button>
-      <button
-        type="button"
-        onClick={() => setCardStatus("wanted")}
-        className={status === "wanted" ? "btn-primary" : "btn-ghost"}
-        style={{ fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
-      >
-        <Search size={13} /> {t.iWantCard}
-      </button>
+    <div className="status-toggle-wrap">
+      <div className="status-toggle">
+        {options.map(({ key, Icon, label }) => (
+          <button
+            key={key}
+            type="button"
+            aria-pressed={status === key}
+            onClick={() => setCardStatus(key)}
+            className={`status-toggle-btn ${key}${status === key ? " active" : ""}`}
+          >
+            <Icon size={14} aria-hidden="true" /> {label}
+          </button>
+        ))}
+      </div>
+      {hint && <p className="status-toggle-hint">{hint}</p>}
     </div>
   );
 }

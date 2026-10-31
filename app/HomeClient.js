@@ -64,7 +64,7 @@ export default function CataloguePage() {
       .then((d) => {
         if (!d) return;
         const map = {};
-        for (const c of d.owned) map[c.id] = "owned";
+        for (const c of d.owned) map[c.id] = c.forTrade ? "trade" : "owned";
         for (const c of d.wanted) map[c.id] = "wanted";
         setStatusMap(map);
       })

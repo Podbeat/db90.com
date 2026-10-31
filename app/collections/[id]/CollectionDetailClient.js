@@ -16,6 +16,7 @@ import BulkStatusMenu from "@/components/BulkStatusMenu";
 import CardStatusRow from "@/components/CardStatusRow";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { withMyLiveCount } from "@/lib/registryRank";
+import { isOwnedStatus } from "@/lib/cardStatus";
 import { Trophy } from "lucide-react";
 
 const VIEW_STORAGE_KEY = "db90-collection-view";
@@ -47,7 +48,7 @@ export default function CollectionDetailClient({ id }) {
       .then((d) => {
         if (!d) return;
         const map = {};
-        for (const c of d.owned) map[c.id] = "owned";
+        for (const c of d.owned) map[c.id] = c.forTrade ? "trade" : "owned";
         for (const c of d.wanted) map[c.id] = "wanted";
         setStatusMap(map);
       })
@@ -139,7 +140,7 @@ export default function CollectionDetailClient({ id }) {
   // Progression en références (numéros) : une variante d'effet d'un numéro déjà possédé ne
   // rapproche pas de la collection complète (même règle que lib/completion.js).
   const progressTotal = collection.total || new Set(collection.cards.map((c) => c.numero)).size;
-  const ownedHere = new Set(collection.cards.filter((c) => statusMap[c.id] === "owned").map((c) => c.numero)).size;
+  const ownedHere = new Set(collection.cards.filter((c) => isOwnedStatus(statusMap[c.id])).map((c) => c.numero)).size;
   const progressPct = progressTotal ? Math.min(100, Math.round((ownedHere / progressTotal) * 100)) : 0;
   const showList = loggedIn && view === "list";
 

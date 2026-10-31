@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
+import { FOR_TRADE_WHERE } from "@/lib/cardStatus";
 
 const cardSelect = {
   id: true,
@@ -10,12 +11,13 @@ const cardSelect = {
   collection: { select: { nom: true } },
 };
 
-// Croise ce que l'utilisateur connecté possède/recherche avec ce que les autres membres
-// recherchent/possèdent, pour proposer des échanges concrets :
-// - "mutuel" : un autre membre a une carte que je cherche ET cherche une carte que j'ai —
-//   l'échange idéal, mis en avant en premier.
-// - à sens unique : quelqu'un cherche une carte que j'ai (je pourrais la lui céder), ou
-//   quelqu'un a une carte que je cherche (je pourrais la lui demander).
+// Croise ce que l'utilisateur connecté a mis à l'échange et recherche avec ce que les autres
+// membres recherchent et ont mis à l'échange (une carte simplement possédée n'est pas
+// proposée : on ne l'échange pas forcément) :
+// - "mutuel" : un autre membre a mis à l'échange une carte que je cherche ET cherche une
+//   carte que j'ai mise à l'échange — l'échange idéal, mis en avant en premier.
+// - à sens unique : quelqu'un cherche une carte que j'ai à l'échange, ou quelqu'un a mis à
+//   l'échange une carte que je cherche.
 export async function GET(request) {
   try {
     const session = await resolveUserSession(request);
@@ -23,25 +25,26 @@ export async function GET(request) {
 
     const myCards = await prisma.userCard.findMany({
       where: { userId: session.sub },
-      select: { cardId: true, status: true },
+      select: { cardId: true, status: true, forTrade: true },
     });
-    const myOwnedIds = myCards.filter((c) => c.status === "owned").map((c) => c.cardId);
+    const myForTradeIds = myCards.filter((c) => c.status === "owned" && c.forTrade).map((c) => c.cardId);
     const myWantedIds = myCards.filter((c) => c.status === "wanted").map((c) => c.cardId);
+    const counts = { forTrade: myForTradeIds.length, wanted: myWantedIds.length };
 
-    if (myOwnedIds.length === 0 && myWantedIds.length === 0) {
-      return NextResponse.json({ mutual: [], theyWantMine: [], theyHaveMine: [] });
+    if (myForTradeIds.length === 0 && myWantedIds.length === 0) {
+      return NextResponse.json({ mutual: [], theyWantMine: [], theyHaveMine: [], counts });
     }
 
     const [othersWantMine, othersOwnWanted] = await Promise.all([
-      myOwnedIds.length
+      myForTradeIds.length
         ? prisma.userCard.findMany({
-            where: { cardId: { in: myOwnedIds }, status: "wanted", userId: { not: session.sub } },
+            where: { cardId: { in: myForTradeIds }, status: "wanted", userId: { not: session.sub } },
             select: { userId: true, card: { select: cardSelect }, user: { select: { username: true, avatar: true } } },
           })
         : [],
       myWantedIds.length
         ? prisma.userCard.findMany({
-            where: { cardId: { in: myWantedIds }, status: "owned", userId: { not: session.sub } },
+            where: { cardId: { in: myWantedIds }, ...FOR_TRADE_WHERE, userId: { not: session.sub } },
             select: { userId: true, card: { select: cardSelect }, user: { select: { username: true, avatar: true } } },
           })
         : [],
@@ -69,7 +72,7 @@ export async function GET(request) {
       }
     }
 
-    return NextResponse.json({ mutual, theyWantMine, theyHaveMine });
+    return NextResponse.json({ mutual, theyWantMine, theyHaveMine, counts });
   } catch (e) {
     console.error("Erreur GET /api/users/me/matches :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

@@ -45,7 +45,8 @@ const conflict = (error) => NextResponse.json({ error }, { status: 409 });
 //    envoyé ni reçu de cartes ;
 //  - "sent" : j'ai envoyé mes cartes ;
 //  - "received" : j'ai reçu les cartes, avec en option { addReceived, removeGiven } pour
-//    mettre à jour ma collection et { rating: { positive, comment } } pour noter l'autre.
+//    mettre à jour ma collection (les cartes données ne sont plus « à l'échange » dans tous
+//    les cas) et { rating: { positive, comment } } pour noter l'autre.
 // Chaque transition ne s'applique que depuis l'état attendu (updateMany conditionnel), pour
 // rester juste si les deux membres agissent en même temps.
 export async function POST(request, { params }) {
@@ -120,17 +121,17 @@ export async function POST(request, { params }) {
         });
         if (count === 0) return conflict("Réception déjà confirmée, ou échange pas encore accepté.");
 
-        // Mise à jour de la collection, seulement si le membre l'a demandée.
+        // Mise à jour de la collection : les cartes reçues deviennent possédées si le membre
+        // l'a demandé ; les cartes données sont retirées de ses cartes possédées s'il l'a
+        // demandé, sinon gardées (un double) mais plus proposées à l'échange.
         const view = tradeView(trade, me);
         const changes = new Map();
         if (body.addReceived) for (const card of view.iReceive) changes.set(card.id, "owned");
-        if (body.removeGiven) {
-          const owned = await prisma.userCard.findMany({
-            where: { userId: me, status: "owned", cardId: { in: view.iGive.map((c) => c.id) } },
-            select: { cardId: true },
-          });
-          for (const { cardId } of owned) changes.set(cardId, null);
-        }
+        const stillOwned = await prisma.userCard.findMany({
+          where: { userId: me, status: "owned", cardId: { in: view.iGive.map((c) => c.id) } },
+          select: { cardId: true },
+        });
+        for (const { cardId } of stillOwned) changes.set(cardId, body.removeGiven ? null : "owned");
         if (changes.size) await applyStatusChanges(me, changes, { notifyMatches: false });
 
         // Note de l'autre membre (un seul avis par membre noté, mis à jour s'il existe).

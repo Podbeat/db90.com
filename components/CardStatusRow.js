@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Check, Search } from "lucide-react";
+import { ArrowLeftRight, Check, Search } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 
 // Une ligne du mode liste d'une collection : vignette et nom (lien vers la fiche), puis
-// deux boutons « Je l'ai » / « Je la recherche » assez grands pour le doigt.
+// trois boutons « Je l'ai » / « À l'échange » / « Je la recherche » assez grands pour le doigt.
 export default function CardStatusRow({ card, status, onToggle }) {
   const { t } = useLanguage();
   const name = card.personnagePrincipal?.name || t.noCharacterAssigned;
@@ -38,6 +38,15 @@ export default function CardStatusRow({ card, status, onToggle }) {
         onClick={() => onToggle(card.id, "owned")}
       >
         <Check size={18} strokeWidth={2.4} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className={`status-row-btn trade ${status === "trade" ? "active" : ""}`}
+        aria-pressed={status === "trade"}
+        aria-label={`${t.iTradeCardLong} — ${name} (${card.numero})`}
+        onClick={() => onToggle(card.id, "trade")}
+      >
+        <ArrowLeftRight size={18} strokeWidth={2.2} aria-hidden="true" />
       </button>
       <button
         type="button"

@@ -40,10 +40,12 @@ export async function GET(request, { params }) {
       orderBy: { rarete: "asc" },
     });
 
-    // Chez les membres : combien possèdent / recherchent cette carte.
-    const [owners, seekers] = await Promise.all([
+    // Chez les membres : combien possèdent / recherchent cette carte, et combien de ceux
+    // qui la possèdent l'ont mise à l'échange.
+    const [owners, seekers, traders] = await Promise.all([
       prisma.userCard.count({ where: { cardId: card.id, status: "owned" } }),
       prisma.userCard.count({ where: { cardId: card.id, status: "wanted" } }),
+      prisma.userCard.count({ where: { cardId: card.id, status: "owned", forTrade: true } }),
     ]);
 
     // Contributeur du scan : "contributeur" garde le pseudo du membre dont le scan a été
@@ -74,7 +76,7 @@ export async function GET(request, { params }) {
       prevCardId,
       nextCardId,
       variants,
-      community: { owners, seekers },
+      community: { owners, seekers, traders },
       contributorProfile,
     });
   } catch (e) {

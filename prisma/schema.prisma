@@ -138,12 +138,16 @@ model UserCard {
   cardId    String
   card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
   status    String // "owned" | "wanted"
+  // « À l'échange » : carte possédée (status "owned") que le membre accepte d'échanger.
+  // Seules ces cartes servent aux échanges possibles. Toujours false si "wanted".
+  forTrade  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@unique([userId, cardId])
   @@index([userId])
   @@index([cardId])
   @@index([status])
+  @@index([cardId, forTrade])
 }
 
 // Adresses e-mail bannies par l'admin : empêche à la fois la connexion et une nouvelle

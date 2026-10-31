@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 import { computeParticipation } from "@/lib/participation";
+import { getCompletedCollections } from "@/lib/registry";
 
 // Page profil publique (voir /u/[username]) : tout ce qui est renvoyé ici est visible par
 // n'importe quel visiteur, connecté ou non — jamais l'e-mail ni aucune donnée privée.
@@ -26,6 +27,9 @@ export async function GET(request, { params }) {
       computeParticipation(user.id),
     ]);
 
+    // Un badge par collection complète (vignette de la série), affiché en tête du profil.
+    const completedCollections = await getCompletedCollections(participation.completedCollectionIds);
+
     const owned = entries.filter((e) => e.status === "owned").map((e) => e.card).sort(naturalSortByNumero);
     const wanted = entries.filter((e) => e.status === "wanted").map((e) => e.card).sort(naturalSortByNumero);
     const selling = listings.sort((a, b) => naturalSortByNumero(a.card, b.card));
@@ -39,6 +43,7 @@ export async function GET(request, { params }) {
       wanted,
       selling,
       participation,
+      completedCollections,
     });
   } catch (e) {
     console.error("Erreur GET /api/users/[username] :", e);

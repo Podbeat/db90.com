@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { publicCacheHeaders } from "@/lib/httpCache";
+import { getPalmares } from "@/lib/registry";
 
-// Classement public : top collectionneurs (nombre de cartes possédées) et top
-// contributeurs (scans validés). Requêtes groupées pour rester efficace même avec
-// beaucoup de membres, plutôt que de recalculer la participation de chacun un par un.
+// Classement public : top collectionneurs (nombre de cartes possédées), top
+// contributeurs (scans validés) et palmarès des collections complètes. Requêtes groupées
+// pour rester efficace même avec beaucoup de membres, plutôt que de recalculer la
+// participation de chacun un par un.
 export async function GET(request) {
   try {
-    const [topOwners, topContributors] = await Promise.all([
+    const [topOwners, topContributors, palmares] = await Promise.all([
       prisma.userCard.groupBy({
         by: ["userId"],
         where: { status: "owned" },
@@ -22,6 +24,7 @@ export async function GET(request) {
         orderBy: { _count: { userId: "desc" } },
         take: 10,
       }),
+      getPalmares(),
     ]);
 
     const userIds = [...new Set([...topOwners.map((o) => o.userId), ...topContributors.map((c) => c.userId)])];
@@ -37,6 +40,7 @@ export async function GET(request) {
       topContributors: topContributors
         .map((c) => ({ user: userById.get(c.userId), count: c._count.userId }))
         .filter((c) => c.user),
+      palmares,
     }, { headers: publicCacheHeaders(request) });
   } catch (e) {
     console.error("Erreur GET /api/leaderboard :", e);

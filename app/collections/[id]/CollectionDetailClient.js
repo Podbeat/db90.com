@@ -14,11 +14,15 @@ import CardStatusIcons from "@/components/CardStatusIcons";
 import CollectionNewCardUpload from "@/components/CollectionNewCardUpload";
 import BulkStatusMenu from "@/components/BulkStatusMenu";
 import CardStatusRow from "@/components/CardStatusRow";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
+import { withMyLiveCount } from "@/lib/registryRank";
+import { Trophy } from "lucide-react";
 
 const VIEW_STORAGE_KEY = "db90-collection-view";
 
 export default function CollectionDetailClient({ id }) {
   const { t, lang } = useLanguage();
+  const { me } = useCurrentUser();
   const [collection, setCollection] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -49,6 +53,16 @@ export default function CollectionDetailClient({ id }) {
       })
       .catch(() => {});
   }, [id]);
+
+  // Registre de la collection (membres connectés) : pour afficher « 4ᵉ sur 21 au registre ».
+  const [registry, setRegistry] = useState(null);
+  useEffect(() => {
+    if (!loggedIn) return;
+    fetch(`/api/collections/${id}/registry`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setRegistry)
+      .catch(() => {});
+  }, [loggedIn, id]);
 
   function handleStatusChange(cardId, status) {
     setStatusMap((prev) => {
@@ -122,10 +136,22 @@ export default function CollectionDetailClient({ id }) {
   if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   if (notFound || !collection) return <div className="container page"><div className="empty-state">{t.notFound}</div></div>;
 
-  const progressTotal = collection.total || collection.cards.length;
-  const ownedHere = collection.cards.filter((c) => statusMap[c.id] === "owned").length;
+  // Progression en références (numéros) : une variante d'effet d'un numéro déjà possédé ne
+  // rapproche pas de la collection complète (même règle que lib/completion.js).
+  const progressTotal = collection.total || new Set(collection.cards.map((c) => c.numero)).size;
+  const ownedHere = new Set(collection.cards.filter((c) => statusMap[c.id] === "owned").map((c) => c.numero)).size;
   const progressPct = progressTotal ? Math.min(100, Math.round((ownedHere / progressTotal) * 100)) : 0;
   const showList = loggedIn && view === "list";
+
+  // Place au registre, recalculée avec le nombre de cartes à jour (le registre public est
+  // en cache une minute).
+  let registryLine = null;
+  if (registry && me) {
+    const { registry: live, mine } = withMyLiveCount(registry, collection.total, me.username, ownedHere);
+    if (!mine) registryLine = t.registryOpenLine;
+    else if (collection.total && mine.owned >= collection.total) registryLine = t.registryCompleteLine;
+    else registryLine = t.registryRankLine(mine.rank, live.collectors);
+  }
 
   return (
     <div className="container page">
@@ -149,9 +175,18 @@ export default function CollectionDetailClient({ id }) {
             {" — "}
             {t.archivedOf(collection.cards.filter((c) => c.image).length, collection.total)}
           </div>
-          <a href={`/api/collections/${collection.id}/checklist`} className="btn-ghost" style={{ display: "inline-block", marginTop: "0.6rem", fontSize: "0.75rem" }}>
-            {t.downloadChecklist}
-          </a>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.6rem" }}>
+            <a href={`/api/collections/${collection.id}/checklist`} className="btn-ghost" style={{ display: "inline-block", fontSize: "0.75rem" }}>
+              {t.downloadChecklist}
+            </a>
+            <Link
+              href={`/collections/${collection.id}/registre`}
+              className="btn-ghost"
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.75rem" }}
+            >
+              <Trophy size={13} aria-hidden="true" /> {t.registryLink}
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -164,6 +199,11 @@ export default function CollectionDetailClient({ id }) {
           <div className="collection-progress-track">
             <div className="collection-progress-fill" style={{ width: `${progressPct}%` }} />
           </div>
+          {registryLine && (
+            <Link href={`/collections/${collection.id}/registre`} className="collection-progress-rank">
+              {registryLine} <span aria-hidden="true">→</span>
+            </Link>
+          )}
         </section>
       )}
 

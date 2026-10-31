@@ -12,25 +12,35 @@ export async function GET(request) {
 
     const entries = await prisma.userCard.findMany({
       where: { userId: session.sub },
-      select: { status: true, card: { select: { collectionId: true } } },
+      select: { status: true, card: { select: { collectionId: true, numero: true } } },
     });
 
     const collectionIds = [...new Set(entries.map((e) => e.card.collectionId))];
-    const collections = collectionIds.length
-      ? await prisma.collection.findMany({
-          where: { id: { in: collectionIds } },
-          select: { id: true, nom: true, total: true, cover: true, _count: { select: { cards: true } } },
-        })
-      : [];
+    const [collections, catalogue] = collectionIds.length
+      ? await Promise.all([
+          prisma.collection.findMany({
+            where: { id: { in: collectionIds } },
+            select: { id: true, nom: true, total: true, cover: true },
+          }),
+          prisma.card.findMany({ where: { collectionId: { in: collectionIds } }, select: { collectionId: true, numero: true } }),
+        ])
+      : [[], []];
     const collectionById = new Map(collections.map((c) => [c.id, c]));
 
-    function summarize(status) {
-      const counts = new Map();
-      for (const e of entries) {
-        if (e.status !== status) continue;
-        const cId = e.card.collectionId;
-        counts.set(cId, (counts.get(cId) || 0) + 1);
+    // On compte des références (numéros) et non des cartes : les variantes d'effet d'un même
+    // numéro ne comptent qu'une fois, comme pour une collection complète (lib/completion.js).
+    function distinctNumeros(rows) {
+      const sets = new Map();
+      for (const { collectionId, numero } of rows) {
+        if (!sets.has(collectionId)) sets.set(collectionId, new Set());
+        sets.get(collectionId).add(numero);
       }
+      return new Map([...sets].map(([id, set]) => [id, set.size]));
+    }
+    const cataloguedById = distinctNumeros(catalogue);
+
+    function summarize(status) {
+      const counts = distinctNumeros(entries.filter((e) => e.status === status).map((e) => e.card));
       return [...counts.entries()]
         .map(([collectionId, count]) => {
           const col = collectionById.get(collectionId);
@@ -40,7 +50,7 @@ export async function GET(request) {
             cover: col?.cover || null,
             count,
             total: col?.total || null,
-            catalogued: col?._count.cards || count,
+            catalogued: cataloguedById.get(collectionId) || count,
           };
         })
         .sort((a, b) => a.nom.localeCompare(b.nom));

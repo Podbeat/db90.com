@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { checkAndAwardBadges } from "@/lib/badgeNotifications";
+import { ownedReferencesByCollection } from "@/lib/completion";
 
 const MAX_UPDATES = 500;
 const STATUSES = new Set(["owned", "wanted", null]);
@@ -49,7 +50,7 @@ export async function POST(request) {
 
     const collectionOf = new Map(cards.map((c) => [c.id, c.collectionId]));
     const touchedCollections = [...new Set(changes.map((c) => collectionOf.get(c.cardId)))];
-    const ownedBefore = await ownedCountByCollection(userId, touchedCollections);
+    const ownedBefore = await ownedReferencesByCollection(userId, touchedCollections);
 
     // Une carte qui change de statut est retirée puis recréée : sa date reflète le moment
     // où elle a pris son statut actuel (utile au palmarès des collections complètes).
@@ -75,23 +76,13 @@ export async function POST(request) {
   }
 }
 
-async function ownedCountByCollection(userId, collectionIds) {
-  const rows = await prisma.userCard.findMany({
-    where: { userId, status: "owned", card: { collectionId: { in: collectionIds } } },
-    select: { card: { select: { collectionId: true } } },
-  });
-  const counts = new Map(collectionIds.map((id) => [id, 0]));
-  for (const r of rows) counts.set(r.card.collectionId, (counts.get(r.card.collectionId) || 0) + 1);
-  return counts;
-}
-
 // Fil d'activité : une collection n'est annoncée « complétée » qu'au moment où elle le
-// devient, comme pour le changement carte par carte.
+// devient (chaque numéro possédé, voir lib/completion.js), comme carte par carte.
 async function recordCompletedCollections(userId, collectionIds, ownedBefore) {
   try {
     const [collections, ownedAfter] = await Promise.all([
       prisma.collection.findMany({ where: { id: { in: collectionIds }, total: { not: null } }, select: { id: true, total: true } }),
-      ownedCountByCollection(userId, collectionIds),
+      ownedReferencesByCollection(userId, collectionIds),
     ]);
     const completed = collections.filter(
       (c) => c.total > 0 && (ownedBefore.get(c.id) || 0) < c.total && (ownedAfter.get(c.id) || 0) >= c.total

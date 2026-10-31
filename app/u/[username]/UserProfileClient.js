@@ -114,7 +114,6 @@ function RatingsBox({ username, ratings, me, t, onRated }) {
 
 function ParticipationPanel({ participation, t }) {
   if (!participation) return null;
-  const badges = computeBadges(participation, t);
   return (
     <div className="filter-panel" style={{ maxWidth: 360 }}>
       <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.6rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
@@ -129,15 +128,31 @@ function ParticipationPanel({ participation, t }) {
         <div>{t.participationContribLine(participation.approvedSubmissions, participation.contributionPoints)}</div>
         <div>{t.participationCollectionProposalLine(participation.approvedCollectionProposals, participation.collectionProposalPoints)}</div>
       </div>
-      {badges.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "0.7rem" }}>
-          {badges.map((b) => (
-            <span key={b.id} style={{ fontSize: "0.68rem", border: "1px solid var(--gold)", color: "var(--gold)", padding: "0.2rem 0.5rem", borderRadius: 999 }}>
-              {b.label}
-            </span>
-          ))}
-        </div>
-      )}
+    </div>
+  );
+}
+
+// Badges en tête du profil : un par collection complète (avec la vignette de la série, lien
+// vers son registre), puis les badges généraux (premier scan, 100 cartes…).
+function ProfileBadges({ profile, t }) {
+  const collections = profile.completedCollections || [];
+  const badges = computeBadges(profile.participation, t);
+  if (collections.length === 0 && badges.length === 0) return null;
+  return (
+    <div className="profile-badges" aria-label={t.badgesLabel}>
+      {collections.map((c) => (
+        <Link key={c.id} href={`/collections/${c.id}/registre`} className="profile-badge collection">
+          {c.previewImage ? (
+            <Image src={c.previewImage} alt="" width={22} height={22} sizes="22px" className="profile-badge-img" />
+          ) : (
+            <span className="profile-badge-img placeholder" aria-hidden="true" />
+          )}
+          {t.collectionCompleteBadge(c.nom)}
+        </Link>
+      ))}
+      {badges.map((b) => (
+        <span key={b.id} className="profile-badge">{b.label}</span>
+      ))}
     </div>
   );
 }
@@ -203,6 +218,14 @@ export default function UserProfileClient({ username }) {
         />
         <div>
           <h1 className="display-font" style={{ fontSize: "1.3rem" }}>{profile.username}</h1>
+          {profile.participation && (
+            <div className="profile-points">
+              {t.profilePointsLine(
+                profile.participation.totalPoints,
+                profile.participation.contributionPoints + profile.participation.collectionProposalPoints
+              )}
+            </div>
+          )}
           <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{t.memberSince} {memberDate}</div>
         </div>
         {me && me.username !== profile.username && (
@@ -232,6 +255,7 @@ export default function UserProfileClient({ username }) {
           </div>
         )}
       </div>
+      <ProfileBadges profile={profile} t={t} />
       {profile.bio && <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: 560, marginBottom: "1.5rem" }}>{profile.bio}</p>}
 
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>

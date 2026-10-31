@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 import { checkAndAwardBadges } from "@/lib/badgeNotifications";
+import { ownedReferencesByCollection } from "@/lib/completion";
 
 // Liste les cartes suivies par l'utilisateur connecté, groupées par statut, avec les infos
 // nécessaires pour les afficher (image, collection...) — utilisé par la page "Mon compte".
@@ -72,14 +73,29 @@ export async function POST(request) {
     // Fil d'activité : on ne loggue une "collection complétée" qu'au moment précis où elle
     // le devient (cette carte manquait juste avant), pas à chaque nouvelle visite d'une
     // collection déjà complète.
+    // Une collection est complète quand chaque numéro est possédé (voir lib/completion.js) :
+    // une variante d'un numéro déjà possédé ne fait donc rien franchir.
     if (status === "owned" && !wasAlreadyOwned) {
-      const card = await prisma.card.findUnique({ where: { id: cardId }, select: { collectionId: true } });
-      const collection = await prisma.collection.findUnique({ where: { id: card.collectionId }, select: { total: true } });
-      if (collection?.total) {
-        const ownedCount = await prisma.userCard.count({
-          where: { userId: session.sub, status: "owned", card: { collectionId: card.collectionId } },
-        });
-        if (ownedCount === collection.total) {
+      const card = await prisma.card.findUnique({
+        where: { id: cardId },
+        select: { collectionId: true, numero: true, collection: { select: { total: true } } },
+      });
+      const total = card?.collection?.total;
+      if (total) {
+        const [references, sameNumeroAlreadyOwned] = await Promise.all([
+          ownedReferencesByCollection(session.sub, [card.collectionId]),
+          prisma.userCard.count({
+            where: {
+              userId: session.sub,
+              status: "owned",
+              cardId: { not: cardId },
+              card: { collectionId: card.collectionId, numero: card.numero },
+            },
+          }),
+        ]);
+        const after = references.get(card.collectionId) || 0;
+        const before = sameNumeroAlreadyOwned > 0 ? after : after - 1;
+        if (before < total && after >= total) {
           await prisma.activityEvent.create({
             data: { type: "collection_completed", userId: session.sub, collectionId: card.collectionId },
           });

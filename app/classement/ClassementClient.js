@@ -2,15 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Trophy } from "lucide-react";
+import Image from "next/image";
+import { Trophy, Archive } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
+import { formatDate } from "@/lib/localize";
 import ActivityFeed from "@/components/ActivityFeed";
 
-function RankList({ items }) {
-  if (items.length === 0) return null;
+// Onglets du classement, avec leur valeur dans l'adresse (?onglet=palmares) pour pouvoir
+// partager directement le palmarès.
+const TABS = [
+  { key: "collectors", param: "collectionneurs", label: (t) => t.leaderboardTabCollectors },
+  { key: "contributors", param: "contributeurs", label: (t) => t.leaderboardTabContributors },
+  { key: "palmares", param: "palmares", label: (t) => t.leaderboardTabPalmares },
+];
+
+function RankList({ items, empty }) {
+  if (items.length === 0) return <div className="empty-state">{empty}</div>;
   return (
-    <div className="filter-panel" style={{ flex: 1, minWidth: 280 }}>
+    <div className="filter-panel">
       {items.map((item, i) => (
         <Link
           key={item.user.username}
@@ -27,40 +37,120 @@ function RankList({ items }) {
   );
 }
 
+function PalmaresHead({ collection, meta }) {
+  return (
+    <Link href={`/collections/${collection.id}/registre`} className="palmares-head">
+      {collection.previewImage ? (
+        <Image src={collection.previewImage} alt="" width={44} height={44} sizes="44px" className="palmares-cover" />
+      ) : (
+        <span className="palmares-cover placeholder"><Archive size={18} aria-hidden="true" /></span>
+      )}
+      <span className="palmares-head-text">
+        <span className="palmares-name">{collection.nom}</span>
+        <span className="palmares-meta">{meta}</span>
+      </span>
+    </Link>
+  );
+}
+
+function Palmares({ palmares, t, lang }) {
+  const done = palmares?.done || [];
+  const inProgress = palmares?.inProgress || [];
+  return (
+    <>
+      <p className="palmares-intro">{t.palmaresIntro}</p>
+      {done.length === 0 && <div className="empty-state">{t.palmaresEmpty}</div>}
+      {done.map((item) => (
+        <article key={item.collection.id} className="palmares-card done">
+          <PalmaresHead
+            collection={item.collection}
+            meta={t.palmaresMeta(item.collection.pays, item.collection.total, item.completed.length)}
+          />
+          <ol className="palmares-members">
+            {item.completed.map((c) => (
+              <li key={c.user.username}>
+                <img src={c.user.avatar || avatarPlaceholder(c.user.username)} alt="" className="palmares-avatar" />
+                <Link href={`/u/${c.user.username}`} className="palmares-member">{c.user.username}</Link>
+                <span className="palmares-date">{formatDate(c.completedAt, lang)}</span>
+              </li>
+            ))}
+          </ol>
+        </article>
+      ))}
+      {inProgress.map((item) => (
+        <article key={item.collection.id} className="palmares-card">
+          <PalmaresHead
+            collection={item.collection}
+            meta={t.palmaresNotYet(item.leader.user.username, item.leader.owned, item.collection.total)}
+          />
+        </article>
+      ))}
+    </>
+  );
+}
+
 export default function LeaderboardPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("collectors");
 
   useEffect(() => {
     fetch("/api/leaderboard")
       .then((r) => (r.ok ? r.json() : null))
       .then(setData)
       .finally(() => setLoading(false));
+
+    const param = new URLSearchParams(window.location.search).get("onglet");
+    const initial = TABS.find((x) => x.param === param);
+    if (initial) setTab(initial.key);
   }, []);
+
+  function selectTab(key) {
+    setTab(key);
+    const param = TABS.find((x) => x.key === key).param;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("onglet", param);
+      window.history.replaceState(null, "", url);
+    } catch (e) {}
+  }
 
   return (
     <div className="container page">
-      <h1 className="display-font" style={{ fontSize: "1.4rem", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      <h1 className="display-font" style={{ fontSize: "1.4rem", marginBottom: "0.75rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
         <Trophy size={22} style={{ color: "var(--gold)" }} /> {t.leaderboardTitle}
       </h1>
-      {loading ? (
-        <div className="empty-state">{t.loading}</div>
-      ) : (
-        <>
-          <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
-            <div style={{ flex: 1, minWidth: 280 }}>
-              <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.6rem" }}>{t.leaderboardTopCollectors}</div>
-              <RankList items={data?.topCollectors || []} />
-            </div>
-            <div style={{ flex: 1, minWidth: 280 }}>
-              <div style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.6rem" }}>{t.leaderboardTopContributors}</div>
-              <RankList items={data?.topContributors || []} />
-            </div>
-          </div>
-          <ActivityFeed />
-        </>
-      )}
+      <div className="leaderboard-tabs" role="tablist" aria-label={t.leaderboardTitle}>
+        {TABS.map((x) => (
+          <button
+            key={x.key}
+            type="button"
+            role="tab"
+            id={`tab-${x.key}`}
+            aria-selected={tab === x.key}
+            aria-controls="leaderboard-panel"
+            className={tab === x.key ? "active" : ""}
+            onClick={() => selectTab(x.key)}
+          >
+            {x.label(t)}
+          </button>
+        ))}
+      </div>
+      <div id="leaderboard-panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="leaderboard-panel">
+        {loading ? (
+          <div className="empty-state">{t.loading}</div>
+        ) : tab === "collectors" ? (
+          <RankList items={data?.topCollectors || []} empty={t.leaderboardNoCollectors} />
+        ) : tab === "contributors" ? (
+          <RankList items={data?.topContributors || []} empty={t.leaderboardNoContributors} />
+        ) : (
+          <Palmares palmares={data?.palmares} t={t} lang={lang} />
+        )}
+      </div>
+      <div style={{ marginTop: "1.75rem" }}>
+        <ActivityFeed />
+      </div>
     </div>
   );
 }

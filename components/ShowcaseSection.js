@@ -12,8 +12,9 @@ import { SHOWCASE_SIZE } from "@/lib/showcase";
 
 // « Mon classeur » sur le profil public : une page de 9 cases avec les cartes choisies par
 // le membre (les cases libres restent visibles, comme dans un vrai classeur). Le bouton
-// Partager envoie le lien du profil, dont l'image de partage reprend ce classeur.
-export default function ShowcaseSection({ username, cards, isOwner }) {
+// Partager envoie le lien du profil, dont l'image de partage reprend ce classeur (bouton
+// masqué avec shareable={false} quand la page en propose déjà un, comme le profil public).
+export default function ShowcaseSection({ username, cards, isOwner, shareable = true }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
@@ -34,17 +35,19 @@ export default function ShowcaseSection({ username, cards, isOwner }) {
     <section className="showcase" aria-label={title}>
       <div className="showcase-head">
         <h2 className="display-font showcase-title">{title}</h2>
-        {cards.length > 0 && (
+        {cards.length > 0 && (isOwner || shareable) && (
           <div className="showcase-actions">
             {isOwner && (
               <Link href="/compte/classeur" className="showcase-btn">
                 <Pencil size={15} aria-hidden="true" /> {t.showcaseEdit}
               </Link>
             )}
-            <button type="button" className="showcase-btn" onClick={share}>
-              {copied ? <Check size={16} aria-hidden="true" /> : <Share2 size={16} aria-hidden="true" />}
-              {copied ? t.shareCopied : t.share}
-            </button>
+            {shareable && (
+              <button type="button" className="showcase-btn" onClick={share}>
+                {copied ? <Check size={16} aria-hidden="true" /> : <Share2 size={16} aria-hidden="true" />}
+                {copied ? t.shareCopied : t.share}
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 import { computeParticipation } from "@/lib/participation";
-import { getCompletedCollections } from "@/lib/registry";
+import { getCompletedCollections, collectionPreviews } from "@/lib/registry";
+import { traderStats } from "@/lib/trades";
 
 // Page profil publique (voir /u/[username]) : tout ce qui est renvoyé ici est visible par
 // n'importe quel visiteur, connecté ou non — jamais l'e-mail ni aucune donnée privée.
@@ -27,8 +28,13 @@ export async function GET(request, { params }) {
       computeParticipation(user.id),
     ]);
 
-    // Un badge par collection complète (vignette de la série), affiché en tête du profil.
-    const completedCollections = await getCompletedCollections(participation.completedCollectionIds);
+    // Un badge par collection complète (vignette de la série), la progression dans chaque
+    // collection commencée, et la réputation d'échangeur (avis positifs, échanges terminés).
+    const [completedCollections, collections, tradeStats] = await Promise.all([
+      getCompletedCollections(participation.completedCollectionIds),
+      collectionsProgress(entries.filter((e) => e.status === "owned").map((e) => e.card)),
+      traderStats([user.id]).then((stats) => stats.get(user.id)),
+    ]);
 
     const owned = entries
       .filter((e) => e.status === "owned")
@@ -53,10 +59,50 @@ export async function GET(request, { params }) {
       selling,
       participation,
       completedCollections,
+      collections,
+      tradeStats,
       showcase,
     });
   } catch (e) {
     console.error("Erreur GET /api/users/[username] :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });
   }
+}
+
+// Progression du membre dans chaque collection commencée : références (numéros) possédées
+// sur le total de la série (ou sur le nombre de références cataloguées si le total n'est pas
+// connu), des plus avancées aux moins avancées.
+async function collectionsProgress(ownedCards) {
+  const numerosByCollection = new Map();
+  for (const c of ownedCards) {
+    if (!numerosByCollection.has(c.collectionId)) numerosByCollection.set(c.collectionId, new Set());
+    numerosByCollection.get(c.collectionId).add(c.numero);
+  }
+  const ids = [...numerosByCollection.keys()];
+  if (ids.length === 0) return [];
+  const [collections, catalogue, previews] = await Promise.all([
+    prisma.collection.findMany({ where: { id: { in: ids } }, select: { id: true, nom: true, total: true } }),
+    prisma.card.findMany({ where: { collectionId: { in: ids } }, select: { collectionId: true, numero: true } }),
+    collectionPreviews(ids),
+  ]);
+  const catalogued = new Map();
+  for (const c of catalogue) {
+    if (!catalogued.has(c.collectionId)) catalogued.set(c.collectionId, new Set());
+    catalogued.get(c.collectionId).add(c.numero);
+  }
+  return collections
+    .map((col) => {
+      const owned = numerosByCollection.get(col.id).size;
+      const total = col.total || catalogued.get(col.id)?.size || owned;
+      return {
+        id: col.id,
+        nom: col.nom,
+        owned: Math.min(owned, total),
+        total,
+        totalKnown: Boolean(col.total),
+        complete: Boolean(col.total) && owned >= col.total,
+        previewImage: previews.get(col.id) || null,
+      };
+    })
+    .sort((a, b) => b.owned / b.total - a.owned / a.total || a.nom.localeCompare(b.nom));
 }

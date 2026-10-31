@@ -1,32 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, Trophy, ThumbsUp, ThumbsDown, Flag, Ban } from "lucide-react";
+import { Mail, ThumbsUp, ThumbsDown, Flag, Ban, Share2, Check, Pencil, Camera, Trophy, Crown, MoreHorizontal } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import { CARD_GRID_SIZES } from "@/lib/imageSizes";
+import { formatMonthYear } from "@/lib/localize";
+import { shareUrl } from "@/lib/share";
 import ContactUserModal from "@/components/ContactUserModal";
 import ListingCard from "@/components/ListingCard";
 import { computeBadges } from "@/lib/badges";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import ShowcaseSection from "@/components/ShowcaseSection";
 
+// Profil public en grille : un en-tête (identité, actions, chiffres clés), puis le classeur
+// et les avis à gauche, les badges, les collections et les points à droite, et les cartes en
+// bas par onglets. Sur téléphone, les mêmes blocs s'enchaînent sur une seule colonne.
+
+const COLLECTIONS_SHOWN = 6;
+
 function MiniGrid({ cards, t, emptyLabel }) {
-  if (cards.length === 0) {
-    return <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{emptyLabel}</div>;
-  }
+  if (cards.length === 0) return <div className="profile-empty">{emptyLabel}</div>;
   return (
     <div className="card-grid">
       {cards.map((c, i) => (
-        <Link
-          key={c.id}
-          href={`/cartes/${c.id}`}
-          className="card-tile"
-          style={{ "--stagger-delay": `${Math.min(i * 30, 300)}ms` }}
-        >
+        <Link key={c.id} href={`/cartes/${c.id}`} className="card-tile" style={{ "--stagger-delay": `${Math.min(i * 30, 300)}ms` }}>
           <div className="card-tile-media">
             {c.image ? (
               <Image src={c.image} alt={c.personnagePrincipal?.name || ""} fill sizes={CARD_GRID_SIZES} style={{ objectFit: "cover" }} />
@@ -44,7 +45,197 @@ function MiniGrid({ cards, t, emptyLabel }) {
   );
 }
 
-function RatingsBox({ username, ratings, me, t, onRated }) {
+function Tile({ title, aside, className = "", children }) {
+  return (
+    <section className={`profile-tile ${className}`} aria-label={title}>
+      <div className="profile-tile-head">
+        <h2 className="display-font profile-tile-title">{title}</h2>
+        {aside != null && <span className="profile-tile-aside">{aside}</span>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+// Bloquer et signaler : rarement utiles, rangés dans un petit menu « ⋯ » pour garder
+// l'en-tête léger.
+function MoreMenu({ label, items }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointer = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="profile-menu-wrap" ref={ref}>
+      <button
+        type="button"
+        className="btn-icon profile-icon-btn"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={label}
+        title={label}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <MoreHorizontal size={18} />
+      </button>
+      {open && (
+        <div className="profile-menu" role="menu" aria-label={label}>
+          {items.map((it) => (
+            <button
+              key={it.key}
+              type="button"
+              role="menuitem"
+              className="profile-menu-item"
+              onClick={() => {
+                setOpen(false);
+                it.onSelect();
+              }}
+            >
+              <it.Icon size={16} aria-hidden="true" /> {it.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Stat({ value, label, sub, tone }) {
+  return (
+    <div className={`profile-stat${tone ? ` ${tone}` : ""}`}>
+      <span className="profile-stat-value display-font">{value}</span>
+      <span className="profile-stat-label">{label}</span>
+      {sub && <span className="profile-stat-sub">{sub}</span>}
+    </div>
+  );
+}
+
+// Médailles : une par collection complète (vignette de la série, lien vers son registre),
+// puis les badges généraux, avec un pictogramme ou leur nombre de cartes.
+const GENERIC_MEDALS = {
+  first_scan: { Icon: Camera, tone: "turquoise" },
+  collector_50: { text: "50", tone: "silver" },
+  collector_100: { text: "100", tone: "silver" },
+  collector_500: { text: "500", tone: "gold" },
+  first_completion: { Icon: Trophy, tone: "gold" },
+  collector_multi: { Icon: Crown, tone: "gold" },
+};
+
+function Medals({ collections, badges, t }) {
+  if (collections.length === 0 && badges.length === 0) return <div className="profile-empty">{t.profileBadgesEmpty}</div>;
+  return (
+    <ul className="medals">
+      {collections.map((c) => (
+        <li key={c.id}>
+          <Link href={`/collections/${c.id}/registre`} className="medal" title={t.collectionCompleteBadge(c.nom)}>
+            <span className="medal-disc collection">
+              {c.previewImage && <Image src={c.previewImage} alt="" fill sizes={CARD_GRID_SIZES} style={{ objectFit: "cover", objectPosition: "top" }} />}
+              <span className="medal-check" aria-hidden="true"><Check size={12} strokeWidth={3.2} /></span>
+            </span>
+            <span className="medal-label">{c.nom}</span>
+            <span className="medal-sub">{t.profileBadgeCompleteSub}</span>
+          </Link>
+        </li>
+      ))}
+      {badges.map((b) => {
+        const medal = GENERIC_MEDALS[b.id] || { tone: "silver" };
+        return (
+          <li key={b.id}>
+            <span className="medal">
+              <span className={`medal-disc ${medal.tone}`} aria-hidden="true">
+                {medal.Icon ? <medal.Icon size={24} strokeWidth={2.2} /> : <span className="medal-number">{medal.text}</span>}
+              </span>
+              <span className="medal-label">{b.label}</span>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+// Progression par collection commencée ; « ? » quand le total de la série n'est pas encore
+// connu (barre grisée, calculée sur les références déjà cataloguées).
+function CollectionsList({ collections, t }) {
+  const [showAll, setShowAll] = useState(false);
+  if (!collections?.length) return <div className="profile-empty">{t.profileCollectionsEmpty}</div>;
+  const shown = showAll ? collections : collections.slice(0, COLLECTIONS_SHOWN);
+  return (
+    <>
+      <ul className="profile-collections">
+        {shown.map((c) => {
+          const pct = c.total ? Math.min(100, Math.round((c.owned / c.total) * 100)) : 0;
+          return (
+            <li key={c.id}>
+              <Link href={`/collections/${c.id}/registre`} className={`profile-collection${c.complete ? " complete" : ""}${c.totalKnown === false ? " open" : ""}`}>
+                <span className="profile-collection-cover">
+                  {c.previewImage && <Image src={c.previewImage} alt="" fill sizes={CARD_GRID_SIZES} style={{ objectFit: "cover", objectPosition: "top" }} />}
+                  {c.complete && <span className="profile-collection-check" aria-hidden="true"><Check size={10} strokeWidth={3.4} /></span>}
+                </span>
+                <span className="profile-collection-body">
+                  <span className="profile-collection-top">
+                    <span className="profile-collection-name">{c.nom}</span>
+                    <span className="profile-collection-count">{c.owned} / {c.totalKnown === false ? "?" : c.total}</span>
+                  </span>
+                  <span className="profile-collection-bar" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {!showAll && collections.length > COLLECTIONS_SHOWN && (
+        <button type="button" className="profile-more" onClick={() => setShowAll(true)}>
+          {t.profileCollectionsMore(collections.length - COLLECTIONS_SHOWN)}
+        </button>
+      )}
+    </>
+  );
+}
+
+// Répartition des points : une barre en quatre segments et sa légende.
+function PointsBreakdown({ participation: p, t }) {
+  const parts = [
+    { key: "cards", value: p.ownedPoints, text: t.participationOwnedLine(p.ownedCount, p.ownedPoints) },
+    { key: "sets", value: p.completionBonus, text: t.participationCompletedLine(p.completedCollections, p.completionBonus) },
+    { key: "scans", value: p.contributionPoints, text: t.participationContribLine(p.approvedSubmissions, p.contributionPoints) },
+    { key: "proposals", value: p.collectionProposalPoints, text: t.participationCollectionProposalLine(p.approvedCollectionProposals, p.collectionProposalPoints) },
+  ];
+  const total = Math.max(1, p.totalPoints);
+  return (
+    <>
+      <div className="points-bar" aria-hidden="true">
+        {parts
+          .filter((x) => x.value > 0)
+          .map((x) => <span key={x.key} className={`points-seg ${x.key}`} style={{ flexGrow: x.value / total }} />)}
+      </div>
+      <ul className="points-legend">
+        {parts.map((x) => (
+          <li key={x.key} className={x.value > 0 ? "" : "zero"}>
+            <span className={`points-dot ${x.key}`} aria-hidden="true" />
+            {x.text}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function Reviews({ username, ratings, me, t, onRated }) {
   const [showForm, setShowForm] = useState(false);
   const [positive, setPositive] = useState(true);
   const [comment, setComment] = useState("");
@@ -73,101 +264,61 @@ function RatingsBox({ username, ratings, me, t, onRated }) {
     }
   }
 
+  const comments = (ratings?.ratings || []).filter((r) => r.comment).slice(0, 3);
+  const none = !ratings || ratings.ratings.length === 0;
   return (
-    <div className="filter-panel" style={{ maxWidth: 360, marginTop: "1.2rem" }}>
-      <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.6rem" }}>{t.ratingsTitle}</div>
-      <div style={{ display: "flex", gap: "1rem", fontSize: "0.8rem", marginBottom: "0.7rem" }}>
-        <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "#4caf6d" }}><ThumbsUp size={13} /> {t.positiveRatingsCount(ratings?.positiveCount || 0)}</span>
-        <span style={{ display: "flex", alignItems: "center", gap: "0.3rem", color: "var(--text-muted)" }}><ThumbsDown size={13} /> {t.negativeRatingsCount(ratings?.negativeCount || 0)}</span>
-      </div>
-
-      {ratings?.ratings?.length > 0 && (
-        <div style={{ marginBottom: "0.8rem" }}>
-          {ratings.ratings.slice(0, 5).filter((r) => r.comment).map((r) => (
-            <div key={r.id} style={{ fontSize: "0.76rem", color: "var(--text-muted)", padding: "0.3rem 0", borderBottom: "1px solid var(--line)" }}>
-              {r.positive ? <ThumbsUp size={11} style={{ color: "#4caf6d" }} /> : <ThumbsDown size={11} />} <strong>{r.rater.username}</strong> — {r.comment}
-            </div>
-          ))}
+    <>
+      {none ? (
+        <div className="profile-empty">{t.noRatings}</div>
+      ) : (
+        <div className="reviews-summary">
+          <span className="reviews-count good"><ThumbsUp size={15} aria-hidden="true" /> {t.positiveRatingsCount(ratings.positiveCount || 0)}</span>
+          <span className="reviews-count"><ThumbsDown size={15} aria-hidden="true" /> {t.negativeRatingsCount(ratings.negativeCount || 0)}</span>
         </div>
       )}
-      {(!ratings || ratings.ratings.length === 0) && <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.8rem" }}>{t.noRatings}</div>}
+      {comments.length > 0 && (
+        <ul className="reviews-list">
+          {comments.map((r) => (
+            <li key={r.id} className={r.positive ? "good" : "bad"}>
+              <span className="reviews-quote">« {r.comment} »</span>
+              <Link href={`/u/${r.rater.username}`} className="reviews-author">{r.rater.username}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {me && me.username !== username && !showForm && (
-        <button className="btn-ghost" style={{ fontSize: "0.76rem" }} onClick={() => setShowForm(true)}>{t.rateThisMember}</button>
+        <button type="button" className="btn-ghost reviews-rate" onClick={() => setShowForm(true)}>{t.rateThisMember}</button>
       )}
       {showForm && (
-        <div>
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-            <button className={positive ? "btn-primary" : "btn-ghost"} style={{ fontSize: "0.75rem" }} onClick={() => setPositive(true)}>{t.ratingPositive}</button>
-            <button className={!positive ? "btn-primary" : "btn-ghost"} style={{ fontSize: "0.75rem" }} onClick={() => setPositive(false)}>{t.ratingNegative}</button>
+        <div className="reviews-form">
+          <div className="reviews-form-choice">
+            <button type="button" className={positive ? "btn-primary" : "btn-ghost"} onClick={() => setPositive(true)}>{t.ratingPositive}</button>
+            <button type="button" className={!positive ? "btn-primary" : "btn-ghost"} onClick={() => setPositive(false)}>{t.ratingNegative}</button>
           </div>
           <div className="field">
             <span className="field-label">{t.ratingCommentLabel}</span>
             <textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} />
           </div>
-          <button className="btn-primary" onClick={submit} disabled={saving}>{saving ? "…" : t.submitRating}</button>
+          <button type="button" className="btn-primary" onClick={submit} disabled={saving}>{saving ? "…" : t.submitRating}</button>
           {error && <div className="toast error" style={{ marginTop: "0.5rem" }}>{error}</div>}
         </div>
       )}
-    </div>
-  );
-}
-
-function ParticipationPanel({ participation, t }) {
-  if (!participation) return null;
-  return (
-    <div className="filter-panel" style={{ maxWidth: 360 }}>
-      <div className="display-font" style={{ fontSize: "0.95rem", marginBottom: "0.6rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-        <Trophy size={16} style={{ color: "var(--gold)" }} /> {t.myParticipationTitle}
-      </div>
-      <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--gold)", marginBottom: "0.6rem" }}>
-        {t.participationPoints(participation.totalPoints)}
-      </div>
-      <div style={{ fontSize: "0.76rem", color: "var(--text-muted)", lineHeight: 1.9 }}>
-        <div>{t.participationOwnedLine(participation.ownedCount, participation.ownedPoints)}</div>
-        <div>{t.participationCompletedLine(participation.completedCollections, participation.completionBonus)}</div>
-        <div>{t.participationContribLine(participation.approvedSubmissions, participation.contributionPoints)}</div>
-        <div>{t.participationCollectionProposalLine(participation.approvedCollectionProposals, participation.collectionProposalPoints)}</div>
-      </div>
-    </div>
-  );
-}
-
-// Badges en tête du profil : un par collection complète (avec la vignette de la série, lien
-// vers son registre), puis les badges généraux (premier scan, 100 cartes…).
-function ProfileBadges({ profile, t }) {
-  const collections = profile.completedCollections || [];
-  const badges = computeBadges(profile.participation, t);
-  if (collections.length === 0 && badges.length === 0) return null;
-  return (
-    <div className="profile-badges" aria-label={t.badgesLabel}>
-      {collections.map((c) => (
-        <Link key={c.id} href={`/collections/${c.id}/registre`} className="profile-badge collection">
-          {c.previewImage ? (
-            <Image src={c.previewImage} alt="" width={22} height={22} sizes={CARD_GRID_SIZES} className="profile-badge-img" />
-          ) : (
-            <span className="profile-badge-img placeholder" aria-hidden="true" />
-          )}
-          {t.collectionCompleteBadge(c.nom)}
-        </Link>
-      ))}
-      {badges.map((b) => (
-        <span key={b.id} className="profile-badge">{b.label}</span>
-      ))}
-    </div>
+    </>
   );
 }
 
 export default function UserProfileClient({ username }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { me } = useCurrentUser();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState("participation");
+  const [tab, setTab] = useState("collection");
   const [ratings, setRatings] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [blockInfo, setBlockInfo] = useState({ blockedByMe: false, hasBlockedMe: false });
+  const [copied, setCopied] = useState(false);
 
   function loadRatings() {
     fetch(`/api/users/${username}/ratings`)
@@ -197,96 +348,161 @@ export default function UserProfileClient({ username }) {
     loadRatings();
   }, [username]);
 
-  if (loading) return <div className="container page"><div className="empty-state">Chargement…</div></div>;
+  if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   if (notFound || !profile) return <div className="container page"><div className="empty-state">{t.profileNotFound}</div></div>;
 
-  const memberDate = new Date(profile.memberSince).toLocaleDateString();
+  const isOwner = me?.username === profile.username;
+  const p = profile.participation;
+  const forTrade = profile.forTrade || [];
+  const showcase = profile.showcase || [];
+  const completed = profile.completedCollections || [];
+  const badges = computeBadges(p, t);
+  const started = profile.collections?.length || 0;
+  const positiveReviews = ratings ? ratings.positiveCount || 0 : profile.tradeStats?.positiveRatings || 0;
+  const completedTrades = profile.tradeStats?.completedTrades || 0;
+  const contribution = p ? p.contributionPoints + p.collectionProposalPoints : 0;
+
+  async function shareProfile() {
+    // Le lien du profil ; son image de partage reprend le classeur quand il est composé.
+    const title = showcase.length ? t.showcaseShareTitle(profile.username) : `${profile.username} — DB Non-Off 90's`;
+    const ok = await shareUrl(`${window.location.origin}/u/${profile.username}`, title);
+    if (ok && !navigator.share) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  const hasShowcaseTile = showcase.length > 0 || isOwner;
+  const showcaseTile = hasShowcaseTile && (
+    <div className="profile-tile profile-showcase-tile">
+      <ShowcaseSection username={profile.username} cards={showcase} isOwner={isOwner} shareable={false} />
+    </div>
+  );
+  const badgesTile = (completed.length > 0 || badges.length > 0 || isOwner) && (
+    <Tile title={t.badgesLabel} aside={completed.length + badges.length || null} className="profile-badges-tile">
+      <Medals collections={completed} badges={badges} t={t} />
+    </Tile>
+  );
+  const collectionsTile = (
+    <Tile title={t.profileCollectionsTitle} aside={started ? `${p?.completedCollections || 0} / ${started}` : null} className="profile-collections-tile">
+      <CollectionsList collections={profile.collections} t={t} />
+    </Tile>
+  );
+  const reviewsTile = (
+    <Tile title={t.ratingsTitle} className="profile-reviews-tile">
+      <Reviews username={profile.username} ratings={ratings} me={me} t={t} onRated={loadRatings} />
+    </Tile>
+  );
+  // Sans aucun point, la répartition n'apprend rien : le chiffre de l'en-tête suffit.
+  const pointsTile = p?.totalPoints > 0 && (
+    <Tile title={t.profilePointsTitle} aside={t.participationPoints(p.totalPoints)} className="profile-points-tile">
+      <PointsBreakdown participation={p} t={t} />
+    </Tile>
+  );
 
   const tabs = [
-    { key: "participation", label: t.profileTabParticipation },
-    { key: "collection", label: `${t.profileTabCollection} · ${t.cardsCount(profile.owned.length)}` },
-    { key: "trade", label: `${t.profileTabForTrade} · ${t.cardsCount((profile.forTrade || []).length)}` },
-    { key: "wanted", label: `${t.profileTabWanted} · ${t.cardsCount(profile.wanted.length)}` },
-    { key: "sales", label: `${t.profileTabSales} · ${t.cardsCount(profile.selling.length)}` },
+    { key: "collection", label: t.profileTabCollection, count: profile.owned.length },
+    { key: "trade", label: t.profileTabForTrade, count: forTrade.length },
+    { key: "wanted", label: t.profileTabWanted, count: profile.wanted.length },
+    { key: "sales", label: t.profileTabSales, count: profile.selling.length },
   ];
 
   return (
-    <div className="container page">
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
-        <img
-          src={profile.avatar || avatarPlaceholder(profile.username)}
-          alt=""
-          style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--line)" }}
-        />
-        <div>
-          <h1 className="display-font" style={{ fontSize: "1.3rem" }}>{profile.username}</h1>
-          {profile.participation && (
-            <div className="profile-points">
-              {t.profilePointsLine(
-                profile.participation.totalPoints,
-                profile.participation.contributionPoints + profile.participation.collectionProposalPoints
-              )}
-            </div>
+    <div className="container page profile-page">
+      <header className="profile-hero">
+        <span className="profile-hero-deco" aria-hidden="true" />
+        <div className="profile-identity">
+          <img src={profile.avatar || avatarPlaceholder(profile.username)} alt="" className="profile-avatar" />
+          <div className="profile-heading">
+            <h1 className="display-font profile-name">{profile.username}</h1>
+            <div className="profile-since">{t.profileMemberSince(formatMonthYear(profile.memberSince, lang))}</div>
+          </div>
+          {profile.bio && <p className="profile-bio">{profile.bio}</p>}
+          <div className="profile-actions">
+            {me && !isOwner && (
+              <Link href={`/compte/messages/${profile.username}`} className="btn-primary profile-action">
+                <Mail size={16} aria-hidden="true" /> {t.contactSeller}
+              </Link>
+            )}
+            {isOwner && (
+              <Link href="/compte" className="btn-ghost profile-action">
+                <Pencil size={15} aria-hidden="true" /> {t.profileEdit}
+              </Link>
+            )}
+            {/* Sur les très petits écrans, quand une autre action l'accompagne, le bouton se
+                réduit à son icône (son nom reste lu par les lecteurs d'écran). */}
+            <button type="button" className={`btn-ghost profile-action profile-share${me ? " compactable" : ""}`} onClick={shareProfile}>
+              {copied ? <Check size={16} aria-hidden="true" /> : <Share2 size={16} aria-hidden="true" />}
+              <span className="profile-action-label">{copied ? t.shareCopied : t.share}</span>
+            </button>
+            {me && !isOwner && (
+              <MoreMenu
+                label={t.profileMoreActions}
+                items={[
+                  { key: "block", Icon: Ban, label: blockInfo.blockedByMe ? t.unblockMember : t.blockMember, onSelect: handleToggleBlock },
+                  { key: "report", Icon: Flag, label: t.reportUser, onSelect: () => setShowReport(true) },
+                ]}
+              />
+            )}
+          </div>
+          {blockInfo.blockedByMe && (
+            <p className="profile-blocked">
+              <Ban size={14} aria-hidden="true" />
+              <span>
+                {t.cannotSendYouBlocked}{" "}
+                <button type="button" className="profile-link-btn" onClick={handleToggleBlock}>{t.unblockMember}</button>
+              </span>
+            </p>
           )}
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{t.memberSince} {memberDate}</div>
         </div>
-        {me && me.username !== profile.username && (
-          <div style={{ display: "flex", gap: "0.5rem", marginLeft: "auto" }}>
-            <Link
-              href={`/compte/messages/${profile.username}`}
-              className="btn-ghost"
-              style={{ fontSize: "0.78rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
-            >
-              <Mail size={13} /> {t.contactSeller}
-            </Link>
-            <button
-              onClick={handleToggleBlock}
-              className="btn-icon"
-              title={blockInfo.blockedByMe ? t.unblockMember : t.blockMember}
-              style={blockInfo.blockedByMe ? { color: "var(--accent)", borderColor: "var(--accent)" } : undefined}
-            >
-              <Ban size={13} />
-            </button>
-            <button
-              onClick={() => setShowReport(true)}
-              className="btn-icon"
-              title={t.reportUser}
-            >
-              <Flag size={13} />
-            </button>
+        {p && (
+          <div className="profile-stats">
+            <Stat tone="gold" value={p.totalPoints} label={t.profileStatPoints} sub={contribution ? t.profileStatPointsSub(contribution) : null} />
+            <Stat value={p.ownedCount} label={t.profileStatCards} sub={forTrade.length ? t.profileStatCardsSub(forTrade.length) : null} />
+            <Stat value={p.completedCollections} label={t.profileStatCompleted} sub={started ? t.profileStatCompletedSub(started) : null} />
+            <Stat value={positiveReviews} label={t.profileStatReviews} sub={completedTrades ? t.profileStatReviewsSub(completedTrades) : null} />
           </div>
         )}
-      </div>
-      <ProfileBadges profile={profile} t={t} />
-      {profile.bio && <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: 560, marginBottom: "1.5rem" }}>{profile.bio}</p>}
-      <ShowcaseSection username={profile.username} cards={profile.showcase || []} isOwner={me?.username === profile.username} />
+      </header>
 
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
-        {tabs.map((tb) => (
-          <button key={tb.key} onClick={() => setTab(tb.key)} className={tab === tb.key ? "btn-primary" : "btn-ghost"} style={{ fontSize: "0.8rem" }}>
-            {tb.label}
-          </button>
-        ))}
+      <div className={`profile-bento${hasShowcaseTile ? "" : " even"}`}>
+        {/* Sur ordinateur, deux colonnes de hauteurs voisines : le classeur (haut) et les
+            points d'un côté, le reste de l'autre ; sans classeur, deux colonnes égales. Sur
+            téléphone, l'ordre des blocs est fixé par la feuille de style. */}
+        <div className="profile-col">
+          {hasShowcaseTile ? showcaseTile : collectionsTile}
+          {pointsTile}
+        </div>
+        <div className="profile-col">
+          {badgesTile}
+          {hasShowcaseTile && collectionsTile}
+          {reviewsTile}
+        </div>
       </div>
 
-      {tab === "participation" && (
-        <>
-          <ParticipationPanel participation={profile.participation} t={t} />
-          <RatingsBox username={profile.username} ratings={ratings} me={me} t={t} onRated={loadRatings} />
-        </>
-      )}
-      {tab === "collection" && <MiniGrid cards={profile.owned} t={t} emptyLabel={t.noCardsOwned} />}
-      {tab === "trade" && <MiniGrid cards={profile.forTrade || []} t={t} emptyLabel={t.noCardsForTrade} />}
-      {tab === "wanted" && <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />}
-      {tab === "sales" && (
-        profile.selling.length === 0 ? (
-          <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{t.noSalesListed}</div>
-        ) : (
-          <div className="listing-grid">
-            {profile.selling.map((l) => <ListingCard key={l.id} listing={l} showSeller={false} />)}
+      <section className="profile-cards" aria-label={t.profileCardsTitle}>
+        <div className="profile-cards-head">
+          <h2 className="display-font profile-tile-title">{t.profileCardsTitle}</h2>
+          <div className="profile-tabs" role="tablist" aria-label={t.profileCardsTitle}>
+            {tabs.map((x) => (
+              <button key={x.key} type="button" role="tab" aria-selected={tab === x.key} className={tab === x.key ? "active" : ""} onClick={() => setTab(x.key)}>
+                {x.label} <span className="profile-tab-count">{x.count}</span>
+              </button>
+            ))}
           </div>
-        )
-      )}
+        </div>
+        {tab === "collection" && <MiniGrid cards={profile.owned} t={t} emptyLabel={t.noCardsOwned} />}
+        {tab === "trade" && <MiniGrid cards={forTrade} t={t} emptyLabel={t.noCardsForTrade} />}
+        {tab === "wanted" && <MiniGrid cards={profile.wanted} t={t} emptyLabel={t.noCardsWanted} />}
+        {tab === "sales" &&
+          (profile.selling.length === 0 ? (
+            <div className="profile-empty">{isOwner ? t.noSalesListed : t.profileNoSales}</div>
+          ) : (
+            <div className="listing-grid">
+              {profile.selling.map((l) => <ListingCard key={l.id} listing={l} showSeller={false} />)}
+            </div>
+          ))}
+      </section>
 
       {showReport && (
         <ContactUserModal

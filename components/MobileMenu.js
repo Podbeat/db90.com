@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { Check, Search, Store, Info, HeartHandshake, Users, ChevronRight, LogOut, X } from "lucide-react";
+import { Check, Search, Store, Info, HeartHandshake, Users, ChevronRight, LogOut, X, LayoutGrid } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useTheme } from "@/components/ThemeProvider";
 import { LANGUAGES } from "@/lib/translations";
@@ -46,6 +46,10 @@ export default function MobileMenu({ me, onClose, onLogout }) {
             <div className="mobile-menu-section">{t.menuMySpace}</div>
             <Link href="/compte/collection" className="mobile-menu-item" onClick={onClose}>
               <Check size={20} aria-hidden="true" /> {t.myCollectionTitle}
+              <ChevronRight size={18} className="mobile-menu-chevron" aria-hidden="true" />
+            </Link>
+            <Link href="/compte/classeur" className="mobile-menu-item" onClick={onClose}>
+              <LayoutGrid size={20} aria-hidden="true" /> {t.showcaseTitleOwn}
               <ChevronRight size={18} className="mobile-menu-chevron" aria-hidden="true" />
             </Link>
             <Link href="/compte/recherchees" className="mobile-menu-item" onClick={onClose}>

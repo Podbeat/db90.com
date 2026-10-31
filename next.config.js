@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Fichiers lus au moment de générer l'image de partage d'un profil (polices du site et
+  // logo) : à embarquer avec la fonction, sinon Vercel ne les copie pas avec elle.
+  outputFileTracingIncludes: {
+    "/u/[username]/opengraph-image": ["./assets/fonts/*.woff", "./public/logo.png"],
+  },
   images: {
     // Chaque combinaison (image × largeur) transformée compte comme une "transformation"
     // auprès de Vercel, mise en cache seulement 1 à 4h par défaut — donc recomptée sans

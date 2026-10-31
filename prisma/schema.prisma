@@ -102,6 +102,9 @@ model User {
   passwordHash String
   avatar       String?
   bio          String?
+  // « Mon classeur » : jusqu'à 9 identifiants de cartes possédées, dans l'ordre d'affichage
+  // sur le profil public et dans son image de partage.
+  showcase     String[]   @default([])
   createdAt    DateTime   @default(now())
   cards        UserCard[]
   submissions  CardSubmission[]

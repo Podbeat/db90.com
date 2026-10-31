@@ -9,6 +9,7 @@ import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import { formatDate } from "@/lib/localize";
 import { withMyLiveCount } from "@/lib/registryRank";
+import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 
 // Nombre de lignes du classement affichées avant « Voir les N collectionneurs ».
 const TOP = 10;
@@ -145,7 +146,7 @@ export default function RegistreClient({ id }) {
         <section className="registry-badge" aria-label={t.registryBadgeTitle(collection.nom)}>
           <span className="registry-badge-visual">
             {collection.previewImage ? (
-              <Image src={collection.previewImage} alt="" width={56} height={56} sizes="56px" className="registry-badge-img" />
+              <Image src={collection.previewImage} alt="" width={56} height={56} sizes={CARD_GRID_SIZES} className="registry-badge-img" />
             ) : (
               <span className="registry-badge-img placeholder" />
             )}

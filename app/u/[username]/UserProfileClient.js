@@ -12,6 +12,7 @@ import ContactUserModal from "@/components/ContactUserModal";
 import ListingCard from "@/components/ListingCard";
 import { computeBadges } from "@/lib/badges";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
+import ShowcaseSection from "@/components/ShowcaseSection";
 
 function MiniGrid({ cards, t, emptyLabel }) {
   if (cards.length === 0) {
@@ -143,7 +144,7 @@ function ProfileBadges({ profile, t }) {
       {collections.map((c) => (
         <Link key={c.id} href={`/collections/${c.id}/registre`} className="profile-badge collection">
           {c.previewImage ? (
-            <Image src={c.previewImage} alt="" width={22} height={22} sizes="22px" className="profile-badge-img" />
+            <Image src={c.previewImage} alt="" width={22} height={22} sizes={CARD_GRID_SIZES} className="profile-badge-img" />
           ) : (
             <span className="profile-badge-img placeholder" aria-hidden="true" />
           )}
@@ -257,6 +258,7 @@ export default function UserProfileClient({ username }) {
       </div>
       <ProfileBadges profile={profile} t={t} />
       {profile.bio && <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: 560, marginBottom: "1.5rem" }}>{profile.bio}</p>}
+      <ShowcaseSection username={profile.username} cards={profile.showcase || []} isOwner={me?.username === profile.username} />
 
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
         {tabs.map((tb) => (

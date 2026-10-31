@@ -11,7 +11,7 @@ export async function GET(request, { params }) {
     const { username } = await params;
     const user = await prisma.user.findUnique({
       where: { username: username.toLowerCase() },
-      select: { id: true, username: true, avatar: true, bio: true, createdAt: true },
+      select: { id: true, username: true, avatar: true, bio: true, createdAt: true, showcase: true },
     });
     if (!user) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
 
@@ -31,6 +31,9 @@ export async function GET(request, { params }) {
     const completedCollections = await getCompletedCollections(participation.completedCollectionIds);
 
     const owned = entries.filter((e) => e.status === "owned").map((e) => e.card).sort(naturalSortByNumero);
+    // Classeur : dans l'ordre choisi, en ne gardant que les cartes toujours possédées.
+    const ownedById = new Map(owned.map((c) => [c.id, c]));
+    const showcase = (user.showcase || []).map((id) => ownedById.get(id)).filter(Boolean);
     const wanted = entries.filter((e) => e.status === "wanted").map((e) => e.card).sort(naturalSortByNumero);
     const selling = listings.sort((a, b) => naturalSortByNumero(a.card, b.card));
 
@@ -44,6 +47,7 @@ export async function GET(request, { params }) {
       selling,
       participation,
       completedCollections,
+      showcase,
     });
   } catch (e) {
     console.error("Erreur GET /api/users/[username] :", e);

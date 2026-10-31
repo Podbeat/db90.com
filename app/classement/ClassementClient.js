@@ -7,6 +7,7 @@ import { Trophy, Archive } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
 import { formatDate } from "@/lib/localize";
+import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 import ActivityFeed from "@/components/ActivityFeed";
 
 // Onglets du classement, avec leur valeur dans l'adresse (?onglet=palmares) pour pouvoir
@@ -41,7 +42,7 @@ function PalmaresHead({ collection, meta }) {
   return (
     <Link href={`/collections/${collection.id}/registre`} className="palmares-head">
       {collection.previewImage ? (
-        <Image src={collection.previewImage} alt="" width={44} height={44} sizes="44px" className="palmares-cover" />
+        <Image src={collection.previewImage} alt="" width={44} height={44} sizes={CARD_GRID_SIZES} className="palmares-cover" />
       ) : (
         <span className="palmares-cover placeholder"><Archive size={18} aria-hidden="true" /></span>
       )}

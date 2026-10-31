@@ -88,7 +88,9 @@ export default function CardMarketplace({ cardId }) {
 
       {!loggedIn ? (
         <div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid var(--line)" }}>
-          <Link href="/compte/connexion" className="btn-ghost" style={{ fontSize: "0.78rem" }}>{t.loginToTrade}</Link>
+          {/* inline-block : en lien simple, le cadre du bouton se découpait ligne par ligne
+              et chevauchait le texte dès qu'il passait sur deux lignes (téléphone). */}
+          <Link href="/compte/connexion" className="btn-ghost" style={{ fontSize: "0.78rem", display: "inline-block", maxWidth: "100%" }}>{t.loginToTrade}</Link>
         </div>
       ) : (
         <div style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: "1px solid var(--line)" }}>

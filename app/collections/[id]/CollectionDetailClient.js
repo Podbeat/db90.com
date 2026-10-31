@@ -12,6 +12,10 @@ import HoloCard from "@/components/HoloCard";
 import ShareIconButton from "@/components/ShareIconButton";
 import CardStatusIcons from "@/components/CardStatusIcons";
 import CollectionNewCardUpload from "@/components/CollectionNewCardUpload";
+import BulkStatusMenu from "@/components/BulkStatusMenu";
+import CardStatusRow from "@/components/CardStatusRow";
+
+const VIEW_STORAGE_KEY = "db90-collection-view";
 
 export default function CollectionDetailClient({ id }) {
   const { t, lang } = useLanguage();
@@ -55,8 +59,73 @@ export default function CollectionDetailClient({ id }) {
     });
   }
 
+  // Affichage grille ou liste : préférence propre à ce navigateur, sans conséquence si le
+  // stockage local est indisponible (navigation privée).
+  const [view, setView] = useState("grid");
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(VIEW_STORAGE_KEY);
+      if (saved === "grid" || saved === "list") setView(saved);
+    } catch (e) {}
+  }, []);
+  function changeView(next) {
+    setView(next);
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, next);
+    } catch (e) {}
+  }
+
+  // Mode liste : un clic sur le statut déjà actif le retire, comme sur les vignettes.
+  async function toggleStatus(cardId, next) {
+    const newStatus = statusMap[cardId] === next ? null : next;
+    handleStatusChange(cardId, newStatus);
+    await fetch("/api/users/me/cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cardId, status: newStatus }),
+    }).catch(() => {});
+  }
+
+  // Cocher en lot : affichage immédiat, enregistrement en un appel, puis possibilité
+  // d'annuler (le serveur renvoie le statut d'avant de chaque carte modifiée).
+  const [bulkNotice, setBulkNotice] = useState(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  async function applyBulk(updates, { isUndo = false } = {}) {
+    if (!updates.length || bulkBusy) return;
+    const snapshot = statusMap;
+    setBulkBusy(true);
+    setStatusMap((prev) => {
+      const next = { ...prev };
+      for (const u of updates) {
+        if (u.status) next[u.cardId] = u.status;
+        else delete next[u.cardId];
+      }
+      return next;
+    });
+    try {
+      const res = await fetch("/api/users/me/cards/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+      if (!res.ok) throw new Error("bulk failed");
+      const data = await res.json();
+      setBulkNotice(isUndo || data.changed === 0 ? null : { count: data.changed, previous: data.previous });
+    } catch (e) {
+      setStatusMap(snapshot);
+      setBulkNotice({ error: true });
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   if (notFound || !collection) return <div className="container page"><div className="empty-state">{t.notFound}</div></div>;
+
+  const progressTotal = collection.total || collection.cards.length;
+  const ownedHere = collection.cards.filter((c) => statusMap[c.id] === "owned").length;
+  const progressPct = progressTotal ? Math.min(100, Math.round((ownedHere / progressTotal) * 100)) : 0;
+  const showList = loggedIn && view === "list";
 
   return (
     <div className="container page">
@@ -85,6 +154,18 @@ export default function CollectionDetailClient({ id }) {
           </a>
         </div>
       </div>
+
+      {loggedIn && progressTotal > 0 && (
+        <section className="collection-progress-panel" aria-label={t.myProgress}>
+          <div className="collection-progress-head">
+            <span className="collection-progress-title">{t.myProgress}</span>
+            <span>{t.progressCount(ownedHere, progressTotal, progressPct)}</span>
+          </div>
+          <div className="collection-progress-track">
+            <div className="collection-progress-fill" style={{ width: `${progressPct}%` }} />
+          </div>
+        </section>
+      )}
 
       {(() => {
         const desc = localize(collection, "description", lang);
@@ -141,8 +222,40 @@ export default function CollectionDetailClient({ id }) {
         );
       })()}
 
+      {loggedIn && collection.cards.length > 0 && (
+        <>
+          <div className="collection-toolbar">
+            <div className="segmented" role="group" aria-label={t.viewLabel}>
+              <button type="button" aria-pressed={view === "grid"} className={view === "grid" ? "active" : ""} onClick={() => changeView("grid")}>
+                {t.viewGrid}
+              </button>
+              <button type="button" aria-pressed={view === "list"} className={view === "list" ? "active" : ""} onClick={() => changeView("list")}>
+                {t.viewList}
+              </button>
+            </div>
+            <BulkStatusMenu cards={collection.cards} statusMap={statusMap} onApply={(updates) => applyBulk(updates)} />
+          </div>
+          {bulkNotice && (
+            <div className={`bulk-notice ${bulkNotice.error ? "error" : ""}`} role="status">
+              <span>{bulkNotice.error ? t.bulkFailed : t.bulkDone(bulkNotice.count)}</span>
+              {!bulkNotice.error && (
+                <button type="button" className="bulk-notice-undo" disabled={bulkBusy} onClick={() => applyBulk(bulkNotice.previous, { isUndo: true })}>
+                  {t.undo}
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
       {collection.cards.length === 0 && collection.total ? (
         <div className="empty-state">{t.noResults}</div>
+      ) : showList ? (
+        <ul className="status-list">
+          {collection.cards.map((c) => (
+            <CardStatusRow key={c.id} card={c} status={statusMap[c.id] || null} onToggle={toggleStatus} />
+          ))}
+        </ul>
       ) : (
         <div className="card-grid">
           {collection.cards.map((c, i) => (

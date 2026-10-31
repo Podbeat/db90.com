@@ -9,7 +9,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 // leur compte. Un clic sur le statut déjà actif le retire (bascule). Invite à se connecter
 // si personne n'est identifié — ne fait aucune supposition sur l'état de connexion tant que
 // la vérification initiale n'est pas terminée, pour éviter un flash incorrect.
-export default function CardStatusToggle({ cardId }) {
+export default function CardStatusToggle({ cardId, onChange }) {
   const { t } = useLanguage();
   const [status, setStatus] = useState(null);
   const [loggedIn, setLoggedIn] = useState(null);
@@ -28,6 +28,7 @@ export default function CardStatusToggle({ cardId }) {
   async function setCardStatus(next) {
     const newStatus = status === next ? null : next;
     setStatus(newStatus); // mise à jour immédiate : l'icône change de couleur sans attendre le serveur
+    onChange?.(status, newStatus);
     await fetch("/api/users/me/cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

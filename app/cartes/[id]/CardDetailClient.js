@@ -14,6 +14,8 @@ import CardVariantUpload from "@/components/CardVariantUpload";
 import CardMarketplace from "@/components/CardMarketplace";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
+import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
+import { Check, Search, ChevronRight } from "lucide-react";
 
 export default function CardDetailClient({ id }) {
   const { t, lang } = useLanguage();
@@ -32,6 +34,23 @@ export default function CardDetailClient({ id }) {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // « N membres l'ont · M la recherchent » suit tout de suite le choix du visiteur (les
+  // compteurs reçus incluent déjà son statut d'origine, la route n'étant pas mise en cache).
+  function handleMyStatusChange(prev, next) {
+    const delta = (value) => (next === value ? 1 : 0) - (prev === value ? 1 : 0);
+    setCard((c) =>
+      c && c.community
+        ? {
+            ...c,
+            community: {
+              owners: Math.max(0, c.community.owners + delta("owned")),
+              seekers: Math.max(0, c.community.seekers + delta("wanted")),
+            },
+          }
+        : c
+    );
+  }
 
   function trackHDDownload(path) {
     try {
@@ -128,9 +147,21 @@ export default function CardDetailClient({ id }) {
           >
             {t.downloadCardPdf}
           </a>
-          <div style={{ marginBottom: "1.25rem" }}>
-            <CardStatusToggle cardId={card.id} />
+          <div style={{ marginBottom: "1rem" }}>
+            <CardStatusToggle cardId={card.id} onChange={handleMyStatusChange} />
           </div>
+          {card.community && (
+            <section className="community-stats" aria-label={t.communityTitle}>
+              <div className="community-stat">
+                <span className="community-stat-icon owned" aria-hidden="true"><Check size={18} strokeWidth={2.4} /></span>
+                <span><strong>{card.community.owners}</strong> {t.ownersLabel(card.community.owners)}</span>
+              </div>
+              <div className="community-stat">
+                <span className="community-stat-icon wanted" aria-hidden="true"><Search size={18} strokeWidth={2.2} /></span>
+                <span><strong>{card.community.seekers}</strong> {t.seekersLabel(card.community.seekers)}</span>
+              </div>
+            </section>
+          )}
           <div className="data-row"><span className="data-label">{t.collection}</span><span>{card.collection.nom}</span></div>
           <div className="data-row"><span className="data-label">{t.reference}</span><span>{card.numero}</span></div>
           <div className="data-row">
@@ -155,8 +186,26 @@ export default function CardDetailClient({ id }) {
           {card.description && (
             <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "var(--text-muted)" }}>{localize(card, "description", lang)}</p>
           )}
-          {card.contributeur && (
-            <p style={{ marginTop: "0.6rem", fontSize: "0.75rem", color: "var(--gold)" }}>{t.contributedBy(card.contributeur)}</p>
+          {card.contributorProfile ? (
+            <Link href={`/u/${card.contributorProfile.username}`} className="contributor-card">
+              <img
+                src={card.contributorProfile.avatar || avatarPlaceholder(card.contributorProfile.username)}
+                alt=""
+                className="contributor-avatar"
+              />
+              <span className="contributor-text">
+                <span className="contributor-label">{t.scanProposedBy}</span>
+                <span className="contributor-name">{card.contributorProfile.username}</span>
+                <span className="contributor-stats">
+                  {t.contributorStats(card.contributorProfile.approvedScans, card.contributorProfile.contributionPoints)}
+                </span>
+              </span>
+              <ChevronRight size={18} className="contributor-chevron" aria-hidden="true" />
+            </Link>
+          ) : (
+            card.contributeur && (
+              <p style={{ marginTop: "0.6rem", fontSize: "0.75rem", color: "var(--gold)" }}>{t.contributedBy(card.contributeur)}</p>
+            )
           )}
           <ReportError cardId={card.id} />
         </div>

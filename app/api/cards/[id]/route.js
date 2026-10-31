@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { translateFreeText } from "@/lib/translate";
 import { cleanupCardFiles } from "@/lib/cardFileCleanup";
 import { naturalSortByNumero } from "@/lib/naturalSort";
+import { contributionPointsOf } from "@/lib/participation";
 
 const cardInclude = {
   collection: true,
@@ -39,7 +40,43 @@ export async function GET(request, { params }) {
       orderBy: { rarete: "asc" },
     });
 
-    return NextResponse.json({ ...card, prevCardId, nextCardId, variants });
+    // Chez les membres : combien possèdent / recherchent cette carte.
+    const [owners, seekers] = await Promise.all([
+      prisma.userCard.count({ where: { cardId: card.id, status: "owned" } }),
+      prisma.userCard.count({ where: { cardId: card.id, status: "wanted" } }),
+    ]);
+
+    // Contributeur du scan : "contributeur" garde le pseudo du membre dont le scan a été
+    // validé (ou un nom libre saisi par l'admin). Quand c'est un membre, on le relie à son
+    // profil avec ses scans validés et ses points de contribution.
+    let contributorProfile = null;
+    if (card.contributeur) {
+      const member = await prisma.user.findUnique({
+        where: { username: card.contributeur.toLowerCase() },
+        select: { id: true, username: true, avatar: true },
+      });
+      if (member) {
+        const [approvedScans, approvedCollections] = await Promise.all([
+          prisma.cardSubmission.count({ where: { userId: member.id, status: "approved" } }),
+          prisma.collectionSubmission.count({ where: { userId: member.id, status: "approved" } }),
+        ]);
+        contributorProfile = {
+          username: member.username,
+          avatar: member.avatar,
+          approvedScans,
+          contributionPoints: contributionPointsOf(approvedScans, approvedCollections),
+        };
+      }
+    }
+
+    return NextResponse.json({
+      ...card,
+      prevCardId,
+      nextCardId,
+      variants,
+      community: { owners, seekers },
+      contributorProfile,
+    });
   } catch (e) {
     console.error("Erreur GET /api/cards/[id] :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

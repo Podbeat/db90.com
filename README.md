@@ -197,4 +197,4 @@ prisma/
 - **Carte au hasard** : bouton dans le catalogue, route `/api/cards/random`.
 - **Jalon public** : nombre total de cartes archivées affiché en haut du catalogue.
 - **Export checklist PDF** : bouton sur chaque page de collection (`/api/collections/[id]/checklist`), génère un PDF avec cases à cocher via `pdfkit`.
-- **Soutien financier (Ko-fi)** : bouton dans le footer + section dédiée sur la page Informations expliquant que le site est actuellement gratuit à faire tourner, et que les dons couvriraient d'éventuels besoins futurs (stockage, nom de domaine). **Pensez à remplacer `KOFI_URL`** dans `components/Footer.js` et `app/informations/page.js` par votre vraie page Ko-fi une fois créée.
+- **Soutien financier (PayPal)** : lien « Soutenir le site » dans le pied de page et le menu mobile, et section dédiée sur la page Informations. Tous pointent vers le lien de paiement PayPal à montant libre du compte professionnel « DB90.org », défini à un seul endroit : `DONATE_URL` dans `lib/siteLinks.js`.

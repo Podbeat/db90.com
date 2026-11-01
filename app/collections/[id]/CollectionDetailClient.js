@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useLanguage } from "@/components/LanguageProvider";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
-import { effectTone } from "@/lib/effectTone";
+import CardTileMeta, { CardNumBadge } from "@/components/CardTileMeta";
 import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 import HoloCard from "@/components/HoloCard";
 import ShareIconButton from "@/components/ShareIconButton";
@@ -322,14 +322,11 @@ export default function CollectionDetailClient({ id }) {
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />
                 )}
+                {c.image && <CardNumBadge numero={c.numero} />}
                 <ShareIconButton path={`/cartes/${c.id}`} title={`${c.personnagePrincipal?.name || c.numero} — DB Non-Off 90's`} />
                 {loggedIn && <CardStatusIcons cardId={c.id} status={statusMap[c.id] || null} onChange={handleStatusChange} />}
               </HoloCard>
-              <div className="meta">
-                <div className="card-num">{c.numero}</div>
-                <div className="card-nom">{c.personnagePrincipal?.name || t.noCharacterAssigned}</div>
-                <span className="rarity-tag" data-tone={effectTone(c.rarete)}>{c.rarete}</span>
-              </div>
+              <CardTileMeta rarete={c.rarete} />
             </Link>
           ))}
           {!collection.total && <CollectionNewCardUpload collectionId={collection.id} />}

@@ -458,10 +458,24 @@ html.light .nav-support { color: var(--gold); background: rgba(224, 176, 74, 0.1
 }
 .card-grid.shuffling { animation: shufflePulse 0.35s ease; }
 .card-tile .meta { padding: 0.55rem 0.6rem; }
-.card-num { font-family: 'Archivo Black', sans-serif; font-size: 0.75rem; color: var(--gold); }
-.card-num-inline { font-family: 'Archivo Black', sans-serif; color: var(--gold); }
 .card-nom { font-size: 0.875rem; margin-top: 0.15rem; }
 .card-collection { font-size: 0.68rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Vignettes compactes (components/CardTileMeta.js) : numéro posé sur le visuel, en bas à gauche
+   (même pastille que l'atelier d'intégration), puis collection et effet sur une seule ligne
+   quand ils tiennent ; sinon l'effet passe dessous. */
+.card-num-badge {
+  position: absolute; left: 0.4rem; bottom: 0.4rem; z-index: 2; pointer-events: none;
+  padding: 0.12rem 0.45rem; border-radius: 999px; background: rgba(13, 21, 38, 0.82);
+  color: var(--gold); font-family: 'Archivo Black', sans-serif; font-size: 0.72rem; line-height: 1.3;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.card-tile .meta.meta-compact {
+  flex: 1; display: flex; flex-wrap: wrap; align-items: center; align-content: center;
+  justify-content: space-between; gap: 0.3rem 0.4rem; padding: 0.5rem 0.6rem;
+}
+.meta-compact .card-collection { flex: 0 1 auto; max-width: 100%; font-size: 0.78rem; font-weight: 500; color: var(--text); }
+.meta-compact .rarity-tag { margin-top: 0; flex-shrink: 0; }
 /* Étiquette d'effet / prisme : pastille colorée, une teinte stable par effet (lib/effectTone.js). */
 .rarity-tag { display: inline-block; font-size: 0.72rem; line-height: 1.35; color: var(--text-muted); background: var(--surface-raised); margin-top: 0.35rem; padding: 0.1rem 0.55rem; border-radius: 999px; }
 .rarity-tag[data-tone="1"] { background: rgba(45, 212, 200, 0.14); color: #7fe7df; }
@@ -662,16 +676,6 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
    s'affiche à l'identique. ===== */
 .mobile-header, .mobile-only, .mobile-tabbar, .sheet-overlay, .sheet-head, .sheet-foot { display: none; }
 
-/* Recherche de cartes, au-dessus de la grille du catalogue (toutes tailles d'écran). */
-.catalogue-search { margin-bottom: 1rem; }
-.catalogue-search input {
-  width: 100%; height: 44px; box-sizing: border-box; padding: 0 0.9rem 0 2.6rem;
-  border-radius: var(--radius); border: 1px solid var(--line); background: var(--surface); color: var(--text);
-  font-family: inherit; font-size: 0.95rem; transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.catalogue-search input:focus { outline: none; border-color: var(--turquoise); box-shadow: 0 0 0 3px rgba(45, 212, 200, 0.28); }
-.catalogue-search .search-icon { left: 0.85rem; top: 13px; }
-
 .mobile-logo { height: 30px; width: auto; display: block; }
 .mobile-menu-btn {
   width: 44px; height: 44px; padding: 0; border: none; border-radius: var(--radius);
@@ -759,7 +763,7 @@ table.admin-table td { padding: 0.55rem 0.6rem; border-bottom: 1px solid var(--l
   .sheet-apply { width: 100%; min-height: 48px; font-size: 1rem; }
 
   /* Champs à 16 px minimum : en dessous, l'iPhone zoome automatiquement à la saisie. */
-  .field input, .field select, .field textarea, .catalogue-search input { font-size: 16px; }
+  .field input, .field select, .field textarea { font-size: 16px; }
 }
 
 /* Écrans tactiles : les boutons des vignettes (partage, possédée / recherchée) ne dépendent

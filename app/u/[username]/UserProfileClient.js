@@ -15,6 +15,7 @@ import ListingCard from "@/components/ListingCard";
 import { computeBadges } from "@/lib/badges";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import ShowcaseSection from "@/components/ShowcaseSection";
+import CardTileMeta, { CardNumBadge } from "@/components/CardTileMeta";
 
 // Profil public en grille : un en-tête (identité, actions, chiffres clés), puis le classeur
 // et les avis à gauche, les badges, les collections et les points à droite, et les cartes en
@@ -34,11 +35,9 @@ function MiniGrid({ cards, t, emptyLabel }) {
             ) : (
               <img src={missingCardPlaceholder(c, t)} alt={c.personnagePrincipal?.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             )}
+            {c.image && <CardNumBadge numero={c.numero} />}
           </div>
-          <div className="meta">
-            <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>
-            <div className="card-nom">{c.personnagePrincipal?.name || t.noCharacterAssigned}</div>
-          </div>
+          <CardTileMeta collection={c.collection?.nom} rarete={c.rarete} />
         </Link>
       ))}
     </div>

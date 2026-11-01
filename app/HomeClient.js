@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Shuffle, Search, SlidersHorizontal, X } from "lucide-react";
+import { Shuffle, SlidersHorizontal, X } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
-import { effectTone } from "@/lib/effectTone";
 import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 import HoloCard from "@/components/HoloCard";
+import CardTileMeta, { CardNumBadge } from "@/components/CardTileMeta";
 import MemberSearch from "@/components/MemberSearch";
 import ShareIconButton from "@/components/ShareIconButton";
 import CardStatusIcons from "@/components/CardStatusIcons";
@@ -18,10 +18,6 @@ import { playShuffleSound } from "@/lib/playShuffleSound";
 export default function CataloguePage() {
   const { t } = useLanguage();
   const { me } = useCurrentUser();
-  // Recherche de cartes (nom du personnage, numéro, description) : la saisie est appliquée
-  // après une courte pause, pour ne pas lancer une requête à chaque lettre tapée.
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
   // Sur mobile, le panneau de filtres est replié derrière un bouton « Filtres ».
   const [filtersOpen, setFiltersOpen] = useState(false);
   // Statut « possédée / recherchée » de chaque carte pour le membre connecté (icônes sur les vignettes).
@@ -46,12 +42,7 @@ export default function CataloguePage() {
   const [filterPays, setFilterPays] = useState("all");
 
   const activeFilterCount = [filterCollection, filterPersonnage, filterRarete, filterPays].filter((v) => v !== "all").length;
-  const hasActiveFilters = activeFilterCount > 0 || debouncedQuery !== "";
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query.trim()), 300);
-    return () => clearTimeout(timer);
-  }, [query]);
+  const hasActiveFilters = activeFilterCount > 0;
 
   // Statuts des cartes du membre connecté, chargés une seule fois pour toute la grille.
   useEffect(() => {
@@ -166,7 +157,6 @@ export default function CataloguePage() {
       rarete: filterRarete,
       personnage: filterPersonnage,
       pays: filterPays,
-      q: debouncedQuery,
     });
     fetch(`/api/facets?${params.toString()}`)
       .then((r) => r.json())
@@ -189,7 +179,7 @@ export default function CataloguePage() {
         if (filterCollection !== "all" && !newCollections.some((c) => c.id === filterCollection)) setFilterCollection("all");
       })
       .catch(() => {});
-  }, [filterCollection, filterRarete, filterPersonnage, filterPays, debouncedQuery]);
+  }, [filterCollection, filterRarete, filterPersonnage, filterPays]);
 
   useEffect(() => {
     if (!hasActiveFilters) {
@@ -197,7 +187,7 @@ export default function CataloguePage() {
       fetchRandomCards([]);
       return;
     }
-    // Si la sélection change avant la réponse (frappe rapide, filtre changé), la réponse
+    // Si la sélection change avant la réponse (filtre changé entre-temps), la réponse
     // devenue périmée est ignorée : seule la dernière demande s'affiche.
     let cancelled = false;
     setLoading(true);
@@ -208,7 +198,6 @@ export default function CataloguePage() {
       rarete: filterRarete,
       personnage: filterPersonnage,
       pays: filterPays,
-      q: debouncedQuery,
     });
     fetch(`/api/cards?${params.toString()}`)
       .then((r) => {
@@ -234,9 +223,9 @@ export default function CataloguePage() {
     return () => {
       cancelled = true;
     };
-  }, [page, filterCollection, filterRarete, filterPersonnage, filterPays, debouncedQuery]);
+  }, [page, filterCollection, filterRarete, filterPersonnage, filterPays]);
 
-  useEffect(() => setPage(1), [filterCollection, filterRarete, filterPersonnage, filterPays, debouncedQuery]);
+  useEffect(() => setPage(1), [filterCollection, filterRarete, filterPersonnage, filterPays]);
 
   return (
     <div className="container page">
@@ -302,7 +291,6 @@ export default function CataloguePage() {
               className="btn-ghost"
               style={{ width: "100%" }}
               onClick={() => {
-                setQuery("");
                 setFilterCollection("all");
                 setFilterPersonnage("all");
                 setFilterRarete("all");
@@ -327,18 +315,6 @@ export default function CataloguePage() {
         </aside>
 
         <div className="main-col">
-          <div className="catalogue-search search-wrap">
-            <label htmlFor="catalogue-search-input" className="visually-hidden">{t.searchCardLabel}</label>
-            <Search size={18} className="search-icon" aria-hidden="true" />
-            <input
-              id="catalogue-search-input"
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t.searchCardPlaceholder}
-              autoComplete="off"
-            />
-          </div>
           <div className="catalogue-toolbar mobile-only">
             <button type="button" className="pill-btn" onClick={() => setFiltersOpen(true)} aria-haspopup="dialog">
               <SlidersHorizontal size={17} aria-hidden="true" /> {t.filtersButton}
@@ -417,14 +393,11 @@ export default function CataloguePage() {
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
                       )}
+                      {c.image && <CardNumBadge numero={c.numero} />}
                       <ShareIconButton path={`/cartes/${c.id}`} title={`${c.personnagePrincipal?.name || c.numero} — DB Non-Off 90's`} />
                       {me && <CardStatusIcons cardId={c.id} status={statusMap[c.id] || null} onChange={handleStatusChange} />}
                     </HoloCard>
-                    <div className="meta">
-                      <div className="card-collection">{c.collection?.nom} <span className="card-num-inline">n°{c.numero}</span></div>
-                      <div className="card-nom">{c.personnagePrincipal?.name || t.noCharacterAssigned}</div>
-                      <span className="rarity-tag" data-tone={effectTone(c.rarete)}>{c.rarete}</span>
-                    </div>
+                    <CardTileMeta collection={c.collection?.nom} rarete={c.rarete} />
                   </Link>
                 ))}
               </div>

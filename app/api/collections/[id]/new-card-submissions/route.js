@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { processDisplayImage } from "@/lib/storage";
+import { isOriginalUrl } from "@/lib/originals";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,7 @@ export async function POST(request, { params }) {
 
     const formData = await request.formData();
     const file = formData.get("file");
+    const originalUrl = isOriginalUrl(formData.get("originalUrl")) ? formData.get("originalUrl") : null;
     const numero = (formData.get("numero") || "").toString().trim();
     const rarete = (formData.get("rarete") || "Commune").toString().trim() || "Commune";
     const personnagePrincipalId = formData.get("personnagePrincipalId") || null;
@@ -43,6 +45,7 @@ export async function POST(request, { params }) {
         rarete,
         personnagePrincipalId: personnagePrincipalId || null,
         image: display,
+        originalUrl,
         status: "pending",
       },
     });

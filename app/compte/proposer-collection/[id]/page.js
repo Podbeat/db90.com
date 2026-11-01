@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Plus, Pencil, Trash2, Send, Check, X } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { submitCollectionSubmissionCard } from "@/lib/clientUpload";
+import ScanSubmitPanel from "@/components/ScanSubmitPanel";
 
 const STATUS_LABELS = {
   draft: { key: "statusDraft", color: "var(--text-muted)" },
@@ -34,7 +35,7 @@ export default function ProposeCollectionBuilderPage() {
   const [newNumero, setNewNumero] = useState("");
   const [newRarete, setNewRarete] = useState("Commune");
   const [newPersonnage, setNewPersonnage] = useState("");
-  const [uploading, setUploading] = useState(false);
+  const [panelKey, setPanelKey] = useState(0);
 
   function load() {
     fetch(`/api/collection-submissions/${id}`)
@@ -72,29 +73,6 @@ export default function ProposeCollectionBuilderPage() {
       load();
     } else {
       setMessage({ type: "error", text: data.error });
-    }
-  }
-
-  async function handleAddCard(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!newNumero.trim()) {
-      setMessage({ type: "error", text: t.cardNumberRequired });
-      return;
-    }
-    setUploading(true);
-    setMessage(null);
-    try {
-      await submitCollectionSubmissionCard(id, file, { numero: newNumero.trim(), rarete: newRarete, personnagePrincipalId: newPersonnage });
-      setNewNumero("");
-      setNewRarete("Commune");
-      setNewPersonnage("");
-      load();
-    } catch (err) {
-      setMessage({ type: "error", text: err.message });
-    } finally {
-      setUploading(false);
-      e.target.value = "";
     }
   }
 
@@ -201,21 +179,25 @@ export default function ProposeCollectionBuilderPage() {
           )}
 
           {editable && (
-            <div style={{ paddingTop: "0.8rem", borderTop: "1px solid var(--line)" }}>
-              <div style={{ fontSize: "0.82rem", fontWeight: 600, marginBottom: "0.6rem" }}>{t.addCardTitle}</div>
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
-                <input value={newNumero} onChange={(e) => setNewNumero(e.target.value)} placeholder={t.cardNumberPlaceholder} style={{ flex: 1, minWidth: 80 }} />
-                <input value={newRarete} onChange={(e) => setNewRarete(e.target.value)} placeholder={t.effectPlaceholder} style={{ flex: 1, minWidth: 100 }} />
+            <ScanSubmitPanel
+              key={panelKey}
+              title={t.addCardTitle}
+              validate={() => (newNumero.trim() ? null : t.cardNumberRequired)}
+              submit={(file, opts) => submitCollectionSubmissionCard(id, file, { numero: newNumero.trim(), rarete: newRarete, personnagePrincipalId: newPersonnage, ...opts })}
+              onSent={() => { setNewNumero(""); setNewRarete("Commune"); setNewPersonnage(""); setPanelKey((k) => k + 1); load(); }}
+            >
+              <div className="scan-fields">
+                <div className="field"><span className="field-label">{t.cardNumberPlaceholder}</span><input value={newNumero} onChange={(e) => setNewNumero(e.target.value)} maxLength={20} /></div>
+                <div className="field"><span className="field-label">{t.effectPlaceholder}</span><input value={newRarete} onChange={(e) => setNewRarete(e.target.value)} maxLength={80} /></div>
+                <div className="field">
+                  <span className="field-label">{t.personnage}</span>
+                  <select value={newPersonnage} onChange={(e) => setNewPersonnage(e.target.value)}>
+                    <option value="">{t.noCharacterAssigned}</option>
+                    {characters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
               </div>
-              <select value={newPersonnage} onChange={(e) => setNewPersonnage(e.target.value)} style={{ marginBottom: "0.5rem" }}>
-                <option value="">{t.noCharacterAssigned}</option>
-                {characters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              <label className="upload-zone" style={{ display: "block", cursor: uploading ? "default" : "pointer" }}>
-                {uploading ? "Envoi en cours…" : t.addCardUploadCta}
-                <input type="file" accept="image/*" onChange={handleAddCard} disabled={uploading} className="visually-hidden" />
-              </label>
-            </div>
+            </ScanSubmitPanel>
           )}
 
           {submission.status === "draft" && (

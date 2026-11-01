@@ -45,6 +45,7 @@ export default function CompteLayout({ children }) {
     { href: "/compte/recherchees", label: t.myWantedTitle },
     { href: "/compte/ventes", label: t.navMySales },
     { href: "/compte/echanges", label: t.tradesTitle },
+    { href: "/compte/envois", label: t.myUploadsTitle },
   ];
 
   return (

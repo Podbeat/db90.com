@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, X, ImagePlus, FolderPlus, Flag, ShieldAlert, CircleCheck, ExternalLink, Pencil } from "lucide-react";
+import { Check, X, ImagePlus, FolderPlus, Flag, ShieldAlert, CircleCheck, ExternalLink, Pencil, PackageCheck, Download, Upload } from "lucide-react";
+import { uploadCardImage } from "@/lib/clientUpload";
 
 // Boîte de modération : scans proposés, propositions de collections, erreurs signalées sur
 // des cartes et signalements de membres, réunis dans une seule liste. Les données et les
@@ -19,6 +20,9 @@ const fmtDate = (d) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric",
 const label = (c) => [c?.collection?.nom, c?.numero ? `n°${c.numero}` : null].filter(Boolean).join(" ");
 const getJson = (url) => fetch(url, { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
 const isOpen = (status) => status === "pending" || status === "nouveau";
+// Étape d'un élément : à traiter, à mettre en ligne (scan validé dont le visuel attend sa
+// retouche), ou déjà traité.
+const stage = (i) => (isOpen(i.status) ? "open" : i.type === "scan" && i.status === "approved" && !i.published && i.cardId ? "publish" : "done");
 
 function normalize({ scans, proposals, reports, userReports }) {
   const items = [
@@ -26,7 +30,7 @@ function normalize({ scans, proposals, reports, userReports }) {
       type: "scan", id: s.id, status: s.status, date: s.createdAt, by: s.user?.username,
       title: s.card ? label(s.card) : `${s.collection?.nom || ""} n°${s.numero}`,
       detail: s.card ? (s.card.image ? "Remplacerait le visuel actuel" : "Carte encore sans visuel") : `Nouvel effet « ${s.rarete} » : une nouvelle carte sera créée`,
-      image: s.image, currentImage: s.card?.image || null,
+      image: s.image, currentImage: s.card?.image || null, originalUrl: s.originalUrl || null, published: Boolean(s.publishedAt), cardId: s.cardId,
       link: s.card ? { href: `/cartes/${s.card.id}`, label: "Voir la fiche" } : null,
     })),
     ...proposals.map((p) => ({
@@ -48,11 +52,12 @@ function normalize({ scans, proposals, reports, userReports }) {
   return items.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-const post = (url) => fetch(url, { method: "POST" });
+const post = (url, body) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
 const put = (url, status) => fetch(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
 const ACTIONS = {
   scan: [
-    { key: "approve", label: "Accepter", primary: true, run: (id) => post(`/api/admin/submissions/${id}/approve`) },
+    { key: "approve", label: "Valider et mettre en ligne", primary: true, run: (id) => post(`/api/admin/submissions/${id}/approve`, { publish: true }) },
+    { key: "receive", label: "Valider la réception", hint: "Le membre est crédité ; tu retouches le scan avant de le mettre en ligne.", run: (id) => post(`/api/admin/submissions/${id}/approve`, { publish: false }) },
     { key: "reject", label: "Refuser", confirm: "Confirmer le refus (le fichier sera supprimé)", run: (id) => post(`/api/admin/submissions/${id}/reject`) },
   ],
   collection: [],
@@ -67,6 +72,44 @@ const ACTIONS = {
 };
 const ITEM_LABEL = { scan: "Scan proposé", collection: "Collection proposée", card_report: "Erreur signalée", user_report: "Membre signalé" };
 const STATUS_LABEL = { pending: "En attente", nouveau: "Nouveau", approved: "Accepté", rejected: "Refusé", traite: "Traité", ignore: "Ignoré", draft: "Brouillon" };
+
+// Scan validé en attente de mise en ligne : déposer la version retouchée (filigrane ajouté
+// si coché), ou publier le scan du membre tel quel.
+function PublishBox({ item, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [watermark, setWatermark] = useState(true);
+  const [error, setError] = useState("");
+
+  async function publish(file) {
+    setBusy(true);
+    setError("");
+    try {
+      const body = file ? await uploadCardImage(file, { watermark }).then((up) => ({ image: up.url, imageHD: up.hdUrl })) : {};
+      const res = await post(`/api/admin/submissions/${item.id}/publish`, body);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "La mise en ligne a échoué.");
+      onDone(item);
+    } catch (e) {
+      setError(e.message || "La mise en ligne a échoué.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mod-publish">
+      <div className="mod-publish-title"><PackageCheck size={16} aria-hidden="true" /> Reçu et crédité · à mettre en ligne</div>
+      <div className="mod-actions">
+        <label className={`btn-primary mod-btn${busy ? " disabled" : ""}`}>
+          <Upload size={15} aria-hidden="true" /> {busy ? "Mise en ligne…" : "Déposer la version retouchée"}
+          <input type="file" accept="image/*" className="visually-hidden" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) publish(f); }} />
+        </label>
+        <button type="button" className="btn-ghost mod-btn" disabled={busy} onClick={() => publish(null)}>Mettre en ligne tel quel</button>
+        <label className="atl-option"><input type="checkbox" checked={watermark} onChange={(e) => setWatermark(e.target.checked)} /> Filigrane</label>
+      </div>
+      {error && <div className="toast error">{error}</div>}
+    </div>
+  );
+}
 
 function Item({ item, onDone }) {
   const [busy, setBusy] = useState(false);
@@ -100,25 +143,31 @@ function Item({ item, onDone }) {
         <div className="mod-kind">
           {ITEM_LABEL[item.type]}
           {item.by ? <> · par <strong>{item.by}</strong></> : null} · {fmtDate(item.date)}
-          {!isOpen(item.status) && <span className={`mod-status ${item.status}`}>{STATUS_LABEL[item.status] || item.status}</span>}
+          {stage(item) === "done" && <span className={`mod-status ${item.status}`}>{STATUS_LABEL[item.status] || item.status}</span>}
         </div>
         <h2 className="mod-title">{item.title}</h2>
         {item.detail && <p className="mod-detail">{item.detail}</p>}
         <div className="mod-actions">
           {isOpen(item.status) &&
             ACTIONS[item.type].map((a) => (
-              <button key={a.key} type="button" disabled={busy} onClick={() => act(a)}
+              <button key={a.key} type="button" disabled={busy} onClick={() => act(a)} title={a.hint}
                 className={`${a.primary ? "btn-primary" : confirming === a.key ? "btn-danger" : "btn-ghost"} mod-btn`}>
-                {a.key === "approve" || a.key === "done" ? <Check size={15} aria-hidden="true" /> : <X size={15} aria-hidden="true" />}
+                {a.key === "approve" || a.key === "done" ? <Check size={15} aria-hidden="true" /> : a.key === "receive" ? <PackageCheck size={15} aria-hidden="true" /> : <X size={15} aria-hidden="true" />}
                 {confirming === a.key ? a.confirm : a.label}
               </button>
             ))}
+          {item.type === "scan" && (item.originalUrl || item.image) && stage(item) !== "done" && (
+            <a href={item.originalUrl || item.image} download target="_blank" rel="noopener noreferrer" className="mod-link">
+              <Download size={14} aria-hidden="true" /> {item.originalUrl ? "Télécharger l'original HD" : "Télécharger le scan"}
+            </a>
+          )}
           {item.link && (
             <Link href={item.link.href} className="mod-link">
               {item.type === "card_report" ? <Pencil size={14} aria-hidden="true" /> : <ExternalLink size={14} aria-hidden="true" />} {item.link.label}
             </Link>
           )}
         </div>
+        {stage(item) === "publish" && <PublishBox item={item} onDone={onDone} />}
         {error && <div className="toast error">{error}</div>}
       </div>
     </article>
@@ -142,7 +191,9 @@ export default function ModerationPage() {
   }, []);
 
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get("type");
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("type");
+    if (params.get("vue") === "a-mettre-en-ligne") setView("publish");
     if (TYPES.some((x) => x.key === t)) setType(t);
     load();
   }, [load]);
@@ -154,9 +205,10 @@ export default function ModerationPage() {
   }
 
   if (!items) return <div className="empty-state">Chargement…</div>;
-  const inView = items.filter((i) => (view === "open" ? isOpen(i.status) : !isOpen(i.status)));
+  const inView = items.filter((i) => stage(i) === view);
+  const toPublish = items.filter((i) => stage(i) === "publish").length;
   const count = (key) => inView.filter((i) => key === "all" || i.type === key).length;
-  const shown = inView.filter((i) => type === "all" || i.type === type).slice(0, view === "open" ? 200 : 60);
+  const shown = inView.filter((i) => type === "all" || i.type === type).slice(0, view === "done" ? 60 : 200);
 
   return (
     <div className="adm-page">
@@ -167,6 +219,9 @@ export default function ModerationPage() {
         </div>
         <div className="adm-seg" role="group" aria-label="Vue">
           <button type="button" className={view === "open" ? "active" : ""} onClick={() => setView("open")}>À traiter</button>
+          <button type="button" className={view === "publish" ? "active" : ""} onClick={() => setView("publish")}>
+            À mettre en ligne {toPublish > 0 && <span className="adm-tab-count hot">{toPublish}</span>}
+          </button>
           <button type="button" className={view === "done" ? "active" : ""} onClick={() => setView("done")}>Déjà traités</button>
         </div>
       </header>
@@ -181,8 +236,8 @@ export default function ModerationPage() {
         <div className="adm-empty">
           <CircleCheck size={28} aria-hidden="true" />
           <div>
-            <strong>{view === "open" ? "Rien à traiter" : "Aucune décision pour l'instant"}</strong>
-            <span>{view === "open" ? "Les nouveaux scans, propositions et signalements apparaîtront ici." : "Les éléments traités s'afficheront ici."}</span>
+            <strong>{view === "open" ? "Rien à traiter" : view === "publish" ? "Aucun scan en attente de mise en ligne" : "Aucune décision pour l'instant"}</strong>
+            <span>{view === "open" ? "Les nouveaux scans, propositions et signalements apparaîtront ici." : view === "publish" ? "Les scans dont tu valides seulement la réception attendront ici leur version retouchée." : "Les éléments traités s'afficheront ici."}</span>
           </div>
         </div>
       ) : (

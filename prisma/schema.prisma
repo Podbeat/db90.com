@@ -291,9 +291,15 @@ model CardSubmission {
   user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   image                 String
   imageHD               String?
+  // Fichier envoyé par le membre, en pleine définition et non recadré, pour que l'admin
+  // puisse le retoucher avant la mise en ligne.
+  originalUrl           String?
   status                String      @default("pending") // pending | approved | rejected
   createdAt             DateTime    @default(now())
   reviewedAt            DateTime?
+  // Validé (status approved) = membre crédité. Le visuel n'est sur la carte qu'une fois
+  // publié : publishedAt vide = reçu, en attente de retouche et de mise en ligne.
+  publishedAt           DateTime?
 
   @@unique([cardId, userId])
   @@index([cardId])
@@ -410,6 +416,7 @@ model CollectionSubmissionCard {
   personnagePrincipal   Character?           @relation(fields: [personnagePrincipalId], references: [id], onDelete: SetNull)
   rarete                String               @default("Commune")
   image                 String
+  originalUrl           String?
   createdAt             DateTime             @default(now())
 
   @@index([submissionId])

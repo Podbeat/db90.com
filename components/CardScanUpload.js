@@ -2,80 +2,51 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Upload, Clock, RotateCcw } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
+import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { submitCardScan } from "@/lib/clientUpload";
+import ScanSubmitPanel, { ScanSteps } from "@/components/ScanSubmitPanel";
 
-// Formulaire de proposition de scan pour une carte "recherchée", affiché uniquement quand
-// la carte n'a pas encore de visuel. Le fichier est traité comme un import classique côté
-// serveur, mais reste en attente de validation admin (voir /admin/scans) avant d'apparaître
-// réellement sur la carte.
+// Proposer le scan d'une carte encore sans visuel (fiche carte). Le scan reste en attente
+// de validation ; une fois validé, le membre est crédité, et le visuel apparaît sur la carte
+// à sa mise en ligne (parfois après retouche par l'admin).
 export default function CardScanUpload({ cardId }) {
   const { t } = useLanguage();
-  const [loggedIn, setLoggedIn] = useState(null);
-  const [status, setStatus] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
+  const { me, loading } = useCurrentUser();
+  const [state, setState] = useState(null);
 
   useEffect(() => {
+    if (!me) return;
     fetch(`/api/cards/${cardId}/submissions`)
-      .then((r) => {
-        setLoggedIn(r.status !== 401);
-        return r.json();
-      })
-      .then((d) => setStatus(d.status))
-      .catch(() => setLoggedIn(false));
-  }, [cardId]);
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((d) => setState({ status: d.status || null, published: Boolean(d.published) }))
+      .catch(() => setState({ status: null }));
+  }, [cardId, me]);
 
-  async function handleFile(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setError("");
-    try {
-      const data = await submitCardScan(cardId, file);
-      setStatus(data.status);
-    } catch (err) {
-      setError(err.message || "Échec de l'envoi.");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  if (loggedIn === null) return null;
-
-  if (loggedIn === false) {
+  if (loading) return null;
+  if (!me) {
     return (
-      <div className="filter-panel" style={{ marginTop: "1rem" }}>
-        <div style={{ fontSize: "0.8rem", marginBottom: "0.5rem" }}>{t.proposeScanTitle}</div>
-        <Link href="/compte/connexion" className="btn-ghost" style={{ fontSize: "0.75rem", display: "inline-block" }}>
-          {t.loginToProposeScan}
-        </Link>
+      <div className="scan-panel compact">
+        <div className="scan-panel-title display-font">{t.proposeScanTitle}</div>
+        <Link href="/compte/connexion" className="btn-ghost scan-btn">{t.loginToProposeScan}</Link>
       </div>
     );
   }
-
-  if (status === "pending") {
+  if (!state) return null;
+  if (state.status === "pending" || (state.status === "approved" && !state.published)) {
+    const received = state.status === "approved";
     return (
-      <div className="filter-panel" style={{ marginTop: "1rem" }}>
-        <div style={{ fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem", color: "var(--text-muted)" }}>
-          <Clock size={14} /> {t.scanPending}
-        </div>
+      <div className="scan-panel compact">
+        <p className="scan-status">{received ? t.scanStatusReceived : t.scanStatusReview}</p>
+        <ScanSteps step={received ? 2 : 1} />
+        <Link href="/compte/envois" className="scan-link">{t.myUploadsLink}</Link>
       </div>
     );
   }
-
   return (
-    <div className="filter-panel" style={{ marginTop: "1rem" }}>
-      <div style={{ fontSize: "0.8rem", marginBottom: "0.6rem" }}>
-        {status === "rejected" ? t.scanRejectedRetry : t.proposeScanTitle}
-      </div>
-      <label className="upload-zone" style={{ cursor: uploading ? "default" : "pointer" }}>
-        {status === "rejected" ? <RotateCcw size={16} style={{ margin: "0 auto 0.3rem" }} /> : <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />}
-        {uploading ? "Envoi en cours…" : t.proposeScanCta}
-        <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="visually-hidden" />
-      </label>
-      {error && <div className="toast error" style={{ marginTop: "0.5rem" }}>{error}</div>}
-    </div>
+    <ScanSubmitPanel
+      title={state.status === "rejected" ? t.scanRejectedRetry : t.proposeScanTitle}
+      submit={(file, opts) => submitCardScan(cardId, file, opts)}
+    />
   );
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
 import { processDisplayImage } from "@/lib/storage";
+import { isOriginalUrl } from "@/lib/originals";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,7 @@ export async function POST(request, { params }) {
 
     const formData = await request.formData();
     const file = formData.get("file");
+    const originalUrl = isOriginalUrl(formData.get("originalUrl")) ? formData.get("originalUrl") : null;
     const rarete = (formData.get("rarete") || "").toString().trim();
     if (!file) return NextResponse.json({ error: "Aucun fichier reçu." }, { status: 400 });
     if (!rarete) return NextResponse.json({ error: "Précisez le nom de l'effet/prisme." }, { status: 400 });
@@ -35,6 +37,7 @@ export async function POST(request, { params }) {
         numero: referenceCard.numero,
         rarete,
         image: display,
+        originalUrl,
         status: "pending",
       },
     });

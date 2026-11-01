@@ -15,15 +15,21 @@ export async function POST(request, { params }) {
     if (!session) return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
 
     const { id } = await params;
+    // publish : true (par défaut) met le scan en ligne tout de suite ; false valide seulement
+    // la réception : le membre est crédité, le visuel sera publié après retouche
+    // (voir ../publish).
+    const body = await request.json().catch(() => ({}));
+    const publish = body?.publish !== false;
     const submission = await prisma.cardSubmission.findUnique({
       where: { id },
       include: { user: { select: { username: true } } },
     });
     if (!submission) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
+    if (submission.status === "approved") return NextResponse.json({ error: "Déjà validé." }, { status: 409 });
 
     let resultingCardId = submission.cardId;
 
-    if (submission.cardId) {
+    if (submission.cardId && publish) {
       await prisma.card.update({
         where: { id: submission.cardId },
         data: {
@@ -32,7 +38,7 @@ export async function POST(request, { params }) {
           contributeur: submission.user.username,
         },
       });
-    } else {
+    } else if (!submission.cardId) {
       let personnagePrincipalId = submission.personnagePrincipalId;
       if (!personnagePrincipalId) {
         const sibling = await prisma.card.findFirst({
@@ -47,9 +53,11 @@ export async function POST(request, { params }) {
           numero: submission.numero,
           rarete: submission.rarete || "Commune",
           personnagePrincipalId,
-          image: submission.image,
-          imageHD: submission.imageHD || null,
-          contributeur: submission.user.username,
+          // Réception seule : la carte existe déjà dans le catalogue, son visuel viendra
+          // à la publication.
+          image: publish ? submission.image : null,
+          imageHD: publish ? submission.imageHD || null : null,
+          contributeur: publish ? submission.user.username : null,
         },
       });
       resultingCardId = created.id;
@@ -57,7 +65,7 @@ export async function POST(request, { params }) {
 
     await prisma.cardSubmission.update({
       where: { id },
-      data: { status: "approved", reviewedAt: new Date() },
+      data: { status: "approved", reviewedAt: new Date(), publishedAt: publish ? new Date() : null, cardId: resultingCardId },
     });
 
     await prisma.activityEvent.create({
@@ -66,7 +74,7 @@ export async function POST(request, { params }) {
 
     await checkAndAwardBadges(submission.userId);
 
-    return NextResponse.json({ ok: true, cardId: resultingCardId });
+    return NextResponse.json({ ok: true, cardId: resultingCardId, published: publish });
   } catch (e) {
     console.error("Erreur POST /api/admin/submissions/[id]/approve :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, LineChart, Users, ImagePlus, FolderPlus, Flag, ShieldAlert, Layers, Library, UserRound, Upload,
+  LayoutDashboard, LineChart, Users, Inbox, Wand2, Layers, Library, UserRound, Upload,
   KeyRound, LogOut, ExternalLink, Menu, X,
 } from "lucide-react";
 
@@ -22,15 +22,13 @@ const GROUPS = [
     title: "Communauté",
     links: [
       { href: "/admin/utilisateurs", label: "Membres", Icon: Users },
-      { href: "/admin/scans", label: "Scans proposés", Icon: ImagePlus, count: "scans" },
-      { href: "/admin/propositions-collections", label: "Propositions de collections", Icon: FolderPlus, count: "collectionProposals" },
-      { href: "/admin/reports", label: "Signalements de cartes", Icon: Flag, count: "cardReports" },
-      { href: "/admin/signalements-membres", label: "Signalements de membres", Icon: ShieldAlert, count: "userReports" },
+      { href: "/admin/moderation", label: "Modération", Icon: Inbox, count: "total" },
     ],
   },
   {
     title: "Catalogue",
     links: [
+      { href: "/admin/atelier", label: "Atelier d'intégration", Icon: Wand2 },
       { href: "/admin/cartes", label: "Cartes", Icon: Layers },
       { href: "/admin/collections", label: "Collections", Icon: Library },
       { href: "/admin/personnages", label: "Personnages", Icon: UserRound },
@@ -62,6 +60,17 @@ export default function AdminLayout({ children }) {
       .then(setPending)
       .catch(() => {});
   }, [pathname]);
+
+  // Une page de modération signale chaque décision : les compteurs se mettent à jour.
+  useEffect(() => {
+    const refresh = () =>
+      fetch("/api/admin/pending", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then(setPending)
+        .catch(() => {});
+    window.addEventListener("admin-pending-changed", refresh);
+    return () => window.removeEventListener("admin-pending-changed", refresh);
+  }, []);
 
   if (PUBLIC_PATHS.includes(pathname)) return <>{children}</>;
 

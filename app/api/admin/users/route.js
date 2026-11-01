@@ -15,7 +15,8 @@ export async function GET(request) {
         email: true,
         avatar: true,
         createdAt: true,
-        _count: { select: { cards: true } },
+        emailVerified: true,
+        _count: { select: { cards: true, listings: true, submissions: true, reportsReceived: true, ratingsReceived: true, messagesSent: true } },
       },
     });
 

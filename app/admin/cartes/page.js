@@ -115,7 +115,7 @@ export default function AdminCardsPage() {
     loadCards(1, "all");
     // Liens du tableau de bord : ?nouvelle=1 ouvre le formulaire vide, ?modifier=<id> la carte.
     const params = new URLSearchParams(window.location.search);
-    if (params.get("nouvelle") === "1") setForm(emptyForm());
+    if (params.get("nouvelle") === "1") setForm({ ...emptyForm(params.get("collection") || ""), numero: params.get("numero") || "" });
     const editId = params.get("modifier");
     if (editId) {
       fetch(`/api/cards/${editId}`)

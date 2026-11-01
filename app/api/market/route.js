@@ -1,38 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { publicCacheHeaders } from "@/lib/httpCache";
+import { listingInclude, marketWhere } from "@/lib/market";
 
-const listingInclude = {
-  card: {
-    select: {
-      id: true,
-      numero: true,
-      image: true,
-      personnagePrincipal: { select: { id: true, name: true } },
-      collection: { select: { id: true, nom: true, pays: true } },
-    },
-  },
-  user: { select: { username: true, avatar: true } },
-};
-
-function baseWhere({ type, collectionId, personnage, pays, exclude }) {
-  const clauses = [];
-  if (type && type !== "all" && exclude !== "type") clauses.push({ type });
-  if (collectionId && collectionId !== "all" && exclude !== "collection") clauses.push({ card: { collectionId } });
-  if (personnage && personnage !== "all" && exclude !== "personnage") {
-    clauses.push({
-      OR: [
-        { card: { personnagePrincipalId: personnage } },
-        { card: { personnagesSecondaires: { some: { characterId: personnage } } } },
-      ],
-    });
-  }
-  if (pays && pays !== "all" && exclude !== "pays") clauses.push({ card: { collection: { pays } } });
-  return clauses.length ? { AND: clauses } : {};
-}
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Vue d'ensemble de toute l'activité d'achat/vente du site (annonces "seller" et "buyer"
-// confondues), avec des filtres qui se restreignent mutuellement comme sur le catalogue.
+// confondues), avec des filtres qui se restreignent mutuellement comme sur le catalogue,
+// les compteurs par type (onglets À vendre / Recherchées) et les chiffres du marché.
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -40,24 +15,39 @@ export async function GET(request) {
     const collectionId = searchParams.get("collectionId");
     const personnage = searchParams.get("personnage");
     const pays = searchParams.get("pays");
+    const condition = searchParams.get("condition"); // état, pour les cartes en vente
     const sort = searchParams.get("sort") || "recent"; // recent | price_asc | price_desc
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get("pageSize") || "30", 10)));
 
-    const filters = { type, collectionId, personnage, pays };
+    const filters = { type, collectionId, personnage, pays, condition };
 
+    // Les annonces sans prix (recherches) passent toujours après celles qui en ont un.
     const orderBy =
-      sort === "price_asc" ? [{ price: "asc" }] : sort === "price_desc" ? [{ price: "desc" }] : [{ createdAt: "desc" }];
+      sort === "price_asc"
+        ? [{ price: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }]
+        : sort === "price_desc"
+          ? [{ price: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }]
+          : [{ createdAt: "desc" }];
 
-    const [total, listings] = await Promise.all([
-      prisma.cardListing.count({ where: baseWhere(filters) }),
+    const byType = marketWhere({ ...filters, exclude: "type" });
+    const [total, listings, sellerCount, buyerCount, selling, wanted, members, new7d] = await Promise.all([
+      prisma.cardListing.count({ where: marketWhere(filters) }),
       prisma.cardListing.findMany({
-        where: baseWhere(filters),
+        where: marketWhere(filters),
         include: listingInclude,
         orderBy,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
+      // Compteurs des onglets : mêmes filtres, sauf le type.
+      prisma.cardListing.count({ where: { AND: [byType, { type: "seller" }] } }),
+      prisma.cardListing.count({ where: { AND: [byType, { type: "buyer" }] } }),
+      // Chiffres du marché, sans filtre.
+      prisma.cardListing.count({ where: { type: "seller" } }),
+      prisma.cardListing.count({ where: { type: "buyer" } }),
+      prisma.cardListing.groupBy({ by: ["userId"] }),
+      prisma.cardListing.count({ where: { createdAt: { gte: new Date(Date.now() - WEEK_MS) } } }),
     ]);
 
     // Facettes : options de filtre disponibles compte tenu des AUTRES filtres déjà actifs,
@@ -65,17 +55,17 @@ export async function GET(request) {
     // catalogue) — inutile de proposer un pays où personne ne vend/cherche rien en ce moment.
     const [collectionRows, paysRows, personnageRows] = await Promise.all([
       prisma.cardListing.findMany({
-        where: baseWhere({ ...filters, exclude: "collection" }),
+        where: marketWhere({ ...filters, exclude: "collection" }),
         select: { card: { select: { collectionId: true, collection: { select: { nom: true } } } } },
         distinct: ["cardId"],
       }),
       prisma.cardListing.findMany({
-        where: baseWhere({ ...filters, exclude: "pays" }),
+        where: marketWhere({ ...filters, exclude: "pays" }),
         select: { card: { select: { collection: { select: { pays: true } } } } },
         distinct: ["cardId"],
       }),
       prisma.cardListing.findMany({
-        where: baseWhere({ ...filters, exclude: "personnage" }),
+        where: marketWhere({ ...filters, exclude: "personnage" }),
         select: {
           card: { select: { personnagePrincipalId: true, personnagesSecondaires: { select: { characterId: true } } } },
         },
@@ -107,6 +97,8 @@ export async function GET(request) {
       page,
       pageSize,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      counts: { all: sellerCount + buyerCount, seller: sellerCount, buyer: buyerCount },
+      stats: { selling, wanted, members: members.length, new7d },
       facets: {
         collections,
         pays: paysSet,

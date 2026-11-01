@@ -1,47 +1,30 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import { publicCacheHeaders } from "@/lib/httpCache";
-import { getPalmares } from "@/lib/registry";
+import { loadLeaderboard, normalizePeriod, publicEntry, LEADERBOARD_PAGE_SIZE, POINTS } from "@/lib/leaderboard";
 
-// Classement public : top collectionneurs (nombre de cartes possédées), top
-// contributeurs (scans validés) et palmarès des collections complètes. Requêtes groupées
-// pour rester efficace même avec beaucoup de membres, plutôt que de recalculer la
-// participation de chacun un par un.
+// Classement public : classement général par points (?periode=tout|30j, ?depuis=50 pour la
+// suite), meilleurs par catégorie, chiffres de la communauté et palmarès des collections.
+// Identique pour tous les visiteurs, donc mis en cache par le CDN ; la position du membre
+// connecté est servie à part par /api/leaderboard/me.
 export async function GET(request) {
   try {
-    const [topOwners, topContributors, palmares] = await Promise.all([
-      prisma.userCard.groupBy({
-        by: ["userId"],
-        where: { status: "owned" },
-        _count: { userId: true },
-        orderBy: { _count: { userId: "desc" } },
-        take: 10,
-      }),
-      prisma.cardSubmission.groupBy({
-        by: ["userId"],
-        where: { status: "approved" },
-        _count: { userId: true },
-        orderBy: { _count: { userId: "desc" } },
-        take: 10,
-      }),
-      getPalmares(),
-    ]);
+    const params = new URL(request.url).searchParams;
+    const period = normalizePeriod(params.get("periode"));
+    const offset = Math.min(Math.max(parseInt(params.get("depuis"), 10) || 0, 0), 100000);
+    const data = await loadLeaderboard(period);
 
-    const userIds = [...new Set([...topOwners.map((o) => o.userId), ...topContributors.map((c) => c.userId)])];
-    const users = userIds.length
-      ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, username: true, avatar: true } })
-      : [];
-    const userById = new Map(users.map((u) => [u.id, u]));
-
-    return NextResponse.json({
-      topCollectors: topOwners
-        .map((o) => ({ user: userById.get(o.userId), count: o._count.userId }))
-        .filter((o) => o.user),
-      topContributors: topContributors
-        .map((c) => ({ user: userById.get(c.userId), count: c._count.userId }))
-        .filter((c) => c.user),
-      palmares,
-    }, { headers: publicCacheHeaders(request) });
+    return NextResponse.json(
+      {
+        period,
+        offset,
+        pageSize: LEADERBOARD_PAGE_SIZE,
+        totalRanked: data.ranking.length,
+        ranking: data.ranking.slice(offset, offset + LEADERBOARD_PAGE_SIZE).map(publicEntry),
+        // Le reste ne sert qu'au premier affichage de la page.
+        ...(offset === 0 && { stats: data.stats, boards: data.boards, palmares: data.palmares, points: POINTS }),
+      },
+      { headers: publicCacheHeaders(request) }
+    );
   } catch (e) {
     console.error("Erreur GET /api/leaderboard :", e);
     return NextResponse.json({ error: `Erreur serveur.` }, { status: 500 });

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Sun, Moon, Menu } from "lucide-react";
+import { Sun, Moon, Menu, HeartHandshake } from "lucide-react";
+import { DONATE_URL } from "@/lib/siteLinks";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useTheme } from "@/components/ThemeProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
@@ -90,9 +91,14 @@ export default function Nav() {
                   ))}
                 </div>
               </div>
-              {meLoaded && (
-                <div className="top-bar-account-row">
-                  {me ? (
+              {/* Ligne du compte, toujours affichée : « Soutenir le site » (page PayPal) d'abord,
+                  puis la connexion ou le compte une fois l'utilisateur connu. */}
+              <div className="top-bar-account-row">
+                <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="nav-support" title={t.supportUs} aria-label={t.supportUs}>
+                  <HeartHandshake size={15} aria-hidden="true" />
+                  <span className="nav-support-label">{t.supportUs}</span>
+                </a>
+                {meLoaded && (me ? (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                       {!isMobile && <NotificationBell />}
                       {!isMobile && <MessagesLink />}
@@ -113,9 +119,8 @@ export default function Nav() {
                       <Link href="/compte/connexion" className="nav-btn" style={{ color: "var(--header-muted)" }}>{t.login}</Link>
                       <Link href="/compte/inscription" className="btn-primary" style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>{t.signup}</Link>
                     </div>
-                  )}
-                </div>
-              )}
+                  ))}
+              </div>
             </div>
           </div>
 

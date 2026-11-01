@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import ContactForm from "@/components/ContactForm";
-import { Archive, ScanLine, MessageCircle, Sparkles } from "lucide-react";
+import { Archive, ScanLine, MessageCircle, Sparkles, Lock } from "lucide-react";
 // Lien de don et lien du groupe Facebook : un seul endroit à modifier (lib/siteLinks.js).
 import { DONATE_URL, FACEBOOK_GROUP_URL } from "@/lib/siteLinks";
 
@@ -49,6 +49,12 @@ export default function InformationsPage() {
           <ul className="info-list">
             {t.donateText.map((p, i) => <li key={i}>{p}</li>)}
           </ul>
+          {/* Beaucoup pensent qu'il faut un compte PayPal : la page de paiement accepte aussi la carte.
+              Placée au-dessus du bouton pour que celui-ci reste aligné sur ceux des blocs voisins. */}
+          <p className="donate-reassure">
+            <Lock size={12} aria-hidden="true" />
+            <span>{t.donateReassure}</span>
+          </p>
           <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="paypal-donate-btn">
             {t.donateButton}
           </a>

@@ -96,7 +96,6 @@ export default function Nav() {
               <div className="top-bar-account-row">
                 <a href={DONATE_URL} target="_blank" rel="noopener noreferrer" className="nav-support" title={t.supportUs} aria-label={t.supportUs}>
                   <HeartHandshake size={15} aria-hidden="true" />
-                  <span className="nav-support-label">{t.supportUs}</span>
                 </a>
                 {meLoaded && (me ? (
                     <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>

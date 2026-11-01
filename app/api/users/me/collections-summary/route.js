@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { resolveUserSession } from "@/lib/currentUser";
+import { collectionPreviews } from "@/lib/registry";
 
 // Résumé "par collection" des cartes possédées/recherchées de l'utilisateur connecté —
 // une ligne par collection avec une fraction (ex. 22/25), plutôt que la liste exhaustive de
@@ -16,15 +17,18 @@ export async function GET(request) {
     });
 
     const collectionIds = [...new Set(entries.map((e) => e.card.collectionId))];
-    const [collections, catalogue] = collectionIds.length
+    // Visuel de chaque collection : le même que sur la page Collections (première carte
+    // scannée, sinon la couverture).
+    const [collections, catalogue, previews] = collectionIds.length
       ? await Promise.all([
           prisma.collection.findMany({
             where: { id: { in: collectionIds } },
             select: { id: true, nom: true, total: true, cover: true },
           }),
           prisma.card.findMany({ where: { collectionId: { in: collectionIds } }, select: { collectionId: true, numero: true } }),
+          collectionPreviews(collectionIds),
         ])
-      : [[], []];
+      : [[], [], new Map()];
     const collectionById = new Map(collections.map((c) => [c.id, c]));
 
     // On compte des références (numéros) et non des cartes : les variantes d'effet d'un même
@@ -48,6 +52,7 @@ export async function GET(request) {
             collectionId,
             nom: col?.nom || "",
             cover: col?.cover || null,
+            previewImage: previews.get(collectionId) || col?.cover || null,
             count,
             total: col?.total || null,
             catalogued: cataloguedById.get(collectionId) || count,

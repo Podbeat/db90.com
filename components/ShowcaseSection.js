@@ -38,7 +38,7 @@ export default function ShowcaseSection({ username, cards, isOwner, shareable = 
         {cards.length > 0 && (isOwner || shareable) && (
           <div className="showcase-actions">
             {isOwner && (
-              <Link href="/compte/classeur" className="showcase-btn">
+              <Link href="/compte/collection?classeur=1#classeur" className="showcase-btn">
                 <Pencil size={15} aria-hidden="true" /> {t.showcaseEdit}
               </Link>
             )}
@@ -55,7 +55,7 @@ export default function ShowcaseSection({ username, cards, isOwner, shareable = 
       {cards.length === 0 ? (
         <div className="showcase-empty">
           <p>{t.showcaseEmptyOwn}</p>
-          <Link href="/compte/classeur" className="btn-primary">{t.showcaseCompose}</Link>
+          <Link href="/compte/collection?classeur=1#classeur" className="btn-primary">{t.showcaseCompose}</Link>
         </div>
       ) : (
         <>

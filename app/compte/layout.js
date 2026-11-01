@@ -8,7 +8,7 @@ import { useCurrentUser } from "@/components/CurrentUserProvider";
 
 // Layout partagé de tout l'espace /compte : vérifie la connexion une seule fois (plutôt
 // que sur chaque page), et affiche la navigation par onglets entre les différentes
-// sections (profil, collection, recherchées, ventes).
+// sections (profil, messages, collection — avec recherchées et classeur —, ventes…).
 export default function CompteLayout({ children }) {
   const { t } = useLanguage();
   const pathname = usePathname();
@@ -41,8 +41,6 @@ export default function CompteLayout({ children }) {
     { href: "/compte", label: t.navMyProfile },
     { href: "/compte/messages", label: t.messagesTitle },
     { href: "/compte/collection", label: t.myCollectionTitle },
-    { href: "/compte/classeur", label: t.showcaseTitleOwn },
-    { href: "/compte/recherchees", label: t.myWantedTitle },
     { href: "/compte/ventes", label: t.navMySales },
     { href: "/compte/echanges", label: t.tradesTitle },
     { href: "/compte/envois", label: t.myUploadsTitle },

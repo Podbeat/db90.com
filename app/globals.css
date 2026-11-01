@@ -2187,3 +2187,82 @@ a.uploads-row:hover { border-color: var(--accent); }
   .mk-stats .lb-stat:last-child { grid-column: auto; }
   .mk-sorts .chip-label { display: none; }
 }
+
+/* ===== Ma collection (app/compte/collection/page.js) : collections, recherchées et classeur ===== */
+.mc-page { max-width: 1000px; }
+.mc-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.75rem 1.5rem; margin-bottom: 1.25rem; }
+.mc-head-text { min-width: 0; }
+.mc-title { margin: 0 0 0.55rem; font-size: 1.35rem; }
+.mc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.mc-chip {
+  padding: 0.25rem 0.7rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface);
+  font-size: 0.78rem; color: var(--text); transition: border-color 0.15s ease;
+}
+.mc-chip:hover { border-color: var(--accent); }
+.mc-head-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.mc-pdf { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; padding: 0.4rem 0.75rem; }
+.mc-value { margin-bottom: 1.25rem; }
+
+.mc-section { margin-bottom: 2rem; scroll-margin-top: 1rem; }
+.mc-section-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; margin-bottom: 0.75rem; }
+.mc-section-head .mc-section-title { margin: 0; }
+.mc-section-title { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.75rem; font-family: 'Archivo Black', sans-serif; font-size: 0.95rem; font-weight: 400; color: var(--text); }
+.mc-count { padding: 0 0.5rem; border-radius: 999px; background: var(--surface-raised); font-family: 'IBM Plex Sans', sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); line-height: 1.6; }
+.mc-empty { margin: 0; font-size: 0.82rem; color: var(--text-muted); }
+
+/* Collections : deux colonnes de lignes compactes, visuel de la série à gauche. */
+.mc-collections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem 0.9rem; }
+.mc-col {
+  display: flex; align-items: center; gap: 0.75rem; padding: 0.55rem 0.7rem; border-radius: var(--radius-lg);
+  background: var(--surface); border: 1px solid var(--line); color: var(--text); transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.mc-col:hover { border-color: var(--accent); transform: translateY(-1px); }
+.mc-col.complete { border-color: rgba(76, 175, 109, 0.45); }
+.mc-col-logo {
+  position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 40px; height: 56px;
+  border-radius: 5px; overflow: hidden; background: var(--surface-raised); color: var(--text-muted);
+}
+.mc-col-badge { position: absolute; right: 2px; bottom: 2px; display: flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 50%; background: #4caf6d; color: #fff; }
+.mc-col-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mc-col-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.mc-col-name { font-weight: 600; font-size: 0.86rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-col-frac { flex-shrink: 0; font-family: 'Archivo Black', sans-serif; font-size: 0.82rem; color: var(--accent); }
+.mc-col.complete .mc-col-frac { color: #4caf6d; }
+.mc-col .progress-track { display: block; margin-top: 0.35rem; }
+.mc-col .progress-fill { display: block; }
+.mc-col-meta { margin-top: 0.3rem; font-size: 0.7rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Cartes recherchées : petites vignettes, numéro sur le visuel, repère « En vente ». */
+.mc-forsale-link { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; color: var(--accent); }
+.mc-forsale-link:hover { text-decoration: underline; }
+.mc-wanted { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 0.7rem; }
+.mc-wanted-card { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; color: var(--text); }
+.mc-wanted-thumb {
+  position: relative; display: block; aspect-ratio: 5 / 7; border-radius: 6px; overflow: hidden;
+  background: var(--surface-raised); border: 1px solid var(--line); transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.mc-wanted-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mc-wanted-card:hover .mc-wanted-thumb { transform: translateY(-2px); border-color: var(--accent); }
+.mc-wanted-thumb .card-num-badge { font-size: 0.64rem; padding: 0.08rem 0.38rem; left: 0.3rem; bottom: 0.3rem; }
+.mc-forsale-badge { position: absolute; top: 0.3rem; left: 0.3rem; z-index: 2; padding: 0.05rem 0.4rem; border-radius: 999px; background: var(--gold); color: #1a1208; font-size: 0.6rem; font-weight: 700; }
+.mc-wanted-col { font-size: 0.68rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Classeur : aperçu 3 × 3, l'éditeur s'ouvre à la place. */
+.mc-binder-btn { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; padding: 0.4rem 0.8rem; }
+.mc-binder { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; }
+.mc-binder-grid {
+  display: grid; grid-template-columns: repeat(3, 72px); gap: 6px; padding: 8px; border-radius: var(--radius-lg);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.mc-binder-slot { position: relative; display: block; width: 72px; aspect-ratio: 5 / 7; border-radius: 4px; overflow: hidden; background: var(--surface-raised); }
+.mc-binder-slot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mc-binder-slot.empty { border: 1px dashed var(--line); background: transparent; }
+.mc-binder-text { flex: 1 1 240px; min-width: 0; font-size: 0.82rem; line-height: 1.5; color: var(--text-muted); }
+.mc-binder-text p { margin: 0 0 0.4rem; }
+
+@media (max-width: 720px) {
+  .mc-collections { grid-template-columns: 1fr; }
+  .mc-head-actions { width: 100%; }
+  .mc-binder-grid { grid-template-columns: repeat(3, 64px); }
+  .mc-binder-slot { width: 64px; }
+}

@@ -31,7 +31,7 @@ const GROUPS = [
       { href: "/admin/atelier", label: "Atelier d'intégration", Icon: Wand2 },
       { href: "/admin/cartes", label: "Cartes", Icon: Layers },
       { href: "/admin/collections", label: "Collections", Icon: Library },
-      { href: "/admin/personnages", label: "Personnages", Icon: UserRound },
+      { href: "/admin/personnages", label: "Personnages et effets", Icon: UserRound },
       { href: "/admin/import", label: "Import en masse", Icon: Upload },
     ],
   },

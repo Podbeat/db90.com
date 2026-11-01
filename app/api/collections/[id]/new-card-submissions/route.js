@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { canonicalEffect, UNKNOWN_EFFECT_ERROR } from "@/lib/effects";
 import { resolveUserSession } from "@/lib/currentUser";
 import { processDisplayImage } from "@/lib/storage";
 import { isOriginalUrl } from "@/lib/originals";
@@ -28,11 +29,12 @@ export async function POST(request, { params }) {
     const file = formData.get("file");
     const originalUrl = isOriginalUrl(formData.get("originalUrl")) ? formData.get("originalUrl") : null;
     const numero = (formData.get("numero") || "").toString().trim();
-    const rarete = (formData.get("rarete") || "Commune").toString().trim() || "Commune";
+    const rarete = await canonicalEffect(formData.get("rarete")); // vide = effet à définir
     const personnagePrincipalId = formData.get("personnagePrincipalId") || null;
 
     if (!file) return NextResponse.json({ error: "Aucun fichier reçu." }, { status: 400 });
     if (!numero) return NextResponse.json({ error: "Précisez la référence de la carte." }, { status: 400 });
+    if (rarete === undefined) return NextResponse.json({ error: UNKNOWN_EFFECT_ERROR }, { status: 400 });
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const { display } = await processDisplayImage(buffer, file.name, { watermark: true });

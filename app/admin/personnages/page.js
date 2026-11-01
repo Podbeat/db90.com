@@ -1,9 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Check, X, Merge } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Merge, Users, Sparkles } from "lucide-react";
+import EffectsManager from "./EffectsManager";
 
 export default function AdminCharactersPage() {
+  // Deux onglets sur la même page : la liste des personnages est longue, celle des effets
+  // reste ainsi accessible d'un clic (lien direct : /admin/personnages?onglet=effets).
+  const [tab, setTab] = useState("personnages");
+  const [effSummary, setEffSummary] = useState(null);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("onglet") === "effets") setTab("effets");
+  }, []);
   const [characters, setCharacters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
@@ -100,7 +108,22 @@ export default function AdminCharactersPage() {
 
   return (
     <div>
-      <h1 className="display-font" style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Personnages</h1>
+      <h1 className="display-font" style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Personnages et effets</h1>
+      <div className="adm-tabs eff-page-tabs" role="tablist" aria-label="Liste à gérer">
+        <button type="button" role="tab" aria-selected={tab === "personnages"} className={tab === "personnages" ? "active" : ""} onClick={() => setTab("personnages")}>
+          <Users size={15} aria-hidden="true" /> Personnages <span className="adm-tab-count">{loading ? "…" : characters.length}</span>
+        </button>
+        <button type="button" role="tab" aria-selected={tab === "effets"} className={tab === "effets" ? "active" : ""} onClick={() => setTab("effets")}>
+          <Sparkles size={15} aria-hidden="true" /> Effets<span className="eff-tab-long"> / prismes</span> <span className="adm-tab-count">{effSummary ? effSummary.count : "…"}</span>
+          {effSummary?.duplicates > 0 && <span className="eff-tab-alert">{effSummary.duplicates} doublon{effSummary.duplicates > 1 ? "s" : ""}</span>}
+        </button>
+      </div>
+
+      <div hidden={tab !== "effets"}>
+        <EffectsManager onSummary={setEffSummary} />
+      </div>
+
+      <div hidden={tab !== "personnages"}>
       <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
         Liste utilisée pour le menu déroulant "Personnage principal" et les personnages secondaires sur les cartes.
         Supprimer un personnage déjà utilisé le retire des cartes concernées (repassent à "à définir plus tard").
@@ -163,6 +186,7 @@ export default function AdminCharactersPage() {
           </tbody>
         </table>
       )}
+      </div>
 
       {confirmDelete && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(10,8,5,0.78)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }} onClick={() => setConfirmDelete(null)}>

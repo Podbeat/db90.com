@@ -37,7 +37,7 @@ model Card {
   personnagePrincipalId String?
   personnagePrincipal   Character?      @relation("PrincipalCharacter", fields: [personnagePrincipalId], references: [id], onDelete: SetNull)
   personnagesSecondaires CardCharacter[]
-  rarete          String     @default("Commune")
+  rarete          String? // nom d'un effet de la liste Effect ; vide = effet à définir (ex. import en masse)
   description     String? // texte saisi par l'admin, toujours en français
   descriptionEn   String? // traduction automatique (anglais)
   descriptionZhTW String? // traduction automatique (chinois traditionnel)
@@ -414,7 +414,7 @@ model CollectionSubmissionCard {
   numero                String
   personnagePrincipalId String?
   personnagePrincipal   Character?           @relation(fields: [personnagePrincipalId], references: [id], onDelete: SetNull)
-  rarete                String               @default("Commune")
+  rarete                String?
   image                 String
   originalUrl           String?
   createdAt             DateTime             @default(now())
@@ -507,4 +507,13 @@ model TradeItem {
   fromProposer Boolean
 
   @@index([tradeId])
+}
+
+// Liste des effets / prismes proposés dans les menus déroulants (membres et administration).
+// Les cartes gardent le nom de l'effet dans Card.rarete : renommer ou fusionner un effet met
+// à jour toutes les cartes et propositions qui l'utilisent (voir /api/admin/effects).
+model Effect {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
 }

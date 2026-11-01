@@ -1892,7 +1892,8 @@ a.adm-chip:hover { border-color: var(--accent); color: var(--accent); }
 .atl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem; }
 .atl-tile { display: flex; flex-direction: column; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); overflow: hidden; color: var(--text); }
 .atl-tile.no-scan { border-color: rgba(242, 113, 28, 0.6); }
-.atl-tile.no-char select { border-color: var(--accent); }
+.atl-tile.no-char select:not(.atl-effect) { border-color: var(--accent); }
+.atl-tile.no-effect .atl-effect { border-color: var(--accent); }
 .atl-tile.empty { border-style: dashed; background: transparent; }
 a.atl-tile.empty:hover { border-color: var(--turquoise); }
 .atl-thumb { position: relative; aspect-ratio: 5 / 7; background: var(--surface-raised); display: flex; align-items: center; justify-content: center; }
@@ -2266,3 +2267,19 @@ a.uploads-row:hover { border-color: var(--accent); }
   .mc-binder-grid { grid-template-columns: repeat(3, 64px); }
   .mc-binder-slot { width: 64px; }
 }
+
+/* ===== Administration : liste des effets / prismes (app/admin/personnages/EffectsManager.js) ===== */
+.eff-section { margin-top: 0; }
+.eff-tab-alert { padding: 0.05rem 0.45rem; border-radius: 999px; border: 1px solid rgba(242, 113, 28, 0.55); color: var(--accent); font-size: 0.68rem; font-weight: 600; white-space: nowrap; }
+.eff-page-tabs { width: fit-content; max-width: 100%; margin-bottom: 1.25rem; }
+@media (max-width: 480px) { .eff-page-tabs .eff-tab-long { display: none; } .eff-page-tabs button { padding-left: 0.6rem; padding-right: 0.6rem; } }
+.eff-intro { max-width: 760px; margin: 0 0 1rem; font-size: 0.8rem; line-height: 1.5; color: var(--text-muted); }
+.eff-dupes { margin-bottom: 1rem; padding: 0.8rem 0.9rem; border-radius: var(--radius-lg); border: 1px solid rgba(242, 113, 28, 0.45); background: rgba(242, 113, 28, 0.07); }
+.eff-dupes-title { margin-bottom: 0.55rem; font-size: 0.8rem; font-weight: 600; color: var(--text); }
+.eff-dupe { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.35rem 0; }
+.eff-dupe + .eff-dupe { border-top: 1px dashed var(--line); }
+.eff-keep { font-size: 0.76rem; padding: 0.3rem 0.7rem; }
+.eff-keep span { margin-left: 0.3rem; color: var(--text-muted); font-size: 0.7rem; }
+.eff-notes { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; font-size: 0.8rem; color: var(--text-muted); }
+.eff-add { display: flex; gap: 0.5rem; align-items: flex-end; max-width: 420px; margin-bottom: 1.25rem; }
+.eff-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(10, 8, 5, 0.78); }

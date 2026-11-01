@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { canonicalEffect, UNKNOWN_EFFECT_ERROR } from "@/lib/effects";
 
 // Mise à jour partielle d'une carte depuis l'atelier d'intégration : seulement le scan
-// (image et image HD) et/ou le personnage principal. Les autres champs ne changent pas.
+// (image et image HD), le personnage principal et/ou l'effet. Les autres champs ne changent pas.
 const STORAGE_PREFIX = "https://";
 
 export async function PATCH(request, { params }) {
@@ -25,13 +26,19 @@ export async function PATCH(request, { params }) {
       }
       data.personnagePrincipalId = charId;
     }
+    if (body.rarete !== undefined) {
+      // Effet de la liste ; vide = effet à définir.
+      const rarete = await canonicalEffect(body.rarete);
+      if (rarete === undefined) return NextResponse.json({ error: UNKNOWN_EFFECT_ERROR }, { status: 400 });
+      data.rarete = rarete;
+    }
     if (Object.keys(data).length === 0) return NextResponse.json({ error: "Rien à modifier." }, { status: 400 });
     const exists = await prisma.card.findUnique({ where: { id }, select: { id: true } });
     if (!exists) return NextResponse.json({ error: "Carte introuvable." }, { status: 404 });
     const card = await prisma.card.update({
       where: { id },
       data,
-      select: { id: true, numero: true, image: true, imageHD: true, personnagePrincipalId: true, personnagePrincipal: { select: { id: true, name: true } } },
+      select: { id: true, numero: true, rarete: true, image: true, imageHD: true, personnagePrincipalId: true, personnagePrincipal: { select: { id: true, name: true } } },
     });
     return NextResponse.json(card);
   } catch (e) {

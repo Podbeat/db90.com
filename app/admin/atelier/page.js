@@ -21,15 +21,19 @@ function defaultTarget(cards, numero) {
   return (same.find((c) => !c.image) || same[0])?.id || "new";
 }
 
-function Tile({ card, characters, onCharacter }) {
+function Tile({ card, characters, effects, onCharacter, onEffect }) {
   return (
-    <div className={`atl-tile${card.image ? "" : " no-scan"}${card.personnagePrincipalId ? "" : " no-char"}`}>
+    <div className={`atl-tile${card.image ? "" : " no-scan"}${card.personnagePrincipalId ? "" : " no-char"}${card.rarete ? "" : " no-effect"}`}>
       <div className="atl-thumb">
         {card.image ? <img src={card.image} alt="" loading="lazy" /> : <span><ImageOff size={20} aria-hidden="true" /> sans scan</span>}
         <span className="atl-num">n°{card.numero}</span>
       </div>
       <div className="atl-tile-body">
-        {card.rarete && <span className="atl-rarete">{card.rarete}</span>}
+        <select className="atl-effect" value={card.rarete || ""} onChange={(e) => onEffect(card, e.target.value)} aria-label={`Effet de la carte n°${card.numero}`}>
+          <option value="">— Effet ? —</option>
+          {card.rarete && !effects.includes(card.rarete) && <option value={card.rarete}>{card.rarete} (hors liste)</option>}
+          {effects.map((name) => <option key={name} value={name}>{name}</option>)}
+        </select>
         <select value={card.personnagePrincipalId || ""} onChange={(e) => onCharacter(card, e.target.value)} aria-label={`Personnage de la carte n°${card.numero}`}>
           <option value="">— Personnage ? —</option>
           {characters.map((ch) => <option key={ch.id} value={ch.id}>{ch.name}</option>)}
@@ -79,6 +83,7 @@ function DropRows({ rows, cards, onChange, onRemove }) {
 export default function WorkshopPage() {
   const [collections, setCollections] = useState([]);
   const [characters, setCharacters] = useState([]);
+  const [effects, setEffects] = useState([]);
   const [collectionId, setCollectionId] = useState("");
   const [cards, setCards] = useState(null);
   const [onlyGaps, setOnlyGaps] = useState(false);
@@ -96,6 +101,7 @@ export default function WorkshopPage() {
       setCollectionId(arr.some((c) => c.id === wanted) ? wanted : arr[0]?.id || "");
     }).catch(() => {});
     fetch("/api/admin/characters").then((r) => (r.ok ? r.json() : [])).then((l) => setCharacters(Array.isArray(l) ? l : [])).catch(() => {});
+    fetch("/api/admin/effects").then((r) => (r.ok ? r.json() : null)).then((d) => setEffects((d?.effects || []).map((e) => e.name))).catch(() => {});
   }, []);
 
   const loadCards = useCallback(async (id) => {
@@ -132,6 +138,7 @@ export default function WorkshopPage() {
       missing: all.filter((s) => s.cards.length === 0).length,
       noScan: cards.filter((c) => !c.image).length,
       noChar: cards.filter((c) => !c.personnagePrincipalId).length,
+      noEffect: cards.filter((c) => !c.rarete).length,
       refs: byNum.size,
     };
   }, [cards, collection]);
@@ -189,13 +196,24 @@ export default function WorkshopPage() {
     }
   }
 
-  const visible = grid ? grid.slots.filter((s) => !onlyGaps || s.cards.length === 0 || s.cards.some((c) => !c.image || !c.personnagePrincipalId)) : [];
+  async function setEffect(card, rarete) {
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, rarete: rarete || null } : c)));
+    const res = await fetch(`/api/admin/cards/${card.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rarete: rarete || null }),
+    }).catch(() => null);
+    if (!res?.ok) {
+      setMessage({ type: "error", text: `L'effet de la carte n°${card.numero} n'a pas été enregistré.` });
+      loadCards(collectionId);
+    }
+  }
+
+  const visible = grid ? grid.slots.filter((s) => !onlyGaps || s.cards.length === 0 || s.cards.some((c) => !c.image || !c.personnagePrincipalId || !c.rarete)) : [];
   return (
     <div className="adm-page">
       <header className="adm-page-head">
         <div>
           <h1 className="display-font adm-page-title">Atelier d'intégration</h1>
-          <p className="adm-page-sub">Repère les manques d'une collection, dépose plusieurs scans d'un coup et choisis les personnages.</p>
+          <p className="adm-page-sub">Repère les manques d'une collection, dépose plusieurs scans d'un coup, puis choisis les effets et les personnages.</p>
         </div>
         <select className="mem-sort atl-collection" value={collectionId} onChange={(e) => setCollectionId(e.target.value)} aria-label="Collection">
           {collections.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
@@ -207,6 +225,7 @@ export default function WorkshopPage() {
           <div className={`atl-stat${grid.missing ? " warn" : ""}`}><span className="display-font">{grid.missing}</span><span>numéros manquants</span></div>
           <div className={`atl-stat${grid.noScan ? " warn" : ""}`}><span className="display-font">{grid.noScan}</span><span>cartes sans scan</span></div>
           <div className={`atl-stat${grid.noChar ? " warn" : ""}`}><span className="display-font">{grid.noChar}</span><span>sans personnage</span></div>
+          <div className={`atl-stat${grid.noEffect ? " warn" : ""}`}><span className="display-font">{grid.noEffect}</span><span>{grid.noEffect > 1 ? "effets à définir" : "effet à définir"}</span></div>
         </div>
       )}
 
@@ -253,7 +272,7 @@ export default function WorkshopPage() {
           {visible.map((s) =>
             s.cards.length === 0
               ? <EmptySlot key={`vide-${s.numero}`} numero={s.numero} collectionId={collectionId} />
-              : s.cards.map((c) => <Tile key={c.id} card={c} characters={characters} onCharacter={setCharacter} />)
+              : s.cards.map((c) => <Tile key={c.id} card={c} characters={characters} effects={effects} onCharacter={setCharacter} onEffect={setEffect} />)
           )}
         </div>
       )}

@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Pencil, Trash2, Send, Check, X } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { submitCollectionSubmissionCard } from "@/lib/clientUpload";
 import ScanSubmitPanel from "@/components/ScanSubmitPanel";
+import EffectSelect, { UNKNOWN_EFFECT, effectToSend } from "@/components/EffectSelect";
 
 const STATUS_LABELS = {
   draft: { key: "statusDraft", color: "var(--text-muted)" },
@@ -33,7 +34,7 @@ export default function ProposeCollectionBuilderPage() {
   const [description, setDescription] = useState("");
 
   const [newNumero, setNewNumero] = useState("");
-  const [newRarete, setNewRarete] = useState("Commune");
+  const [newRarete, setNewRarete] = useState(UNKNOWN_EFFECT);
   const [newPersonnage, setNewPersonnage] = useState("");
   const [panelKey, setPanelKey] = useState(0);
 
@@ -168,7 +169,7 @@ export default function ProposeCollectionBuilderPage() {
                   <img src={c.image} alt="" style={{ width: 36, height: 50, objectFit: "cover", flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0, fontSize: "0.8rem" }}>
                     n°{c.numero} — {c.personnagePrincipal?.name || t.noCharacterAssigned}
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{c.rarete}</div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{c.rarete || t.effectUnknown}</div>
                   </div>
                   {editable && (
                     <button className="btn-icon" onClick={() => handleDeleteCard(c.id)}><Trash2 size={13} /></button>
@@ -183,12 +184,12 @@ export default function ProposeCollectionBuilderPage() {
               key={panelKey}
               title={t.addCardTitle}
               validate={() => (newNumero.trim() ? null : t.cardNumberRequired)}
-              submit={(file, opts) => submitCollectionSubmissionCard(id, file, { numero: newNumero.trim(), rarete: newRarete, personnagePrincipalId: newPersonnage, ...opts })}
-              onSent={() => { setNewNumero(""); setNewRarete("Commune"); setNewPersonnage(""); setPanelKey((k) => k + 1); load(); }}
+              submit={(file, opts) => submitCollectionSubmissionCard(id, file, { numero: newNumero.trim(), rarete: effectToSend(newRarete), personnagePrincipalId: newPersonnage, ...opts })}
+              onSent={() => { setNewNumero(""); setNewRarete(UNKNOWN_EFFECT); setNewPersonnage(""); setPanelKey((k) => k + 1); load(); }}
             >
               <div className="scan-fields">
                 <div className="field"><span className="field-label">{t.cardNumberPlaceholder}</span><input value={newNumero} onChange={(e) => setNewNumero(e.target.value)} maxLength={20} /></div>
-                <div className="field"><span className="field-label">{t.effectPlaceholder}</span><input value={newRarete} onChange={(e) => setNewRarete(e.target.value)} maxLength={80} /></div>
+                <div className="field"><span className="field-label">{t.effectPlaceholder}</span><EffectSelect value={newRarete} onChange={setNewRarete} /></div>
                 <div className="field">
                   <span className="field-label">{t.personnage}</span>
                   <select value={newPersonnage} onChange={(e) => setNewPersonnage(e.target.value)}>

@@ -66,12 +66,17 @@ export default function AdminImportPage() {
           avec les colonnes suivantes, en-tête en première ligne :
         </p>
         <p style={{ fontFamily: "monospace", color: "var(--text)" }}>
-          collection, numero, personnage, rarete, description, image, contributeur
+          collection, numero, personnage, description, image, contributeur
         </p>
         <p style={{ fontSize: "0.78rem" }}>
           Seule la colonne <strong>numero</strong> est obligatoire. <strong>personnage</strong> peut rester vide —
           la carte sera importée "à définir plus tard", à choisir depuis une liste déroulante dans l'onglet Cartes
           une fois la collection en place (évite de devoir taper le nom du personnage sur chaque ligne).
+        </p>
+        <p style={{ fontSize: "0.78rem" }}>
+          L'<strong>effet / prisme</strong> ne s'importe pas : les cartes arrivent « effet à définir », et l'effet se
+          choisit ensuite dans la liste (Atelier d'intégration ou onglet Cartes). La liste se gère dans « Personnages et
+          effets », ce qui évite les variantes d'orthographe d'un même prisme.
         </p>
         <a href="/templates/modele-import-cartes.csv" download className="btn-ghost" style={{ display: "inline-block", marginBottom: "0.9rem" }}>
           Télécharger le modèle CSV

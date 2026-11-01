@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { canonicalEffect, UNKNOWN_EFFECT_ERROR } from "@/lib/effects";
 import { resolveUserSession } from "@/lib/currentUser";
 import { deleteObjects } from "@/lib/storage";
 
@@ -25,12 +26,14 @@ export async function PUT(request, { params }) {
     const body = await request.json();
     const numero = (body.numero || "").trim();
     if (!numero) return NextResponse.json({ error: "La référence est obligatoire." }, { status: 400 });
+    const rarete = await canonicalEffect(body.rarete);
+    if (rarete === undefined) return NextResponse.json({ error: UNKNOWN_EFFECT_ERROR }, { status: 400 });
 
     const updated = await prisma.collectionSubmissionCard.update({
       where: { id: cardId },
       data: {
         numero,
-        rarete: body.rarete || "Commune",
+        rarete,
         personnagePrincipalId: body.personnagePrincipalId || null,
       },
       include: { personnagePrincipal: true },

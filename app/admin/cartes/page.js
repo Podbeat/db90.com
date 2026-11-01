@@ -63,6 +63,8 @@ export default function AdminCardsPage() {
   // Liste maîtresse des personnages (menu déroulant + sélection multiple des secondaires)
   const [characters, setCharacters] = useState([]);
   const [newCharacterName, setNewCharacterName] = useState("");
+  // Liste des effets / prismes (gérée dans « Personnages et effets »).
+  const [effects, setEffects] = useState([]);
 
   async function loadCharacters() {
     const res = await fetch("/api/admin/characters");
@@ -112,6 +114,7 @@ export default function AdminCardsPage() {
   useEffect(() => {
     loadCollections();
     loadCharacters();
+    fetch("/api/admin/effects").then((r) => (r.ok ? r.json() : null)).then((d) => setEffects((d?.effects || []).map((e) => e.name))).catch(() => {});
     loadCards(1, "all");
     // Liens du tableau de bord : ?nouvelle=1 ouvre le formulaire vide, ?modifier=<id> la carte.
     const params = new URLSearchParams(window.location.search);
@@ -319,8 +322,13 @@ export default function AdminCardsPage() {
               <input value={form.numero} onChange={(e) => setForm({ ...form, numero: e.target.value })} placeholder="ex. ZCB-01" required />
             </div>
             <div className="field">
-              <span className="field-label">Variante / rareté / effet</span>
-              <input value={form.rarete} onChange={(e) => setForm({ ...form, rarete: e.target.value })} placeholder="ex. Prisme rose" />
+              <span className="field-label">Effet / prisme</span>
+              <select value={form.rarete || ""} onChange={(e) => setForm({ ...form, rarete: e.target.value })}>
+                <option value="">— À définir —</option>
+                {form.rarete && !effects.includes(form.rarete) && <option value={form.rarete}>{form.rarete} (hors liste)</option>}
+                {effects.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+              <a href="/admin/personnages?onglet=effets"style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Gérer la liste des effets</a>
             </div>
           </div>
           <div className="field">
@@ -460,7 +468,7 @@ export default function AdminCardsPage() {
                   <td>{c.numero}</td>
                   <td>{c.personnagePrincipal?.name || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
                   <td>{c.collection?.nom || collectionName(c.collectionId)}</td>
-                  <td>{c.rarete}</td>
+                  <td>{c.rarete || <em style={{ color: "var(--accent)" }}>à définir</em>}</td>
                   <td>
                     <div style={{ display: "flex", gap: "0.4rem" }}>
                       <button className="btn-icon" title="Dupliquer (nouvel effet/variante)" onClick={() => handleDuplicate(c)}><Copy size={13} /></button>

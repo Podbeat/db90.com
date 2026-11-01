@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { canonicalEffect, UNKNOWN_EFFECT_ERROR } from "@/lib/effects";
 import { publicCacheHeaders } from "@/lib/httpCache";
 import { requireAdmin } from "@/lib/auth";
 import { translateFreeText } from "@/lib/translate";
@@ -105,12 +106,15 @@ export async function POST(request) {
 
     const translations = await translateFreeText(body.description);
     const secondaires = Array.isArray(body.personnagesSecondaires) ? body.personnagesSecondaires.filter(Boolean) : [];
+    // Effet choisi dans la liste gérée par l'administration ; vide = effet à définir.
+    const rarete = await canonicalEffect(body.rarete);
+    if (rarete === undefined) return NextResponse.json({ error: UNKNOWN_EFFECT_ERROR }, { status: 400 });
 
     const card = await prisma.card.create({
       data: {
         numero: body.numero,
         personnagePrincipalId: body.personnagePrincipalId || null,
-        rarete: body.rarete || "Commune",
+        rarete,
         description: body.description || null,
         descriptionEn: translations.en,
         descriptionZhTW: translations.zhTW,

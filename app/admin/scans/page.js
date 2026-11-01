@@ -63,7 +63,7 @@ export default function AdminScansPage() {
                     </>
                   ) : (
                     <>
-                      <strong>{s.numero}</strong> — nouvel effet « {s.rarete} » · {s.collection?.nom}
+                      <strong>{s.numero}</strong> — {s.rarete ? <>nouvel effet « {s.rarete} »</> : "effet à définir"} · {s.collection?.nom}
                     </>
                   )}
                 </div>

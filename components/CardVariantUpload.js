@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { submitCardVariant } from "@/lib/clientUpload";
 import ScanSubmitPanel from "@/components/ScanSubmitPanel";
+import EffectSelect, { effectToSend } from "@/components/EffectSelect";
 
 // Proposer un scan pour un effet/prisme qui n'existe PAS ENCORE pour ce numéro (ex. la carte
 // existe en « Prisme Soft », le membre a un exemplaire en « Prisme Bris de Verre »). Toujours
@@ -36,13 +37,13 @@ export default function CardVariantUpload({ cardId, existingRaretes }) {
   return (
     <ScanSubmitPanel
       title={t.proposeVariantTitle}
-      validate={() => (rarete.trim() ? null : t.variantNameRequired)}
-      submit={(file, opts) => submitCardVariant(cardId, file, rarete.trim(), opts)}
+      validate={() => (rarete ? null : t.effectChooseRequired)}
+      submit={(file, opts) => submitCardVariant(cardId, file, effectToSend(rarete), opts)}
     >
-      {existingRaretes?.length > 0 && <p className="scan-note">{t.existingVariantsLabel} {existingRaretes.join(", ")}</p>}
+      {existingRaretes?.filter(Boolean).length > 0 && <p className="scan-note">{t.existingVariantsLabel} {existingRaretes.filter(Boolean).join(", ")}</p>}
       <div className="field">
-        <span className="field-label">{t.newVariantNameLabel}</span>
-        <input value={rarete} onChange={(e) => setRarete(e.target.value)} placeholder={t.newVariantNamePlaceholder} maxLength={80} />
+        <label className="field-label" htmlFor="effet-variante">{t.newVariantNameLabel}</label>
+        <EffectSelect id="effet-variante" value={rarete} onChange={setRarete} exclude={existingRaretes} />
       </div>
     </ScanSubmitPanel>
   );

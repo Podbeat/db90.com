@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { canonicalEffect, UNKNOWN_EFFECT_ERROR } from "@/lib/effects";
 import { resolveUserSession } from "@/lib/currentUser";
 import { processDisplayImage } from "@/lib/storage";
 import { isOriginalUrl } from "@/lib/originals";
@@ -23,9 +24,11 @@ export async function POST(request, { params }) {
     const formData = await request.formData();
     const file = formData.get("file");
     const originalUrl = isOriginalUrl(formData.get("originalUrl")) ? formData.get("originalUrl") : null;
-    const rarete = (formData.get("rarete") || "").toString().trim();
+    // Effet choisi dans la liste ; vide = « je ne sais pas », l'administrateur le précisera.
+    const rarete = await canonicalEffect(formData.get("rarete"));
     if (!file) return NextResponse.json({ error: "Aucun fichier reçu." }, { status: 400 });
-    if (!rarete) return NextResponse.json({ error: "Précisez le nom de l'effet/prisme." }, { status: 400 });
+    if (rarete === undefined) return NextResponse.json({ error: UNKNOWN_EFFECT_ERROR }, { status: 400 });
+    if (rarete && rarete === referenceCard.rarete) return NextResponse.json({ error: "Cette carte existe déjà avec cet effet." }, { status: 409 });
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const { display } = await processDisplayImage(buffer, file.name, { watermark: true });

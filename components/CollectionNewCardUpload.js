@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { submitNewCardForCollection } from "@/lib/clientUpload";
 import ScanSubmitPanel from "@/components/ScanSubmitPanel";
+import EffectSelect, { UNKNOWN_EFFECT, effectToSend } from "@/components/EffectSelect";
 
 // Case « Carte non répertoriée » d'une collection dont le total est encore inconnu : un
 // membre y propose une carte qui manque au catalogue (numéro, effet, personnage et scan),
@@ -17,7 +18,8 @@ export default function CollectionNewCardUpload({ collectionId }) {
   const [characters, setCharacters] = useState([]);
   const [open, setOpen] = useState(false);
   const [numero, setNumero] = useState("");
-  const [rarete, setRarete] = useState("Commune");
+  // Effet choisi dans la liste ; par défaut « Je ne sais pas » (l'administrateur le précisera).
+  const [rarete, setRarete] = useState(UNKNOWN_EFFECT);
   const [personnage, setPersonnage] = useState("");
 
   useEffect(() => {
@@ -50,11 +52,11 @@ export default function CollectionNewCardUpload({ collectionId }) {
             <ScanSubmitPanel
               title={t.missingCardSlotTitle}
               validate={() => (numero.trim() ? null : t.cardNumberRequired)}
-              submit={(file, opts) => submitNewCardForCollection(collectionId, file, { numero: numero.trim(), rarete, personnagePrincipalId: personnage, ...opts })}
+              submit={(file, opts) => submitNewCardForCollection(collectionId, file, { numero: numero.trim(), rarete: effectToSend(rarete), personnagePrincipalId: personnage, ...opts })}
             >
               <div className="scan-fields">
                 <div className="field"><span className="field-label">{t.cardNumberPlaceholder}</span><input value={numero} onChange={(e) => setNumero(e.target.value)} maxLength={20} /></div>
-                <div className="field"><span className="field-label">{t.effectPlaceholder}</span><input value={rarete} onChange={(e) => setRarete(e.target.value)} maxLength={80} /></div>
+                <div className="field"><span className="field-label">{t.effectPlaceholder}</span><EffectSelect value={rarete} onChange={setRarete} /></div>
                 <div className="field">
                   <span className="field-label">{t.personnage}</span>
                   <select value={personnage} onChange={(e) => setPersonnage(e.target.value)}>

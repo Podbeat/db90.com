@@ -28,7 +28,7 @@ function ProposalDetail({ id }) {
           <div key={c.id} style={{ width: 90 }}>
             <img src={c.image} alt="" style={{ width: 90, height: 126, objectFit: "cover", border: "1px solid var(--line)" }} />
             <div style={{ fontSize: "0.68rem", marginTop: "0.2rem" }}>n°{c.numero}</div>
-            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>{c.personnagePrincipal?.name || "?"} · {c.rarete}</div>
+            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>{c.personnagePrincipal?.name || "?"} · {c.rarete || "effet à définir"}</div>
           </div>
         ))}
       </div>

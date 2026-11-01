@@ -51,7 +51,7 @@ export async function POST(request, { params }) {
         data: {
           collectionId: submission.collectionId,
           numero: submission.numero,
-          rarete: submission.rarete || "Commune",
+          rarete: submission.rarete || null,
           personnagePrincipalId,
           // Réception seule : la carte existe déjà dans le catalogue, son visuel viendra
           // à la publication.

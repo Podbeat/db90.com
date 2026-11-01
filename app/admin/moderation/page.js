@@ -29,7 +29,7 @@ function normalize({ scans, proposals, reports, userReports }) {
     ...scans.map((s) => ({
       type: "scan", id: s.id, status: s.status, date: s.createdAt, by: s.user?.username,
       title: s.card ? label(s.card) : `${s.collection?.nom || ""} n°${s.numero}`,
-      detail: s.card ? (s.card.image ? "Remplacerait le visuel actuel" : "Carte encore sans visuel") : `Nouvel effet « ${s.rarete} » : une nouvelle carte sera créée`,
+      detail: s.card ? (s.card.image ? "Remplacerait le visuel actuel" : "Carte encore sans visuel") : (s.rarete ? `Nouvel effet « ${s.rarete} » : une nouvelle carte sera créée` : "Nouvelle carte, effet à définir (le membre ne l'a pas trouvé dans la liste)"),
       image: s.image, currentImage: s.card?.image || null, originalUrl: s.originalUrl || null, published: Boolean(s.publishedAt), cardId: s.cardId,
       link: s.card ? { href: `/cartes/${s.card.id}`, label: "Voir la fiche" } : null,
     })),

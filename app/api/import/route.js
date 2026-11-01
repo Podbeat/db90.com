@@ -8,7 +8,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 // Colonnes attendues dans le fichier CSV (en-têtes insensibles à la casse) :
-// collection, numero, personnage, rarete, description, image
+// collection, numero, personnage, description, image (l'effet se choisit ensuite dans la liste ;
+// une colonne rarete éventuelle est ignorée)
 // "numero" est la seule colonne obligatoire. "personnage" est optionnel : une ligne vide
 // laisse la carte "à définir plus tard" (à choisir depuis la liste déroulante dans l'admin
 // une fois la collection en place) — quand un nom est fourni, il est retrouvé ou créé dans
@@ -114,7 +115,8 @@ export async function POST(request) {
           data: {
             numero: row.numero,
             personnagePrincipalId: personnage?.id || null,
-            rarete: row.rarete || "Commune",
+            // Effet laissé à définir : il se choisit ensuite dans la liste (Atelier, Cartes).
+            rarete: null,
             description: row.description || null,
             descriptionEn: translations.en,
             descriptionZhTW: translations.zhTW,

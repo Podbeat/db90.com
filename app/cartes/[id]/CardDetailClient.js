@@ -178,11 +178,11 @@ export default function CardDetailClient({ id }) {
                 style={{ width: "auto", display: "inline-block", padding: "0.15rem 0.4rem" }}
               >
                 {card.variants.map((v) => (
-                  <option key={v.id} value={v.id}>{v.rarete}</option>
+                  <option key={v.id} value={v.id}>{v.rarete || t.effectUnknown}</option>
                 ))}
               </select>
             ) : (
-              <span>{card.rarete}</span>
+              <span>{card.rarete || t.effectUnknown}</span>
             )}
           </div>
           <div className="data-row"><span className="data-label">{t.editor}</span><span>{card.collection.editeur || "—"}</span></div>

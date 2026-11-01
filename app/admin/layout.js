@@ -1,16 +1,69 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import {
+  LayoutDashboard, LineChart, Users, ImagePlus, FolderPlus, Flag, ShieldAlert, Layers, Library, UserRound, Upload,
+  KeyRound, LogOut, ExternalLink, Menu, X,
+} from "lucide-react";
+
+// Menu de l'administration, groupé par thème. « count » renvoie au compteur d'éléments en
+// attente (voir /api/admin/pending) affiché à côté du lien.
+const GROUPS = [
+  {
+    title: "Pilotage",
+    links: [
+      { href: "/admin", label: "Tableau de bord", Icon: LayoutDashboard },
+      { href: "/admin/stats", label: "Statistiques", Icon: LineChart },
+    ],
+  },
+  {
+    title: "Communauté",
+    links: [
+      { href: "/admin/utilisateurs", label: "Membres", Icon: Users },
+      { href: "/admin/scans", label: "Scans proposés", Icon: ImagePlus, count: "scans" },
+      { href: "/admin/propositions-collections", label: "Propositions de collections", Icon: FolderPlus, count: "collectionProposals" },
+      { href: "/admin/reports", label: "Signalements de cartes", Icon: Flag, count: "cardReports" },
+      { href: "/admin/signalements-membres", label: "Signalements de membres", Icon: ShieldAlert, count: "userReports" },
+    ],
+  },
+  {
+    title: "Catalogue",
+    links: [
+      { href: "/admin/cartes", label: "Cartes", Icon: Layers },
+      { href: "/admin/collections", label: "Collections", Icon: Library },
+      { href: "/admin/personnages", label: "Personnages", Icon: UserRound },
+      { href: "/admin/import", label: "Import en masse", Icon: Upload },
+    ],
+  },
+  {
+    title: "Compte",
+    links: [{ href: "/admin/compte", label: "Mon compte", Icon: KeyRound }],
+  },
+];
+
+const PUBLIC_PATHS = ["/admin/login", "/admin/mot-de-passe-oublie", "/admin/reinitialiser-mot-de-passe"];
+
+const isActive = (pathname, href) => (href === "/admin" ? pathname === "/admin" : pathname === href || pathname.startsWith(`${href}/`));
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [pending, setPending] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  if (["/admin/login", "/admin/mot-de-passe-oublie", "/admin/reinitialiser-mot-de-passe"].includes(pathname)) {
-    return <>{children}</>;
-  }
+  // Compteurs rafraîchis à chaque changement de page ; le menu mobile se referme.
+  useEffect(() => {
+    setMenuOpen(false);
+    if (PUBLIC_PATHS.includes(pathname)) return;
+    fetch("/api/admin/pending", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setPending)
+      .catch(() => {});
+  }, [pathname]);
+
+  if (PUBLIC_PATHS.includes(pathname)) return <>{children}</>;
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -18,36 +71,48 @@ export default function AdminLayout({ children }) {
     router.refresh();
   }
 
-  const links = [
-    { href: "/admin", label: "Tableau de bord" },
-    { href: "/admin/stats", label: "Statistiques" },
-    { href: "/admin/cartes", label: "Cartes" },
-    { href: "/admin/personnages", label: "Personnages" },
-    { href: "/admin/collections", label: "Collections" },
-    { href: "/admin/utilisateurs", label: "Utilisateurs" },
-    { href: "/admin/scans", label: "Scans proposés" },
-    { href: "/admin/propositions-collections", label: "Propositions de collections" },
-    { href: "/admin/reports", label: "Signalements" },
-    { href: "/admin/signalements-membres", label: "Signalements membres" },
-    { href: "/admin/import", label: "Import en masse" },
-    { href: "/admin/compte", label: "Mon compte" },
-  ];
+  const current = GROUPS.flatMap((g) => g.links).find((l) => isActive(pathname, l.href));
+  const total = pending?.total || 0;
 
   return (
-    <div className="container page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
-        <div className="nav-links">
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} className={`nav-btn ${pathname === l.href ? "active" : ""}`}>
-              {l.label}
-            </Link>
-          ))}
-        </div>
-        <button className="btn-ghost" onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-          <LogOut size={14} /> Se déconnecter
+    <div className="admin-shell">
+      <aside className={`admin-side${menuOpen ? " open" : ""}`}>
+        <button type="button" className="admin-menu-toggle" aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)}>
+          {menuOpen ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}
+          <span className="admin-menu-current">{current?.label || "Administration"}</span>
+          {total > 0 && <span className="admin-nav-count">{total}</span>}
         </button>
-      </div>
-      {children}
+        <div className="admin-side-body">
+          <div className="admin-side-kicker">Administration</div>
+          <nav aria-label="Administration">
+            {GROUPS.map((g) => (
+              <div key={g.title} className="admin-nav-group">
+                <div className="admin-nav-title">{g.title}</div>
+                {g.links.map((l) => {
+                  const active = isActive(pathname, l.href);
+                  const count = l.count ? pending?.[l.count] || 0 : 0;
+                  return (
+                    <Link key={l.href} href={l.href} className={`admin-nav-link${active ? " active" : ""}`} aria-current={active ? "page" : undefined}>
+                      <l.Icon size={17} aria-hidden="true" />
+                      <span className="admin-nav-label">{l.label}</span>
+                      {count > 0 && <span className="admin-nav-count">{count}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
+          <div className="admin-side-foot">
+            <a href="/" target="_blank" rel="noopener noreferrer" className="admin-side-action">
+              <ExternalLink size={15} aria-hidden="true" /> Voir le site
+            </a>
+            <button type="button" className="admin-side-action" onClick={handleLogout}>
+              <LogOut size={15} aria-hidden="true" /> Se déconnecter
+            </button>
+          </div>
+        </div>
+      </aside>
+      <main className="admin-main">{children}</main>
     </div>
   );
 }

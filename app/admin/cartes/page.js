@@ -113,6 +113,23 @@ export default function AdminCardsPage() {
     loadCollections();
     loadCharacters();
     loadCards(1, "all");
+    // Liens du tableau de bord : ?nouvelle=1 ouvre le formulaire vide, ?modifier=<id> la carte.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("nouvelle") === "1") setForm(emptyForm());
+    const editId = params.get("modifier");
+    if (editId) {
+      fetch(`/api/cards/${editId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((c) => {
+          if (!c) return;
+          setForm({
+            ...c,
+            personnagePrincipalId: c.personnagePrincipalId || "",
+            personnagesSecondaires: (c.personnagesSecondaires || []).map((s) => s.characterId),
+          });
+        })
+        .catch(() => {});
+    }
   }, []);
 
   function collectionName(id) {

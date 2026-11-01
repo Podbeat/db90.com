@@ -30,11 +30,20 @@ export default function AdminCollectionsPage() {
   async function load() {
     setLoading(true);
     const res = await fetch("/api/collections?fresh=1"); // sans cache CDN : voir ses modifications tout de suite
-    setCollections(await res.json());
+    const list = await res.json();
+    setCollections(list);
     setLoading(false);
+    return list;
   }
 
-  useEffect(() => { load(); }, []);
+  // Lien du tableau de bord : ?modifier=<id> ouvre directement la collection.
+  useEffect(() => {
+    load().then((list) => {
+      const editId = new URLSearchParams(window.location.search).get("modifier");
+      const col = editId && Array.isArray(list) ? list.find((c) => c.id === editId) : null;
+      if (col) setForm({ ...col, total: col.total || "" });
+    });
+  }, []);
 
   async function handleDosFile(e) {
     const file = e.target.files?.[0];

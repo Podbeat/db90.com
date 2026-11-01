@@ -96,7 +96,7 @@ export default function AdminUsersPage() {
       {message && <div className={`toast ${message.type}`}>{message.text}</div>}
 
       <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
-        <form onSubmit={handleBroadcast} className="form-panel" style={{ flex: 1, minWidth: 300 }}>
+        <form id="message" onSubmit={handleBroadcast} className="form-panel" style={{ flex: 1, minWidth: 300 }}>
           <div style={{ fontSize: "0.9rem", marginBottom: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
             <Mail size={15} /> Envoyer un e-mail à tous les inscrits ({users.length})
           </div>

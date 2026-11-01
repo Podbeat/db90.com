@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -20,7 +19,6 @@ import { Check, Search, ChevronRight } from "lucide-react";
 
 export default function CardDetailClient({ id }) {
   const { t, lang } = useLanguage();
-  const router = useRouter();
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -114,6 +112,30 @@ export default function CardDetailClient({ id }) {
               {t.viewHD}
             </a>
           )}
+          {card.variants?.length > 1 && (
+            // Versions connues de cette carte (un effet / prisme chacune) : on les fait défiler
+            // et on passe de l'une à l'autre sans remonter en haut de la page.
+            <div className="prism-strip">
+              <div className="prism-strip-title">{t.prismsKnown(card.variants.length)}</div>
+              <div className="prism-strip-list">
+                {card.variants.map((v) => {
+                  const active = v.id === card.id;
+                  return (
+                    <Link key={v.id} href={`/cartes/${v.id}`} scroll={false} className={`prism-thumb${active ? " active" : ""}`} aria-current={active ? "page" : undefined}>
+                      <span className="prism-thumb-media">
+                        {v.image ? (
+                          <Image src={v.image} alt="" fill sizes="64px" style={{ objectFit: "cover" }} />
+                        ) : (
+                          <img src={missingCardPlaceholder({ ...card, ...v }, t)} alt="" />
+                        )}
+                      </span>
+                      <span className="prism-thumb-name">{v.rarete || t.effectUnknown}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {!card.image && <CardScanUpload cardId={card.id} />}
           <CardVariantUpload cardId={card.id} existingRaretes={card.variants?.map((v) => v.rarete)} />
         </div>
@@ -169,22 +191,7 @@ export default function CardDetailClient({ id }) {
           )}
           <div className="data-row"><span className="data-label">{t.collection}</span><span>{card.collection.nom}</span></div>
           <div className="data-row"><span className="data-label">{t.reference}</span><span>{card.numero}</span></div>
-          <div className="data-row">
-            <span className="data-label">{t.variant}</span>
-            {card.variants?.length > 1 ? (
-              <select
-                value={card.id}
-                onChange={(e) => router.push(`/cartes/${e.target.value}`)}
-                style={{ width: "auto", display: "inline-block", padding: "0.15rem 0.4rem" }}
-              >
-                {card.variants.map((v) => (
-                  <option key={v.id} value={v.id}>{v.rarete || t.effectUnknown}</option>
-                ))}
-              </select>
-            ) : (
-              <span>{card.rarete || t.effectUnknown}</span>
-            )}
-          </div>
+          <div className="data-row"><span className="data-label">{t.variant}</span><span>{card.rarete || t.effectUnknown}</span></div>
           <div className="data-row"><span className="data-label">{t.editor}</span><span>{card.collection.editeur || "—"}</span></div>
           <div className="data-row"><span className="data-label">{t.origin}</span><span>{card.collection.pays || "—"}</span></div>
           <div className="data-row"><span className="data-label">{t.year}</span><span>{card.collection.annee || "—"}</span></div>

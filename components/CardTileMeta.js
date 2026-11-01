@@ -1,8 +1,9 @@
 import { effectTone } from "@/lib/effectTone";
 
-// Bas des vignettes de cartes (accueil, page de collection, profil). Le numéro est posé sur le
-// visuel, en bas à gauche ; sous le visuel, deux lignes fines : la collection à gauche, puis
-// l'effet à droite. Le personnage se lit sur la fiche de la carte.
+// Bas des vignettes de cartes (accueil, profil). Le numéro est posé sur le visuel, en bas à
+// gauche ; sous le visuel, deux lignes fines : la collection à gauche, puis l'effet à droite.
+// Le personnage se lit sur la fiche de la carte. La page d'une collection n'utilise que la
+// pastille du numéro : le prisme y est annoncé une fois au-dessus de la grille.
 
 // Pastille du numéro, à placer dans le conteneur du visuel (.card-tile-media).
 export function CardNumBadge({ numero }) {

@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { translateFreeText } from "@/lib/translate";
 import { cleanupCardFiles } from "@/lib/cardFileCleanup";
 import { naturalSortByNumero } from "@/lib/naturalSort";
+import { groupByNumero } from "@/lib/variants";
 import { contributionPointsOf } from "@/lib/participation";
 
 const cardInclude = {
@@ -22,24 +23,21 @@ export async function GET(request, { params }) {
     });
     if (!card) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
 
-    // Carte précédente/suivante dans la même collection (triée naturellement par
-    // référence), pour permettre de naviguer sans repasser par la page de la collection.
+    // Cartes de la collection regroupées par numéro (triées naturellement par référence) :
+    // - précédente / suivante passent au numéro voisin (sa version principale), sans
+    //   s'arrêter sur les autres prismes du même numéro ;
+    // - `variants` liste toutes les versions de ce numéro (effets / prismes connus), avec leur
+    //   visuel, pour la bande « Existe en N effets / prismes » de la fiche.
     const siblings = await prisma.card.findMany({
       where: { collectionId: card.collectionId },
-      select: { id: true, numero: true },
+      select: { id: true, numero: true, rarete: true, image: true, createdAt: true },
     });
     siblings.sort(naturalSortByNumero);
-    const index = siblings.findIndex((c) => c.id === card.id);
-    const prevCardId = index > 0 ? siblings[index - 1].id : null;
-    const nextCardId = index >= 0 && index < siblings.length - 1 ? siblings[index + 1].id : null;
-
-    // Autres effets/prismes existant déjà pour ce même numéro (même collection) — alimente
-    // le menu déroulant "Effet / Prisme" sur la fiche carte.
-    const variants = await prisma.card.findMany({
-      where: { collectionId: card.collectionId, numero: card.numero },
-      select: { id: true, rarete: true },
-      orderBy: { rarete: "asc" },
-    });
+    const groups = groupByNumero(siblings);
+    const index = groups.findIndex((g) => g.numero === card.numero);
+    const prevCardId = index > 0 ? groups[index - 1].cards[0].id : null;
+    const nextCardId = index >= 0 && index < groups.length - 1 ? groups[index + 1].cards[0].id : null;
+    const variants = index >= 0 ? groups[index].cards.map(({ id, rarete, image }) => ({ id, rarete, image })) : [];
 
     // Chez les membres : combien possèdent / recherchent cette carte, et combien de ceux
     // qui la possèdent l'ont mise à l'échange.

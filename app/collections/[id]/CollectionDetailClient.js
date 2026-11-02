@@ -8,7 +8,6 @@ import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { CardNumBadge } from "@/components/CardTileMeta";
 import { groupByNumero } from "@/lib/variants";
-import { effectTone } from "@/lib/effectTone";
 import { CARD_GRID_SIZES } from "@/lib/imageSizes";
 import HoloCard from "@/components/HoloCard";
 import ShareIconButton from "@/components/ShareIconButton";
@@ -19,12 +18,9 @@ import CardStatusRow from "@/components/CardStatusRow";
 import { useCurrentUser } from "@/components/CurrentUserProvider";
 import { withMyLiveCount } from "@/lib/registryRank";
 import { isOwnedStatus } from "@/lib/cardStatus";
-import { Trophy, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trophy } from "lucide-react";
 
 const VIEW_STORAGE_KEY = "db90-collection-view";
-// Clé de filtre des cartes dont l'effet / prisme reste à préciser.
-const NO_EFFECT = "__a-preciser";
-const prismKey = (card) => card.rarete || NO_EFFECT;
 
 export default function CollectionDetailClient({ id }) {
   const { t, lang } = useLanguage();
@@ -139,48 +135,16 @@ export default function CollectionDetailClient({ id }) {
     }
   }
 
-  // Effets / prismes : le nom n'est plus répété sous chaque vignette. Une collection d'un seul
-  // prisme l'annonce une fois au-dessus de la grille ; avec plusieurs prismes, la même ligne
-  // sert de filtre. Une carte connue en plusieurs prismes n'a qu'une vignette, avec ‹ › pour
-  // faire défiler ses versions.
-  const [prismFilter, setPrismFilter] = useState(null);
-  const [shownVariant, setShownVariant] = useState({}); // numéro → id de la version affichée
+  // Une vignette par carte (par visuel), quel que soit le prisme : la première version
+  // enregistrée. Les autres prismes et les autres dos se parcourent sur la fiche de la carte.
   const groups = useMemo(() => groupByNumero(collection?.cards || []), [collection]);
-  const prismStats = useMemo(() => {
-    const counts = new Map();
-    for (const c of collection?.cards || []) counts.set(prismKey(c), (counts.get(prismKey(c)) || 0) + 1);
-    return [...counts.entries()].sort(
-      ([a], [b]) => (a === NO_EFFECT) - (b === NO_EFFECT) || a.localeCompare(b, "fr", { sensitivity: "base" })
-    );
-  }, [collection]);
-
-  function chooseFilter(key) {
-    setPrismFilter(key);
-    setShownVariant({});
-  }
-  // Version affichée : celle choisie avec ‹ ›, sinon celle du prisme filtré, sinon celle que le
-  // membre possède, sinon la version principale.
-  function shownCard(group) {
-    return (
-      group.cards.find((c) => c.id === shownVariant[group.numero]) ||
-      (prismFilter && group.cards.find((c) => prismKey(c) === prismFilter)) ||
-      (!prismFilter && group.cards.find((c) => isOwnedStatus(statusMap[c.id]))) ||
-      group.cards[0]
-    );
-  }
-  function stepVariant(e, group, direction) {
-    e.preventDefault();
-    e.stopPropagation();
-    const index = group.cards.indexOf(shownCard(group));
-    const next = group.cards[(index + direction + group.cards.length) % group.cards.length];
-    setShownVariant((prev) => ({ ...prev, [group.numero]: next.id }));
-  }
 
   if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   if (notFound || !collection) return <div className="container page"><div className="empty-state">{t.notFound}</div></div>;
 
-  const visibleGroups = prismFilter ? groups.filter((g) => g.cards.some((c) => prismKey(c) === prismFilter)) : groups;
-  const visibleCards = prismFilter ? collection.cards.filter((c) => prismKey(c) === prismFilter) : collection.cards;
+  // Cases à cocher en lot : ce qui est affiché (les premières versions en grille, toutes les
+  // versions en liste).
+  const firstVersions = groups.map((g) => g.cards[0]);
 
   // Progression en références (numéros) : une variante d'effet d'un numéro déjà possédé ne
   // rapproche pas de la collection complète (même règle que lib/completion.js).
@@ -207,6 +171,9 @@ export default function CollectionDetailClient({ id }) {
           <div style={{ textAlign: "center", flexShrink: 0 }}>
             <Image src={collection.dos} alt={`${t.verso} — ${collection.nom}`} width={70} height={98} style={{ width: 70, height: "auto", border: "1px solid var(--line)" }} />
             <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>{t.verso}</div>
+            {collection.backs?.length > 0 && (
+              <div style={{ fontSize: "0.65rem", color: "var(--gold)" }}>{t.backsCount(collection.backs.length + 1)}</div>
+            )}
             {collection.dosHD && (
               <a href={collection.dosHD} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.65rem", color: "var(--gold)" }}>
                 {t.viewHD}
@@ -309,35 +276,6 @@ export default function CollectionDetailClient({ id }) {
         );
       })()}
 
-      {prismStats.length === 1 && prismStats[0][0] !== NO_EFFECT && (
-        <div className="prism-row">
-          <span className="prism-row-label">{t.rarity}</span>
-          <span className="rarity-tag" data-tone={effectTone(prismStats[0][0])}>{prismStats[0][0]}</span>
-          <span className="prism-row-note">{t.prismAllCards}</span>
-        </div>
-      )}
-      {prismStats.length > 1 && (
-        <div className="prism-row prism-filter" role="group" aria-label={t.rarity}>
-          <span className="prism-row-label">{t.rarity}</span>
-          <div className="prism-chips">
-            <button type="button" className={`prism-chip${prismFilter === null ? " active" : ""}`} aria-pressed={prismFilter === null} onClick={() => chooseFilter(null)}>
-              {t.allPrisms}
-            </button>
-            {prismStats.map(([key, count]) => (
-              <button
-                key={key}
-                type="button"
-                className={`prism-chip${prismFilter === key ? " active" : ""}`}
-                aria-pressed={prismFilter === key}
-                onClick={() => chooseFilter(prismFilter === key ? null : key)}
-              >
-                {key === NO_EFFECT ? t.effectUnknown : key} <span className="prism-chip-count">{count}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {loggedIn && collection.cards.length > 0 && (
         <>
           <div className="collection-toolbar">
@@ -349,7 +287,7 @@ export default function CollectionDetailClient({ id }) {
                 {t.viewList}
               </button>
             </div>
-            <BulkStatusMenu cards={visibleCards} statusMap={statusMap} onApply={(updates) => applyBulk(updates)} />
+            <BulkStatusMenu cards={showList ? collection.cards : firstVersions} statusMap={statusMap} onApply={(updates) => applyBulk(updates)} />
           </div>
           {bulkNotice && (
             <div className={`bulk-notice ${bulkNotice.error ? "error" : ""}`} role="status">
@@ -368,15 +306,14 @@ export default function CollectionDetailClient({ id }) {
         <div className="empty-state">{t.noResults}</div>
       ) : showList ? (
         <ul className="status-list">
-          {visibleCards.map((c) => (
+          {collection.cards.map((c) => (
             <CardStatusRow key={c.id} card={c} status={statusMap[c.id] || null} onToggle={toggleStatus} />
           ))}
         </ul>
       ) : (
-        <div className="card-grid prism-grid">
-          {visibleGroups.map((group, i) => {
-            const c = shownCard(group);
-            const versions = group.cards.length;
+        <div className="card-grid">
+          {groups.map((group, i) => {
+            const c = group.cards[0];
             return (
               <Link
                 key={group.numero}
@@ -387,7 +324,6 @@ export default function CollectionDetailClient({ id }) {
                 <HoloCard className="card-tile-media">
                   {c.image ? (
                     <Image
-                      key={c.id}
                       src={c.image}
                       alt={c.personnagePrincipal?.name || ""}
                       fill
@@ -396,7 +332,6 @@ export default function CollectionDetailClient({ id }) {
                     />
                   ) : (
                     <img
-                      key={c.id}
                       src={missingCardPlaceholder(c, t)}
                       alt={c.personnagePrincipal?.name || ""}
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -404,33 +339,8 @@ export default function CollectionDetailClient({ id }) {
                   )}
                   {c.image && <CardNumBadge numero={c.numero} />}
                   <ShareIconButton path={`/cartes/${c.id}`} title={`${c.personnagePrincipal?.name || c.numero} — DB Non-Off 90's`} />
-                  {loggedIn && (
-                    <CardStatusIcons
-                      key={c.id}
-                      cardId={c.id}
-                      status={statusMap[c.id] || null}
-                      onChange={(cardId, status) => {
-                        // La vignette reste sur la version qu'on vient de cocher ou décocher.
-                        setShownVariant((prev) => ({ ...prev, [group.numero]: cardId }));
-                        handleStatusChange(cardId, status);
-                      }}
-                    />
-                  )}
+                  {loggedIn && <CardStatusIcons cardId={c.id} status={statusMap[c.id] || null} onChange={handleStatusChange} />}
                 </HoloCard>
-                {versions > 1 && (
-                  <div className="prism-pager">
-                    <button type="button" className="prism-pager-btn prev" aria-label={t.prevPrism} onClick={(e) => stepVariant(e, group, -1)}>
-                      <ChevronLeft size={14} aria-hidden="true" />
-                    </button>
-                    <span className="prism-pager-label">
-                      <span className="rarity-tag" data-tone={effectTone(c.rarete)}>{c.rarete || t.effectUnknown}</span>
-                      <span className="prism-pager-count">{group.cards.indexOf(c) + 1}/{versions}</span>
-                    </span>
-                    <button type="button" className="prism-pager-btn next" aria-label={t.nextPrism} onClick={(e) => stepVariant(e, group, 1)}>
-                      <ChevronRight size={14} aria-hidden="true" />
-                    </button>
-                  </div>
-                )}
               </Link>
             );
           })}

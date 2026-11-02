@@ -4,6 +4,7 @@ import { publicCacheHeaders } from "@/lib/httpCache";
 import { requireAdmin } from "@/lib/auth";
 import { translateCollectionDescription } from "@/lib/translate";
 import { naturalSortByNumero } from "@/lib/naturalSort";
+import { BACKS_SELECT, backsInput } from "@/lib/collectionBacks";
 
 export async function GET(request) {
   try {
@@ -12,6 +13,7 @@ export async function GET(request) {
       include: {
         _count: { select: { cards: true } },
         cards: { select: { numero: true, image: true } },
+        backs: BACKS_SELECT,
       },
     });
 
@@ -22,7 +24,8 @@ export async function GET(request) {
     const withPreview = collections.map((col) => {
       const sorted = [...col.cards].sort(naturalSortByNumero);
       const firstWithImage = sorted.find((c) => c.image);
-      const withImagesCount = col.cards.filter((c) => c.image).length;
+      // Par numéro : les autres prismes d'une même carte ne comptent pas en plus.
+      const withImagesCount = new Set(col.cards.filter((c) => c.image).map((c) => c.numero)).size;
       const { cards, ...rest } = col;
       return { ...rest, previewImage: firstWithImage?.image || col.cover || null, withImagesCount };
     });
@@ -60,6 +63,7 @@ export async function POST(request) {
         descriptionEn: translations.en,
         descriptionZhTW: translations.zhTW,
         descriptionZhCN: translations.zhCN,
+        backs: { create: backsInput(body.backs) || [] },
       },
     });
     return NextResponse.json(collection, { status: 201 });

@@ -6,10 +6,11 @@ import { translateFreeText } from "@/lib/translate";
 import { cleanupCardFiles } from "@/lib/cardFileCleanup";
 import { naturalSortByNumero } from "@/lib/naturalSort";
 import { groupByNumero } from "@/lib/variants";
+import { BACKS_SELECT } from "@/lib/collectionBacks";
 import { contributionPointsOf } from "@/lib/participation";
 
 const cardInclude = {
-  collection: true,
+  collection: { include: { backs: BACKS_SELECT } },
   personnagePrincipal: true,
   personnagesSecondaires: { include: { character: true } },
 };

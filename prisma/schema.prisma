@@ -29,6 +29,7 @@ model Collection {
   cards           Card[]
   submissions     CardSubmission[]
   activityEvents  ActivityEvent[]
+  backs           CollectionBack[] // dos supplémentaires (le dos principal reste dos / dosHD)
 }
 
 model Card {
@@ -516,4 +517,18 @@ model Effect {
   id        String   @id @default(cuid())
   name      String   @unique
   createdAt DateTime @default(now())
+}
+
+// Dos supplémentaires d'une série qui existe avec plusieurs dos : la fiche de chaque carte
+// permet de passer d'un dos à l'autre avec des flèches (le premier est Collection.dos).
+model CollectionBack {
+  id           String     @id @default(cuid())
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  image        String
+  imageHD      String?
+  position     Int        @default(0)
+  createdAt    DateTime   @default(now())
+
+  @@index([collectionId])
 }

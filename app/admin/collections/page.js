@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Star } from "lucide-react";
 import { uploadCardImage } from "@/lib/clientUpload";
 
 function emptyForm() {
-  return { id: null, nom: "", annee: "", editeur: "", pays: "", total: "", description: "", dos: null, dosHD: null };
+  return { id: null, nom: "", annee: "", editeur: "", pays: "", total: "", description: "", dos: null, dosHD: null, backs: [] };
 }
 
 export default function AdminCollectionsPage() {
@@ -15,6 +15,7 @@ export default function AdminCollectionsPage() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [message, setMessage] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingBack, setUploadingBack] = useState(false);
   const [applyWatermark, setApplyWatermark] = useState(false);
 
   // Ferme la confirmation de suppression au clavier, en plus du clic sur le fond.
@@ -58,6 +59,33 @@ export default function AdminCollectionsPage() {
       setUploading(false);
     }
   }
+
+  // Autres dos de la série : envoyés un par un, ajoutés à la suite (enregistrés avec la collection).
+  async function handleExtraBacks(e) {
+    const files = [...(e.target.files || [])];
+    e.target.value = "";
+    if (!files.length) return;
+    setUploadingBack(true);
+    try {
+      for (const file of files) {
+        const data = await uploadCardImage(file, { watermark: applyWatermark });
+        setForm((f) => ({ ...f, backs: [...(f.backs || []), { image: data.url, imageHD: data.hdUrl }] }));
+      }
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Échec de l'import de l'image." });
+    } finally {
+      setUploadingBack(false);
+    }
+  }
+  const removeBack = (index) => setForm((f) => ({ ...f, backs: f.backs.filter((_, i) => i !== index) }));
+  // Le dos choisi devient le dos principal (vignette, en-tête de la collection, checklist PDF) ;
+  // l'ancien dos principal passe en tête des autres dos.
+  const makeMainBack = (index) =>
+    setForm((f) => {
+      const chosen = f.backs[index];
+      const others = f.backs.filter((_, i) => i !== index);
+      return { ...f, dos: chosen.image, dosHD: chosen.imageHD || null, backs: f.dos ? [{ image: f.dos, imageHD: f.dosHD }, ...others] : others };
+    });
 
   async function handleSave(e) {
     e.preventDefault();
@@ -163,9 +191,38 @@ export default function AdminCollectionsPage() {
             {form.dos && <img src={form.dos} alt="" style={{ width: 90, marginTop: "0.6rem" }} />}
           </div>
 
+          <div className="field">
+            <span className="field-label">Autres dos de la série (si elle existe avec plusieurs dos)</span>
+            {form.backs?.length > 0 && (
+              <div className="backs-admin">
+                {form.backs.map((b, i) => (
+                  <div key={b.image} className="backs-admin-item">
+                    <img src={b.image} alt={`Dos ${i + 2}`} />
+                    <div className="backs-admin-actions">
+                      <button type="button" className="btn-icon" title="En faire le dos principal" aria-label="En faire le dos principal" onClick={() => makeMainBack(i)}>
+                        <Star size={13} />
+                      </button>
+                      <button type="button" className="btn-icon" title="Retirer ce dos" aria-label="Retirer ce dos" onClick={() => removeBack(i)}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label className="upload-zone">
+              <Upload size={16} style={{ margin: "0 auto 0.3rem" }} />
+              {uploadingBack ? "Envoi en cours…" : "Ajouter un autre dos (un ou plusieurs scans)"}
+              <input type="file" accept="image/*" multiple onChange={handleExtraBacks} className="visually-hidden" />
+            </label>
+            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.3rem" }}>
+              Sur la fiche de chaque carte de la série, des flèches sur le dos permettent de passer d'un dos à l'autre.
+            </div>
+          </div>
+
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
             <button type="button" className="btn-ghost" onClick={() => setForm(null)}>Annuler</button>
-            <button type="submit" className="btn-primary" disabled={uploading}>Enregistrer</button>
+            <button type="submit" className="btn-primary" disabled={uploading || uploadingBack}>Enregistrer</button>
           </div>
         </form>
       )}
@@ -181,7 +238,10 @@ export default function AdminCollectionsPage() {
             <tbody>
               {collections.map((col) => (
                 <tr key={col.id}>
-                  <td>{col.dos && <img src={col.dos} alt="" style={{ width: 28, height: 40, objectFit: "cover" }} />}</td>
+                  <td>
+                    {col.dos && <img src={col.dos} alt="" style={{ width: 28, height: 40, objectFit: "cover" }} />}
+                    {col.backs?.length > 0 && <div style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>+{col.backs.length} dos</div>}
+                  </td>
                   <td>{col.nom}</td>
                   <td>{col.pays || "—"}</td>
                   <td>{col.annee || "—"}</td>

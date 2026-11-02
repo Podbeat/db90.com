@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Upload, X } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -45,7 +46,9 @@ export default function CollectionNewCardUpload({ collectionId }) {
       ) : (
         <Link href="/compte/connexion" className="new-card-trigger">{trigger}</Link>
       )}
-      {open && (
+      {/* La fenêtre est rendue à la racine de la page : à l'intérieur de la vignette (animée, et
+          qui masque ce qui dépasse), elle restait coincée dans la case au lieu de couvrir l'écran. */}
+      {open && createPortal(
         <div className="scan-modal" onClick={() => setOpen(false)}>
           <div className="scan-modal-box" role="dialog" aria-modal="true" aria-label={t.missingCardSlotTitle} onClick={(e) => e.stopPropagation()}>
             <button type="button" className="btn-icon scan-modal-close" onClick={() => setOpen(false)} aria-label="Fermer"><X size={18} /></button>
@@ -67,7 +70,8 @@ export default function CollectionNewCardUpload({ collectionId }) {
               </div>
             </ScanSubmitPanel>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

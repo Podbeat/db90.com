@@ -4,13 +4,14 @@ import { publicCacheHeaders } from "@/lib/httpCache";
 import { requireAdmin } from "@/lib/auth";
 import { translateCollectionDescription } from "@/lib/translate";
 import { naturalSortByNumero } from "@/lib/naturalSort";
+import { BACKS_SELECT, backsInput } from "@/lib/collectionBacks";
 
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
     const collection = await prisma.collection.findUnique({
       where: { id },
-      include: { cards: { include: { personnagePrincipal: { select: { id: true, name: true } } } } },
+      include: { cards: { include: { personnagePrincipal: { select: { id: true, name: true } } } }, backs: BACKS_SELECT },
     });
     if (!collection) return NextResponse.json({ error: "Introuvable." }, { status: 404 });
     collection.cards.sort(naturalSortByNumero);
@@ -37,7 +38,9 @@ export async function PUT(request, { params }) {
       ? await translateCollectionDescription(body.description)
       : null;
 
-    const collection = await prisma.collection.update({
+    // Dos supplémentaires : remplacés par la liste envoyée (seulement si le formulaire en envoie une).
+    const backs = backsInput(body.backs);
+    const update = prisma.collection.update({
       where: { id },
       data: {
         nom: body.nom,
@@ -58,6 +61,15 @@ export async function PUT(request, { params }) {
           : {}),
       },
     });
+    const [collection] = await prisma.$transaction([
+      update,
+      ...(backs
+        ? [
+            prisma.collectionBack.deleteMany({ where: { collectionId: id } }),
+            ...(backs.length ? [prisma.collectionBack.createMany({ data: backs.map((b) => ({ ...b, collectionId: id })) })] : []),
+          ]
+        : []),
+    ]);
     return NextResponse.json(collection);
   } catch (e) {
     console.error("Erreur PUT /api/collections/[id] :", e);

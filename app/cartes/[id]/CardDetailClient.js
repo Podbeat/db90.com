@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/components/LanguageProvider";
@@ -15,24 +15,89 @@ import CardMarketplace from "@/components/CardMarketplace";
 import { localize } from "@/lib/localize";
 import { missingCardPlaceholder } from "@/lib/missingCardPlaceholder";
 import { avatarPlaceholder } from "@/lib/avatarPlaceholder";
-import { Check, Search, ChevronRight } from "lucide-react";
+import { Check, Search, ChevronLeft, ChevronRight } from "lucide-react";
+
+// Passage d'une image à l'autre en glissant le doigt sur le visuel (mobile).
+function swipeDirection(start, event) {
+  if (!start) return 0;
+  const touch = event.changedTouches[0];
+  const dx = touch.clientX - start.x;
+  const dy = touch.clientY - start.y;
+  return Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5 ? (dx < 0 ? 1 : -1) : 0;
+}
 
 export default function CardDetailClient({ id }) {
   const { t, lang } = useLanguage();
+  // Carte affichée. Les flèches du visuel passent d'un prisme à l'autre sur place : la version
+  // choisie s'affiche aussitôt (visuel et nom du prisme), le reste de la fiche suit dès sa
+  // réponse, et l'adresse de la page devient celle de cette version.
+  const [currentId, setCurrentId] = useState(id);
   const [card, setCard] = useState(null);
+  const [pending, setPending] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [backIndex, setBackIndex] = useState(0);
+  const hasCard = useRef(false);
+  const touchStart = useRef(null);
+
+  useEffect(() => setCurrentId(id), [id]);
 
   useEffect(() => {
-    fetch(`/api/cards/${id}`)
+    let cancelled = false;
+    fetch(`/api/cards/${currentId}`)
       .then((r) => {
         if (!r.ok) throw new Error("not found");
         return r.json();
       })
-      .then(setCard)
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
-  }, [id]);
+      .then((data) => {
+        if (cancelled) return;
+        hasCard.current = true;
+        setCard(data);
+        setPending(null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        if (hasCard.current) setPending(null);
+        else setNotFound(true);
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [currentId]);
+
+  const versions = card?.variants || [];
+  const shownId = pending?.id || card?.id;
+  const versionIndex = Math.max(0, versions.findIndex((v) => v.id === shownId));
+  function goVersion(step) {
+    if (versions.length < 2) return;
+    const target = versions[(versionIndex + step + versions.length) % versions.length];
+    setPending(target);
+    setCurrentId(target.id);
+    window.history.replaceState(null, "", `/cartes/${target.id}`);
+  }
+
+  // Dos : celui propre à la carte s'il existe, sinon ceux de la série (le principal d'abord).
+  const backs = !card
+    ? []
+    : card.dos
+      ? [{ image: card.dos, imageHD: card.dosHD }]
+      : [card.collection.dos && { image: card.collection.dos, imageHD: card.collection.dosHD }, ...(card.collection.backs || [])].filter(Boolean);
+  const backShown = Math.min(backIndex, Math.max(0, backs.length - 1));
+  function goBack(step) {
+    if (backs.length < 2) return;
+    setBackIndex((backShown + step + backs.length) % backs.length);
+  }
+  const swipeHandlers = (go) => ({
+    onTouchStart: (e) => {
+      touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    },
+    onTouchEnd: (e) => {
+      const step = swipeDirection(touchStart.current, e);
+      touchStart.current = null;
+      if (step) go(step);
+    },
+  });
 
   // « N membres l'ont · M la recherchent » suit tout de suite le choix du visiteur (les
   // compteurs reçus incluent déjà son statut d'origine, la route n'étant pas mise en cache).
@@ -66,7 +131,10 @@ export default function CardDetailClient({ id }) {
   if (loading) return <div className="container page"><div className="empty-state">{t.loading}</div></div>;
   if (notFound || !card) return <div className="container page"><div className="empty-state">{t.notFound}</div></div>;
 
-  const image = card.image || missingCardPlaceholder(card, t);
+  const shownImage = pending ? pending.image : card.image;
+  const shownRarete = pending ? pending.rarete : card.rarete;
+  const placeholder = missingCardPlaceholder(card, t);
+  const back = backs[backShown];
 
   const cardUrl = typeof window !== "undefined" ? window.location.href : "";
 
@@ -99,54 +167,64 @@ export default function CardDetailClient({ id }) {
       </div>
       <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginTop: "1.25rem" }}>
         <div style={{ width: 280, maxWidth: "100%" }}>
-          <HoloCard style={{ width: "100%", aspectRatio: "240 / 336", border: "1px solid var(--line)" }}>
-            {card.image ? (
-              <Image src={card.image} alt={card.personnagePrincipal?.name || ""} fill sizes="280px" style={{ objectFit: "cover" }} />
-            ) : (
-              <img src={image} alt={card.personnagePrincipal?.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <div className="card-viewer" {...swipeHandlers(goVersion)}>
+            <HoloCard style={{ width: "100%", aspectRatio: "240 / 336", border: "1px solid var(--line)" }}>
+              {shownImage ? (
+                <Image src={shownImage} alt={card.personnagePrincipal?.name || ""} fill sizes="280px" style={{ objectFit: "cover" }} />
+              ) : (
+                <img src={placeholder} alt={card.personnagePrincipal?.name || ""} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              )}
+            </HoloCard>
+            {versions.length > 1 && (
+              <>
+                <button type="button" className="viewer-arrow prev" onClick={() => goVersion(-1)} aria-label={t.prevPrism}>
+                  <ChevronLeft size={20} aria-hidden="true" />
+                </button>
+                <button type="button" className="viewer-arrow next" onClick={() => goVersion(1)} aria-label={t.nextPrism}>
+                  <ChevronRight size={20} aria-hidden="true" />
+                </button>
+              </>
             )}
-          </HoloCard>
-          <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", marginTop: "0.4rem" }}>{t.recto}</div>
-          {card.imageHD && (
+          </div>
+          <div className="viewer-caption">
+            {t.recto}
+            {versions.length > 1 && (
+              <>
+                {" · "}<strong>{shownRarete || t.effectUnknown}</strong>{" · "}{versionIndex + 1}/{versions.length}
+              </>
+            )}
+          </div>
+          {!pending && card.imageHD && (
             <a href={card.imageHD} target="_blank" rel="noopener noreferrer" onClick={() => trackHDDownload(`/cartes/${card.id}`)} style={{ display: "block", marginTop: "0.2rem", fontSize: "0.78rem", color: "var(--gold)", textAlign: "center" }}>
               {t.viewHD}
             </a>
           )}
-          {card.variants?.length > 1 && (
-            // Versions connues de cette carte (un effet / prisme chacune) : on les fait défiler
-            // et on passe de l'une à l'autre sans remonter en haut de la page.
-            <div className="prism-strip">
-              <div className="prism-strip-title">{t.prismsKnown(card.variants.length)}</div>
-              <div className="prism-strip-list">
-                {card.variants.map((v) => {
-                  const active = v.id === card.id;
-                  return (
-                    <Link key={v.id} href={`/cartes/${v.id}`} scroll={false} className={`prism-thumb${active ? " active" : ""}`} aria-current={active ? "page" : undefined}>
-                      <span className="prism-thumb-media">
-                        {v.image ? (
-                          <Image src={v.image} alt="" fill sizes="64px" style={{ objectFit: "cover" }} />
-                        ) : (
-                          <img src={missingCardPlaceholder({ ...card, ...v }, t)} alt="" />
-                        )}
-                      </span>
-                      <span className="prism-thumb-name">{v.rarete || t.effectUnknown}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          )}
           {!card.image && <CardScanUpload cardId={card.id} />}
           <CardVariantUpload cardId={card.id} existingRaretes={card.variants?.map((v) => v.rarete)} />
         </div>
-        {(card.dos || card.collection.dos) && (
+        {back && (
           <div style={{ width: 280, maxWidth: "100%" }}>
-            <HoloCard style={{ width: "100%", aspectRatio: "240 / 336", border: "1px solid var(--line)" }}>
-              <Image src={card.dos || card.collection.dos} alt={`${t.verso} — ${card.collection.nom}`} fill sizes="280px" style={{ objectFit: "cover" }} />
-            </HoloCard>
-            <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", marginTop: "0.4rem" }}>{t.verso}</div>
-            {(card.dosHD || card.collection.dosHD) && (
-              <a href={card.dosHD || card.collection.dosHD} target="_blank" rel="noopener noreferrer" onClick={() => trackHDDownload(`/cartes/${card.id}#dos`)} style={{ display: "block", marginTop: "0.2rem", fontSize: "0.78rem", color: "var(--gold)", textAlign: "center" }}>
+            <div className="card-viewer" {...swipeHandlers(goBack)}>
+              <HoloCard style={{ width: "100%", aspectRatio: "240 / 336", border: "1px solid var(--line)" }}>
+                <Image src={back.image} alt={`${t.verso} — ${card.collection.nom}`} fill sizes="280px" style={{ objectFit: "cover" }} />
+              </HoloCard>
+              {backs.length > 1 && (
+                <>
+                  <button type="button" className="viewer-arrow prev" onClick={() => goBack(-1)} aria-label={t.prevBack}>
+                    <ChevronLeft size={20} aria-hidden="true" />
+                  </button>
+                  <button type="button" className="viewer-arrow next" onClick={() => goBack(1)} aria-label={t.nextBack}>
+                    <ChevronRight size={20} aria-hidden="true" />
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="viewer-caption">
+              {t.verso}
+              {backs.length > 1 && <>{" · "}{backShown + 1}/{backs.length}</>}
+            </div>
+            {back.imageHD && (
+              <a href={back.imageHD} target="_blank" rel="noopener noreferrer" onClick={() => trackHDDownload(`/cartes/${card.id}#dos`)} style={{ display: "block", marginTop: "0.2rem", fontSize: "0.78rem", color: "var(--gold)", textAlign: "center" }}>
                 {t.viewHD}
               </a>
             )}
@@ -191,7 +269,7 @@ export default function CardDetailClient({ id }) {
           )}
           <div className="data-row"><span className="data-label">{t.collection}</span><span>{card.collection.nom}</span></div>
           <div className="data-row"><span className="data-label">{t.reference}</span><span>{card.numero}</span></div>
-          <div className="data-row"><span className="data-label">{t.variant}</span><span>{card.rarete || t.effectUnknown}</span></div>
+          <div className="data-row"><span className="data-label">{t.variant}</span><span>{shownRarete || t.effectUnknown}</span></div>
           <div className="data-row"><span className="data-label">{t.editor}</span><span>{card.collection.editeur || "—"}</span></div>
           <div className="data-row"><span className="data-label">{t.origin}</span><span>{card.collection.pays || "—"}</span></div>
           <div className="data-row"><span className="data-label">{t.year}</span><span>{card.collection.annee || "—"}</span></div>
